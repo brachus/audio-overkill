@@ -314,7 +314,7 @@ void update_scope(SDL_Surface *in)
 	
 	float fy;
 	
-	dump_scope_buf();
+	
 	
 	fmt=in->format;
 	
@@ -574,9 +574,14 @@ int main(int argc, char *argv[])
 			}
 		}
 		
+		
+		SDL_FillRect(screen, 0, SDL_MapRGB(screen->format, BG_COLOR));
+		
+		
 		/*printf("sc update...\n");*/
 		if (ispaused==0)
-			update_scope(screen);
+			dump_scope_buf();
+		update_scope(screen);
 		/*printf("ok\n");*/
 		
 		
