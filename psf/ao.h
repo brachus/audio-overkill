@@ -35,4 +35,15 @@ enum
 
 Index<char> ao_get_lib(char *libdir, char *filename);
 
+extern int ao_channel_enable[24];
+
+extern int ao_chan_disp[25*2];
+
+void set_channel_enable(int *set);
+
+void set_chan_disp(int ch, short l, short r);
+
+void mix_chan_disp(int ch, short l, short r);
+
+
 #endif // AO_H

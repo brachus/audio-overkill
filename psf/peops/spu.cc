@@ -85,6 +85,8 @@
 #include "../peops/registers.h"
 #include "../peops/spu.h"
 
+#include "../ao.h"
+
 // Enable experimental silence skipping
 // Currently it is too aggressive, destroying the rhythm of some songs
 // See http://redmine.audacious-media-player.org/issues/201
@@ -109,6 +111,11 @@ static u8 * pSpuBuffer;
 
 // user settings
 static int             iVolume;
+
+static int ch_indic_buf[MAXCHAN*2];
+static int master_indic_buf[2];
+
+
 
 // MAIN infos struct for each channel
 
@@ -241,7 +248,11 @@ int SPUasync(u32 cycles, void (*update)(const void *, int))
      for(ch=0;ch<MAXCHAN;ch++)                         // loop em all.
       {
        if(s_chan[ch].bNew) StartSound(ch);             // start new sound
-       if(!s_chan[ch].bOn) continue;                   // channel not playing? next
+       if(!s_chan[ch].bOn)
+	   {
+		mix_chan_disp(ch,0,0);
+        continue;                                      // channel not playing? next
+	   }
 
 
        if(s_chan[ch].iActFreq!=s_chan[ch].iUsedFreq)   // new psx frequency?
@@ -431,8 +442,8 @@ int SPUasync(u32 cycles, void (*update)(const void *, int))
            // ok, left/right sound volume (psx volume goes from 0 ... 0x3fff)
 	   int tmpl,tmpr;
 
-		if (1) //ao_channel_enable[ch+PSF_1]) {
-		{
+		if (ao_channel_enable[ch]) {
+		
 			tmpl=(s_chan[ch].sval*s_chan[ch].iLeftVolume)>>14;
 			tmpr=(s_chan[ch].sval*s_chan[ch].iRightVolume)>>14;
 		} else {
@@ -441,6 +452,15 @@ int SPUasync(u32 cycles, void (*update)(const void *, int))
 		}
 	   sl+=tmpl;
 	   sr+=tmpr;
+	   
+	   /*
+	    * create an average of all samples played per channel, and
+	    * use it for channel indicator usage.
+	    */
+	   
+	   mix_chan_disp(ch, tmpl, tmpr);
+	   
+	   //mix_chan_disp(ch, s_chan[ch].iLeftVolume, s_chan[ch].iRightVolume);
 
 	   if(((rvb.Enabled>>ch)&1) && (spuCtrl&0x80))
 	   {
@@ -497,6 +517,15 @@ int SPUasync(u32 cycles, void (*update)(const void *, int))
   if(sl<-32767) sl=-32767;
   if(sr>32767) sr=32767;
   if(sr<-32767) sr=-32767;
+  
+  
+  /*
+   * take an average for master channel volume indicator
+   * 
+   */
+   
+  
+   mix_chan_disp(24, sl, sr);
 
   *pS++=sl;
   *pS++=sr;
@@ -672,3 +701,4 @@ void SPUinjectRAMImage(u16 *pIncoming)
 		spuMem[i] = pIncoming[i];
 	}
 }
+

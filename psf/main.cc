@@ -17,17 +17,21 @@
 
 #define TEXT_SCROLL_GAP 32
 
-#define TEXT_COLOR 230,230,230
-#define TEXT_BG_COLOR 0,0,200
-#define BG_COLOR 0, 0, 0
-#define SCOPE_COLOR 255, 255, 255
 
 #define TEXT_COLOR 50,50,50
 #define TEXT_BG_COLOR 230,230,250
 #define BG_COLOR 255, 255, 255
 #define SCOPE_COLOR 0, 0, 0
 
+
+#define TEXT_COLOR 230,230,230
+#define TEXT_BG_COLOR 0,0,200
+#define BG_COLOR 0, 0, 0
+#define SCOPE_COLOR 255, 255, 255
+
 #define WIN_TITLE "Audio Overkill - PSF"
+
+#define MAXCHAN 24
 
 
 static int fok=AO_FAIL;
@@ -43,6 +47,13 @@ static float scope_view = 0.5;
 
 static int mono = 0;
 
+
+const int col_text[3] = {TEXT_COLOR};
+const int col_text_bg[3] = {TEXT_BG_COLOR};
+const int col_bg[3] = {BG_COLOR};
+const int col_scope[3] = {SCOPE_COLOR};
+
+static int channel_enable[MAXCHAN] = {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1};
 
 
 
@@ -358,6 +369,73 @@ void update_scope(SDL_Surface *in)
 	SDL_UnlockSurface( in );
 }
 
+void update_ao_chdisp(SDL_Surface *in)
+{
+	
+	SDL_PixelFormat *fmt;
+	int bpp, pitch, i, x, y, to_y,tmp;
+	uint32_t ucol, ucol1, ucol2;
+	uint8_t *pixel;
+	
+	float fy;
+	
+	
+	
+	fmt=in->format;
+	
+	bpp = fmt->BytesPerPixel;
+	pitch = in->pitch;
+	
+	if (bpp==4)
+	{		
+		ucol = SDL_MapRGB(fmt, SCOPE_COLOR);
+		
+		
+		for (i=0;i<(24*2);i++)
+		{
+			fy=(float) ( ao_chan_disp[i] ) / (0xfff);
+			
+			fy=fy>1.0?1.0:fy;
+			fy=fy<0.0?0.0:fy;
+			
+			
+			x = SCREENWIDTH - 10 - (24*2*2) +  ((i) + (i/2 * 2)  );
+			y = SCREENHEIGHT - 10;
+			to_y = y - (int) (fy*16);
+			
+			y++;
+			
+			if (ao_channel_enable[i/2] == 0)
+				to_y=y+3;
+			
+			while (y > to_y)
+			{
+				pixel = (uint8_t*) in->pixels;
+				pixel += (y * pitch) + (x * bpp);
+				*((uint32_t*)pixel) = ucol;
+				
+				y--;
+			}
+		
+			while (y < to_y)
+			{
+				pixel = (uint8_t*) in->pixels;
+				pixel += (y * pitch) + (x * bpp);
+				*((uint32_t*)pixel) = ucol;
+				
+				y++;
+			}
+		}
+	}
+	
+	
+	SDL_LockSurface( in );
+	
+	
+	
+	SDL_UnlockSurface( in );
+}
+
 void render_text(
 	SDL_Surface* dst,
 	char *str,
@@ -458,6 +536,9 @@ int main(int argc, char *argv[])
 	SDL_Surface* tsurf;
 	SDL_Rect tr;
 	
+	FILE *fp;
+	
+	
 	tr.w=SCREENWIDTH;
 	tr.h=SCREENHEIGHT;
 	
@@ -490,6 +571,8 @@ int main(int argc, char *argv[])
 		SDL_WINDOW_OPENGL);
 		
 	screen = SDL_GetWindowSurface(win);
+	
+	set_channel_enable(channel_enable);
 	
 	load_psf_file(fn[fcur]);
 	
@@ -565,6 +648,32 @@ int main(int argc, char *argv[])
 					chtrack=1;
 					
 					break;
+				
+				case SDLK_0:
+					channel_enable[0] = channel_enable[0]==1 ? 0 : 1;
+					break;
+				case SDLK_1:
+					channel_enable[1] = channel_enable[1]==1 ? 0 : 1;
+					break;
+				case SDLK_2:
+					channel_enable[2] = channel_enable[2]==1 ? 0 : 1;
+					break;
+				case SDLK_3:
+					channel_enable[3] = channel_enable[3]==1 ? 0 : 1;
+					break;
+				case SDLK_4:
+					channel_enable[4] = channel_enable[4]==1 ? 0 : 1;
+					break;
+				case SDLK_5:
+					channel_enable[5] = channel_enable[5]==1 ? 0 : 1;
+					break;
+				case SDLK_6:
+					channel_enable[6] = channel_enable[6]==1 ? 0 : 1;
+					break;
+				case SDLK_7:
+					channel_enable[7] = channel_enable[7]==1 ? 0 : 1;
+					break;
+				
 				default:
 					break;
 				}
@@ -584,10 +693,11 @@ int main(int argc, char *argv[])
 		update_scope(screen);
 		/*printf("ok\n");*/
 		
+		update_ao_chdisp(screen);
 		
 		if (get_corlett_title() != 0)
 		{
-			sprintf(tmpstr,"(%d/%d)",fcur+1,fcnt);
+			
 			
 			render_text(
 				screen,
@@ -615,17 +725,11 @@ int main(int argc, char *argv[])
 				font,
 				10,8+24,
 				1,SCREENWIDTH/2,tick);
-			render_text(
-				screen,
-				tmpstr,
-				&tcol_a,
-				&tcol_b,
-				font,
-				10,8+36,
-				1,SCREENWIDTH/2,tick);
-				
 			
+				
 		}
+		
+		
 		
 		if (ispaused)
 			render_text(
@@ -669,6 +773,20 @@ int main(int argc, char *argv[])
 			newtrackcnt=20;
 		}
 		
+		
+		sprintf(tmpstr,"(%d/%d)",fcur+1,fcnt);
+		
+		render_text(
+			screen,
+			tmpstr,
+			&tcol_a,
+			&tcol_b,
+			font,
+			10,8+36,
+			1,SCREENWIDTH/2,tick);
+		
+		
+		set_channel_enable(channel_enable);
 		
 		SDL_UpdateWindowSurface(win);
 		

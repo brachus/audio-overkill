@@ -414,3 +414,4 @@ char *get_corlett_game(void)
 		return 0;
 	return c->inf_game;
 }
+
