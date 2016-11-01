@@ -24,6 +24,9 @@ int ao_chan_disp[25*2];
  * like channel_enable, set around the 24 max channels
  * psf has.  25 is master.
  */
+ 
+ 
+int ao_chan_flag_disp[24];
 
 
 /* ao_get_lib: called to load secondary files */
@@ -65,7 +68,7 @@ void mix_chan_disp(int ch, short l, short r)
 	l=l<0?-l:l;
 	r=r<0?-r:r;
 	
-	if (sp_cnt[ch] % 256 == 0)
+	if (sp_cnt[ch] % (44100/60) == 0)
 	{
 		ao_chan_disp[ch*2] = l;
 		ao_chan_disp[(ch*2)+1] = r;

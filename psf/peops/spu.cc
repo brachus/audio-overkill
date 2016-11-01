@@ -338,6 +338,23 @@ int SPUasync(u32 cycles, void (*update)(const void *, int))
               }
 
              //////////////////////////////////////////// flag handler
+             
+             ao_chan_flag_disp[ch]= flags;
+             
+             //switch (s_chan[ch].ADSRX.State)
+             //{
+             //case 0:
+				 //ao_chan_flag_disp[ch] = 1;
+				 //break;
+			 //case 1:
+				 //ao_chan_flag_disp[ch] = 2;
+				 //break;
+			 //case 2:
+				 //ao_chan_flag_disp[ch] = 4;
+				 //break;
+			 //}
+             
+             
 
              if((flags&4) && (!s_chan[ch].bIgnoreLoop))
               s_chan[ch].pLoop=start-16;               // loop adress

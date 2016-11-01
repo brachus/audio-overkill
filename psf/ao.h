@@ -39,6 +39,8 @@ extern int ao_channel_enable[24];
 
 extern int ao_chan_disp[25*2];
 
+extern int ao_chan_flag_disp[24];
+
 void set_channel_enable(int *set);
 
 void set_chan_disp(int ch, short l, short r);

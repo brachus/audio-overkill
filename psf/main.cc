@@ -18,16 +18,18 @@
 #define TEXT_SCROLL_GAP 32
 
 
-#define TEXT_COLOR 50,50,50
-#define TEXT_BG_COLOR 230,230,250
-#define BG_COLOR 255, 255, 255
-#define SCOPE_COLOR 0, 0, 0
-
 
 #define TEXT_COLOR 230,230,230
 #define TEXT_BG_COLOR 0,0,200
 #define BG_COLOR 0, 0, 0
 #define SCOPE_COLOR 255, 255, 255
+
+
+#define TEXT_COLOR 50,50,50
+#define TEXT_BG_COLOR 230,230,250
+#define BG_COLOR 255, 255, 255
+#define SCOPE_COLOR 0, 0, 0
+
 
 #define WIN_TITLE "Audio Overkill - PSF"
 
@@ -55,11 +57,44 @@ const int col_scope[3] = {SCOPE_COLOR};
 
 static int channel_enable[MAXCHAN] = {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1};
 
-
-
-
 static int u_size = 3000;
 static Uint8  *u_buf = ( Uint8 *) malloc(sizeof ( Uint8 ) * 3000);
+
+
+static SDL_PixelFormat *pw_fmt;
+static int pw_bpp, pw_pitch;
+static uint32_t pw_ucol;
+static uint8_t *pw_pixel;
+
+
+int pw_init(SDL_Surface *in)
+{
+	
+	pw_fmt=in->format;
+	pw_bpp = pw_fmt->BytesPerPixel;
+	pw_pitch = in->pitch;
+	
+	return pw_bpp==4;
+		
+}
+
+void pw_set_rgb(int r,int g,int b)
+{
+	
+	pw_ucol = SDL_MapRGB(pw_fmt, r,g,b);
+}
+
+void pw_fill(SDL_Surface *in)
+{
+	SDL_FillRect(in, 0, pw_ucol);
+}
+
+void pw_set(SDL_Surface *in, int x, int y)
+{
+	pw_pixel = (uint8_t*) in->pixels;
+	pw_pixel += (y * pw_pitch) + (x * pw_bpp);
+	*((uint32_t*)pw_pixel) = pw_ucol;
+}
 
 
 void dump_scope_buf()
@@ -315,29 +350,21 @@ void clear_scope()
 		scope_buf[i]=0;
 }
 
+
 void update_scope(SDL_Surface *in)
 {
 	
-	SDL_PixelFormat *fmt;
-	int bpp, pitch, i, x, y;
-	uint32_t ucol, ucol1, ucol2;
-	uint8_t *pixel;
+	int i, x, y;
 	
 	float fy;
 	
-	
-	
-	fmt=in->format;
-	
-	bpp = fmt->BytesPerPixel;
-	pitch = in->pitch;
-	
-	if (bpp==4)
+	if (pw_init(in))
 	{
-		SDL_FillRect(in, 0, SDL_MapRGB(fmt, BG_COLOR));
+		pw_set_rgb(BG_COLOR);
 		
-		ucol = SDL_MapRGB(fmt, SCOPE_COLOR);
+		pw_fill(in);
 		
+		pw_set_rgb(SCOPE_COLOR);
 		
 		for (i=0;i<SCOPEWIDTH;i++)
 		{
@@ -349,47 +376,25 @@ void update_scope(SDL_Surface *in)
 			y = y<0? 0:y;
 			y = y>(SCREENHEIGHT-1)?(SCREENHEIGHT-1):y;
 			
+			pw_set(in, x, y);
 			
-			pixel = (uint8_t*) in->pixels;
-			pixel += (y * pitch) + (x * bpp);
-			*((uint32_t*)pixel) = ucol;
-			
-			pixel = (uint8_t*) in->pixels;
-			pixel += ((y+1) * pitch) + (x * bpp);
-			*((uint32_t*)pixel) = ucol;
-			
+			pw_set(in, x, y+1);
 		}
 	}
 	
-	
-	SDL_LockSurface( in );
-	
-	
-	
-	SDL_UnlockSurface( in );
 }
 
 void update_ao_chdisp(SDL_Surface *in)
 {
 	
-	SDL_PixelFormat *fmt;
-	int bpp, pitch, i, x, y, to_y,tmp;
-	uint32_t ucol, ucol1, ucol2;
-	uint8_t *pixel;
+	int i, x, y, to_y;
 	
 	float fy;
 	
 	
-	
-	fmt=in->format;
-	
-	bpp = fmt->BytesPerPixel;
-	pitch = in->pitch;
-	
-	if (bpp==4)
+	if (pw_init(in))
 	{		
-		ucol = SDL_MapRGB(fmt, SCOPE_COLOR);
-		
+		pw_set_rgb(SCOPE_COLOR);
 		
 		for (i=0;i<(24*2);i++)
 		{
@@ -403,37 +408,57 @@ void update_ao_chdisp(SDL_Surface *in)
 			y = SCREENHEIGHT - 10;
 			to_y = y - (int) (fy*16);
 			
-			y++;
+			y+=1;
 			
 			if (ao_channel_enable[i/2] == 0)
-				to_y=y+3;
-			
+				to_y = y + 3;
+							
 			while (y > to_y)
 			{
-				pixel = (uint8_t*) in->pixels;
-				pixel += (y * pitch) + (x * bpp);
-				*((uint32_t*)pixel) = ucol;
-				
+				pw_set(in, x, y);
 				y--;
 			}
 		
 			while (y < to_y)
 			{
-				pixel = (uint8_t*) in->pixels;
-				pixel += (y * pitch) + (x * bpp);
-				*((uint32_t*)pixel) = ucol;
-				
+				pw_set(in, x, y);
 				y++;
 			}
 		}
 	}
 	
+}
+
+void update_ao_ch_flag_disp(SDL_Surface *in)
+{
 	
-	SDL_LockSurface( in );
+	int i, j, x, y, tmp;
+	
+	float fy;
 	
 	
+	if (pw_init(in))
+	{		
+		pw_set_rgb(SCOPE_COLOR);
+		
+		for (i=0;i<(24);i++)
+		{
+			tmp = ao_chan_flag_disp[i];
+			y=SCREENHEIGHT - (24*2) - 4 + (i*2);
+			
+			
+			y = SCREENHEIGHT - 10;
+			x = SCREENWIDTH - 10 - (24*2*2) +  (i + (i * 3))  ;
+			
+			if (tmp & (1))
+				pw_set(in, x, y+4);
+			if (tmp & (2))
+				pw_set(in, x, y+5);
+			if (tmp & (4))
+				pw_set(in, x, y+6);
+		}
+	}
 	
-	SDL_UnlockSurface( in );
 }
 
 void render_text(
@@ -490,11 +515,14 @@ void render_text(
 	tr.x=x;
 	SDL_BlitSurface(text, &tclip, dst, &tr);
 	
+	
 	if (bold==1)
 	{
 		tr.x+=1;
 		SDL_BlitSurface(text, &tclip, dst, &tr);
 	}
+	
+	SDL_FreeSurface(text);
 	
 	if (toobig)
 	{
@@ -515,10 +543,12 @@ void render_text(
 			tr.x+=1;
 			SDL_BlitSurface(text, &tclip, dst, &tr);
 		}
+		
+		SDL_FreeSurface(text);
 	}
 	
 	
-	SDL_FreeSurface(text);
+	
 }
 
 int main(int argc, char *argv[])
@@ -694,6 +724,8 @@ int main(int argc, char *argv[])
 		/*printf("ok\n");*/
 		
 		update_ao_chdisp(screen);
+		
+		update_ao_ch_flag_disp(screen);
 		
 		if (get_corlett_title() != 0)
 		{

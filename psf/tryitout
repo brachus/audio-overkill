@@ -12,4 +12,4 @@ g++ main.cc ao.cc audstrings.cc corlett.cc \
         -I/usr/lib/x86_64-linux-gnu/glib-2.0/include\
         -I/usr/include/SDL2 -lSDL2 -lSDL2_ttf\
         -lz -Wno-sign-compare -I../.. -Ispu/\
-        -I. -std=c++11  -fpermissive -o audio_overkill_psf
+        -I. -std=c++11  -fpermissive -O2 -o audio_overkill_psf
