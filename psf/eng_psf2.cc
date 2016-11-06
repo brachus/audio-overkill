@@ -47,7 +47,8 @@
 #include <stdlib.h>
 
 #include <zlib.h>
-#include <libaudcore/audstrings.h>
+/*#include <libaudcore/audstrings.h>*/
+#include "audstrings.h"
 
 #include "ao.h"
 #include "eng_protos.h"
@@ -80,7 +81,7 @@ static uint32_t initialPC, initialSP;
 static uint32_t loadAddr, lengthMS, fadeMS;
 
 static uint8_t *filesys[MAX_FS];
-static Index<char> lib_raw_file;
+static struct filebuf* lib_raw_file;
 static uint32_t fssize[MAX_FS];
 static int num_fs;
 
@@ -305,7 +306,7 @@ static uint32_t load_file_ex(uint8_t *top, uint8_t *start, uint32_t len, const c
 		printf("[%s vs %s]: ofs %08x uncomp %08x bsize %08x\n", cptr, matchname, offs, uncomp, bsize);
 		#endif
 
-		if (!strcmp_nocase((char *)cptr, matchname))
+		if (!strcmp_nocase((char *)cptr, matchname,-1))
 		{
 			if ((uncomp == 0) && (bsize == 0))
 			{
@@ -453,6 +454,8 @@ int32_t psf2_start(uint8_t *buffer, uint32_t length)
 	uint8_t *buf;
 	union cpuinfo mipsinfo;
 	corlett_t *lib;
+	
+	lib_raw_file = filebuf_init();
 
 	loadAddr = 0x23f00;	// this value makes allocations work out similarly to how they would
 				// in Highly Experimental (as per Shadow Hearts' hard-coded assumptions)
@@ -484,12 +487,12 @@ int32_t psf2_start(uint8_t *buffer, uint32_t length)
 		printf("Loading library: %s\n", c->lib);
 		#endif
 
-		lib_raw_file = ao_get_lib(0, c->lib);
+		ao_get_lib(lib_raw_file, 0, c->lib);
 
-		if (!lib_raw_file.len())
+		if (!lib_raw_file->len)
 			return AO_FAIL;
 
-		if (corlett_decode((uint8_t *)lib_raw_file.begin(), lib_raw_file.len(),
+		if (corlett_decode((uint8_t *)lib_raw_file->buf, lib_raw_file->len,
 		 &lib_decoded, &lib_len, &lib) != AO_SUCCESS)
 			return AO_FAIL;
 
@@ -595,7 +598,7 @@ int32_t psf2_execute(void (*update)(const void *, int))
 int32_t psf2_stop(void)
 {
 	SPU2close();
-	lib_raw_file.clear();
+	filebuf_free(lib_raw_file);
 	free(c);
 
 	return AO_SUCCESS;

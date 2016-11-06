@@ -1,3 +1,6 @@
+
+# -I/usr/local/include -L/usr/local/lib -laudcore 
+
 g++ main.cc ao.cc audstrings.cc corlett.cc \
        psx.cc \
        psx_hw.cc \
@@ -7,8 +10,7 @@ g++ main.cc ao.cc audstrings.cc corlett.cc \
        peops2/dma.cc \
        peops2/registers.cc \
        peops2/spu.cc \
-	-I/usr/local/include -L/usr/local/lib \
-        -laudcore -lglib-2.0 -I/usr/include/glib-2.0\
+	    -lglib-2.0 -I/usr/include/glib-2.0\
         -I/usr/lib/x86_64-linux-gnu/glib-2.0/include\
         -I/usr/include/SDL2 -lSDL2 -lSDL2_ttf\
         -lz -Wno-sign-compare -I../.. -Ispu/\

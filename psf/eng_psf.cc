@@ -28,7 +28,8 @@
 #include <string.h>
 #include <stdlib.h>
 
-#include <libaudcore/audstrings.h>
+//#include <libaudcore/audstrings.h>
+#include "audstrings.h"
 
 #include "ao.h"
 #include "eng_protos.h"
@@ -43,7 +44,7 @@
 
 #include "corlett.h"
 
-#define DEBUG_LOADER	(1)
+#define DEBUG_LOADER	(0)
 
 #define LE32(x) FROM_LE32(x)
 
@@ -78,6 +79,9 @@ int32_t psf_start(uint8_t *buffer, uint32_t length)
 	corlett_t *lib;
 	int i;
 	union cpuinfo mipsinfo;
+	
+	struct filebuf *buf;
+	buf = filebuf_init();
 
 	// clear PSX work RAM before we start scribbling in it
 	memset(psx_ram, 0, 2*1024*1024);
@@ -85,7 +89,9 @@ int32_t psf_start(uint8_t *buffer, uint32_t length)
 //	printf("Length = %d\n", length);
 
 	// Decode the current GSF
+	#if DEBUG_LOADER
 	printf("decode gsf\n");
+	#endif
 	if (corlett_decode(buffer, length, &file, &file_len, &c) != AO_SUCCESS)
 	{
 		return AO_FAIL;
@@ -94,7 +100,9 @@ int32_t psf_start(uint8_t *buffer, uint32_t length)
 //	printf("file_len %d reserve %d\n", file_len, c->res_size);
 
 	// check for PSX EXE signature
+	#if DEBUG_LOADER
 	printf("psx_exe_sig\n");
+	#endif
 	if (strncmp((char *)file, "PS-X EXE", 8))
 	{
 		return AO_FAIL;
@@ -133,12 +141,12 @@ int32_t psf_start(uint8_t *buffer, uint32_t length)
 		printf("Loading library: %s\n", c->lib);
 		#endif
 
-		Index<char> buf = ao_get_lib(libdir, c->lib);
+		ao_get_lib(buf, libdir, c->lib);
 
-		if (!buf.len())
+		if (!buf->len)
 			return AO_FAIL;
 
-		if (corlett_decode((uint8_t *)buf.begin(), buf.len(), &lib_decoded, &lib_len, &lib) != AO_SUCCESS)
+		if (corlett_decode((uint8_t *)buf->buf, buf->len, &lib_decoded, &lib_len, &lib) != AO_SUCCESS)
 			return AO_FAIL;
 
 		if (strncmp((char *)lib_decoded, "PS-X EXE", 8))
@@ -196,7 +204,10 @@ int32_t psf_start(uint8_t *buffer, uint32_t length)
 
 		// Dispose the corlett structure for the lib - we don't use it
 		free(lib);
+		
 	}
+	
+	filebuf_free(buf);
 
 	// now patch the main file into RAM OVER the libraries (but not the aux lib)
 	offset = file[0x18] | file[0x19]<<8 | file[0x1a]<<16 | file[0x1b]<<24;
@@ -217,13 +228,14 @@ int32_t psf_start(uint8_t *buffer, uint32_t length)
 			#if DEBUG_LOADER
 			printf("Loading aux library: %s\n", c->libaux[i]);
 			#endif
+			
 
-			Index<char> buf = ao_get_lib(libdir, c->libaux[i]);
+			ao_get_lib(buf, libdir, c->libaux[i]);
 
-			if (!buf.len())
+			if (!buf->len)
 				return AO_FAIL;
 
-			if (corlett_decode((uint8_t *)buf.begin(), buf.len(), &alib_decoded, &alib_len, &lib) != AO_SUCCESS)
+			if (corlett_decode((uint8_t *)buf->buf, buf->len, &alib_decoded, &alib_len, &lib) != AO_SUCCESS)
 				return AO_FAIL;
 
 			if (strncmp((char *)alib_decoded, "PS-X EXE", 8))
@@ -254,8 +266,12 @@ int32_t psf_start(uint8_t *buffer, uint32_t length)
 
 			// Dispose the corlett structure for the lib - we don't use it
 			free(lib);
+			
+			
 		}
 	}
+	
+	filebuf_free(buf);
 
 	free(file);
 //	free(lib_decoded);
@@ -267,7 +283,7 @@ int32_t psf_start(uint8_t *buffer, uint32_t length)
 		int i;
 		for (i = 0; i < MAX_UNKNOWN_TAGS; i++)
 		{
-			if (!strcmp_nocase(c->tag_name[i], "psfby"))
+			if (!strcmp_nocase(c->tag_name[i], "psfby", -1))
 				strcpy(psfby, c->tag_data[i]);
 		}
 	}
@@ -313,7 +329,8 @@ int32_t psf_start(uint8_t *buffer, uint32_t length)
 	lengthMS = psfTimeToMS(c->inf_length);
 	fadeMS = psfTimeToMS(c->inf_fade);
 	
-	lengthMS*=32;
+	lengthMS = ao_set_len;
+	
 
 	#if DEBUG_LOADER
 	printf("length %d fade %d\n", lengthMS, fadeMS);

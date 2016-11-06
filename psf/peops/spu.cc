@@ -339,7 +339,10 @@ int SPUasync(u32 cycles, void (*update)(const void *, int))
 
              //////////////////////////////////////////// flag handler
              
-             ao_chan_flag_disp[ch]= flags;
+             /*ao_chan_flag_disp[ch]= flags;*/
+             ao_chan_flag_disp[ch]= s_chan[ch].pStart;
+             
+            
              
              //switch (s_chan[ch].ADSRX.State)
              //{
@@ -458,8 +461,10 @@ int SPUasync(u32 cycles, void (*update)(const void *, int))
            //////////////////////////////////////////////
            // ok, left/right sound volume (psx volume goes from 0 ... 0x3fff)
 	   int tmpl,tmpr;
+	   
+	    ao_add_sample(temp, s_chan[ch].pStart);
 
-		if (ao_channel_enable[ch]) {
+		if (ao_channel_enable[ch] && ao_sample_limit_ok(s_chan[ch].pStart) ) {
 		
 			tmpl=(s_chan[ch].sval*s_chan[ch].iLeftVolume)>>14;
 			tmpr=(s_chan[ch].sval*s_chan[ch].iRightVolume)>>14;
@@ -477,7 +482,6 @@ int SPUasync(u32 cycles, void (*update)(const void *, int))
 	   
 	   mix_chan_disp(ch, tmpl, tmpr);
 	   
-	   //mix_chan_disp(ch, s_chan[ch].iLeftVolume, s_chan[ch].iRightVolume);
 
 	   if(((rvb.Enabled>>ch)&1) && (spuCtrl&0x80))
 	   {

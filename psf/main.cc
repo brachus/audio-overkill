@@ -11,6 +11,8 @@
 
 #include "ao.h"
 
+#define DEBUG_MAIN (0)
+
 #define SCREENWIDTH 320
 #define SCREENHEIGHT 240
 #define SCOPEWIDTH 320
@@ -35,6 +37,8 @@
 
 #define MAXCHAN 24
 
+#define ABUFSIZ 1024
+
 
 static int fok=AO_FAIL;
 static int samples=44100 / 30;
@@ -58,7 +62,11 @@ const int col_scope[3] = {SCOPE_COLOR};
 static int channel_enable[MAXCHAN] = {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1};
 
 static int u_size = 3000;
-static Uint8  *u_buf = ( Uint8 *) malloc(sizeof ( Uint8 ) * 3000);
+static Uint8  *u_buf = ( Uint8 *) malloc(sizeof ( Uint8 ) * u_size);
+static int u_buf_fill_start = 0; /* where sdl begins to fill audio stream from */
+static int u_buf_fill_size = ABUFSIZ * 2; /* portion in bytes out of u_buf that is taken by sdl audio fill function*/
+static int u_buf_fill = 0; /* size in bytes filled from fill_start and on.*/
+
 
 
 static SDL_PixelFormat *pw_fmt;
@@ -97,6 +105,8 @@ void pw_set(SDL_Surface *in, int x, int y)
 }
 
 
+
+
 void dump_scope_buf()
 {
 	int i, j;
@@ -133,14 +143,7 @@ void dump_scope_buf()
 }
 
 
-void init()
-{
-	if ( SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO ) < 0 )
-		exit( EXIT_FAILURE );
-	atexit( SDL_Quit );
-	
-	
-}
+
 
 char *str_prepend(char *s, char *pre)
 {
@@ -223,11 +226,11 @@ char *get_lib_dir(char *path)
 
 void update(const  Uint8  *buf, int size)
 {
+	
 	int i, tmp, tmp1;
 	signed short stmp, stmp1;
-	/*int mono=1;*/
 	
-	if (mono==0)
+	if (mono==0) /* not mono, just copy to u_buf */
 	{
 		for (i=0;i<size;i++)
 			u_buf[i] = buf[i];
@@ -236,7 +239,7 @@ void update(const  Uint8  *buf, int size)
 	{
 		for (i=0;i<size;i++) /* assuming two channels */
 		{
-			if (i%4==0)
+			if (i%4==0) /* average the two signed shorts making up 2 channels.*/
 			{
 				
 				
@@ -283,6 +286,144 @@ void fill_audio(void *udata, Uint8 *stream, int len)
 			}
 		}
 	}
+}
+
+void reset_u_buf()
+{
+	u_buf_fill_start = 0;
+	u_buf_fill = 0;
+}
+
+void update_alt(const  Uint8  *buf, int size)
+{
+	
+	int i,j, tmp, tmp1, goal, over,newsz,got;
+	signed short stmp, stmp1;
+	Uint8 *ctmp;
+	
+	/* resize u_buf if update thows too much data */
+	if (size > (u_size-(u_buf_fill*2)))
+	{
+		newsz = (size * 2 + (size/2)) + (u_buf_fill*2);
+		printf("note: buffer resize from %d to %d\n", (u_size), newsz);
+		ctmp = ( Uint8 *) malloc(sizeof ( Uint8 ) * newsz);
+		
+		
+		j=u_buf_fill_start;
+		i=0;
+		goal = (u_buf_fill + u_buf_fill_start) % u_size;
+		while (j!=goal)
+		{
+			ctmp[i] = u_buf[j];
+			
+			j++;
+			j%=u_size;
+			
+			i++;
+		}
+		
+		free(u_buf);
+		u_buf = ctmp;
+		ctmp=0;
+		u_size = newsz;
+		u_buf_fill_start = 0;
+	}
+	
+	
+	j=u_buf_fill_start;
+	i=0;
+	goal = u_buf_fill_start + (u_buf_fill_size);
+	goal %= u_size;
+	
+	
+	j+=u_buf_fill;
+	j%=u_size;
+		
+	
+	if (mono==0) /* STREREO */
+		while (i < size)
+		{
+			u_buf[j] = buf[i];
+			
+			u_buf_fill++;
+				
+			
+			j++;
+			j%=u_size;
+			
+			i++;
+		}
+	else /* MONO  (assuming 4-byte 2ch signed short le )*/
+		while (i < size)
+		{
+			if (i%4==0)
+			{
+				stmp = (buf[i+1]<<8) + (buf[i] & 0xff);
+				stmp1 = (buf[i+3]<<8) + (buf[i+2] & 0xff);
+				
+				tmp = ((int)stmp + (int)stmp1) / 2;
+				
+				u_buf[j % u_size] = tmp & 0xff;
+				u_buf[j+1 % u_size] = (tmp>>8) & 0xff;
+				
+				u_buf[j+2 % u_size] = tmp & 0xff;
+				u_buf[j+3 % u_size] = (tmp>>8) & 0xff;
+				
+			
+				u_buf_fill+=4;
+					
+				
+				j+=4;
+				j%=u_size;
+				
+			}
+			
+			i++;
+		}
+		
+		
+	
+	return;
+}
+
+void fill_audio_alt(void *udata, Uint8 *stream, int len)
+{
+	int i,j,goal;
+	
+	if (fok==AO_SUCCESS)
+	{
+		while (u_buf_fill < len)
+			psf_execute(update_alt);
+		
+		i=0;
+		j=u_buf_fill_start;
+		goal=j+len; /* should be same as j + u_buf_fill_size */
+		goal%=u_size;
+		
+		while (i < len)
+		{
+			stream[i] = u_buf[j]; /* fill stream */
+			
+			
+			i++;
+			
+			if (j%4==0 && j+1 < u_size && scope_bufsiz < 1024)
+			{
+				scope_buf[scope_bufsiz] = (u_buf[j+1]<<8) + (u_buf[j]);
+				scope_bufsiz++;
+			}
+			
+			j++;
+			j%=u_size;
+			
+			u_buf_fill--;
+		}
+		
+		u_buf_fill_start += len;
+		u_buf_fill_start %= u_size;
+		
+			
+	}
 	
 }
 
@@ -301,7 +442,7 @@ void load_psf_file(char *fn)
 	{
 		ctmp=get_lib_dir(fn);
 		printf("get_lib_dir ok\n");
-		ctmp=str_prepend(ctmp,"file://");
+		//ctmp=str_prepend(ctmp,"file://");
 		printf("str_prepend ok\n");
 		set_libdir(ctmp);
 		printf("set_libdir ok\n");
@@ -429,12 +570,16 @@ void update_ao_chdisp(SDL_Surface *in)
 	
 }
 
-void update_ao_ch_flag_disp(SDL_Surface *in)
+void update_ao_ch_flag_disp(SDL_Surface *in, int md)
 {
 	
 	int i, j, x, y, tmp;
 	
 	float fy;
+	
+	static char tmpstr[32];
+	
+	SDL_Color tcol_a = { SCOPE_COLOR, 0 };
 	
 	
 	if (pw_init(in))
@@ -450,12 +595,30 @@ void update_ao_ch_flag_disp(SDL_Surface *in)
 			y = SCREENHEIGHT - 10;
 			x = SCREENWIDTH - 10 - (24*2*2) +  (i + (i * 3))  ;
 			
-			if (tmp & (1))
+			
+			if (md==1)
+			{
+				if (tmp & (1))
+					pw_set(in, x, y+4);
+				if (tmp & (2))
+					pw_set(in, x, y+5);
+				if (tmp & (4))
+					pw_set(in, x, y+6);
+			}
+			
+			
+			if (md==2)
+			{
+				pw_set_rgb(tmp&0xff,tmp>>8&0xff,tmp>>16&0xff);
 				pw_set(in, x, y+4);
-			if (tmp & (2))
+				pw_set(in, x+1, y+4);
 				pw_set(in, x, y+5);
-			if (tmp & (4))
-				pw_set(in, x, y+6);
+				pw_set(in, x+1, y+5);
+			}
+			
+			pw_set_rgb(SCOPE_COLOR);
+				
+			/*printf("%d\n",tmp);*/
 		}
 	}
 	
@@ -473,20 +636,15 @@ void render_text(
 	int maxwidth,
 	int tick)
 {
-	
+	static SDL_Surface* text;
 	int maxtks, tkframe, shiftx, toobig=0;
 	SDL_Rect tclip,tr;
 	tclip.x=0;
 	tclip.y=0;
 	tclip.h=256;
 	
-	
-	
-	
 	tr.w=SCREENWIDTH;
 	tr.h=SCREENHEIGHT;
-	
-	static SDL_Surface* text;
 	
 	text = TTF_RenderText_Solid(font, str, *col_b);
 	
@@ -497,7 +655,6 @@ void render_text(
 	{
 		maxtks=((text->w)+TEXT_SCROLL_GAP)*2;
 		tkframe = tick % maxtks;
-		
 		
 		shiftx = (tkframe/2);
 		
@@ -511,6 +668,7 @@ void render_text(
 	tr.y=y;
 	SDL_BlitSurface(text, &tclip, dst, &tr);
 	SDL_FreeSurface(text);
+	
 	text = TTF_RenderText_Solid(font, str, *col_a);
 	tr.x=x;
 	SDL_BlitSurface(text, &tclip, dst, &tr);
@@ -534,6 +692,7 @@ void render_text(
 		text = TTF_RenderText_Solid(font, str, *col_b);
 		SDL_BlitSurface(text, &tclip, dst, &tr);
 		SDL_FreeSurface(text);
+		
 		text = TTF_RenderText_Solid(font, str, *col_a);
 		tr.x=x;
 		SDL_BlitSurface(text, &tclip, dst, &tr);
@@ -546,9 +705,6 @@ void render_text(
 		
 		SDL_FreeSurface(text);
 	}
-	
-	
-	
 }
 
 int main(int argc, char *argv[])
@@ -610,14 +766,15 @@ int main(int argc, char *argv[])
     wanted.freq = 44100;
     wanted.format = AUDIO_S16;
     wanted.channels = 2;    /* 1 = mono, 2 = stereo */
-    wanted.samples = samples;
-    wanted.callback = fill_audio;
+    wanted.samples = ABUFSIZ;
+    wanted.callback = fill_audio_alt;
     wanted.userdata = 0;
 
     /* open the audio device, forcing the desired format */
-    if ( SDL_OpenAudio(&wanted, NULL) < 0 ) {
+    if ( SDL_OpenAudio(&wanted, NULL) < 0 )
+    {
         fprintf(stderr, "Couldn't open audio: %s\n", SDL_GetError());
-        return(-1);
+        return 0;
     }
     
     SDL_PauseAudio(0);
@@ -640,7 +797,7 @@ int main(int argc, char *argv[])
 				
 				switch ( e.key.keysym.sym )
 				{
-				case SDLK_q:
+				/*case SDLK_q:*/
 				case SDLK_ESCAPE:
 					run = 0;
 					break;
@@ -680,28 +837,67 @@ int main(int argc, char *argv[])
 					break;
 				
 				case SDLK_0:
-					channel_enable[0] = channel_enable[0]==1 ? 0 : 1;
+					if (ao_sample_limit[0]==0)
+						ao_sample_limit[0]=1;
+					else
+						ao_sample_limit[0]=0;
 					break;
 				case SDLK_1:
-					channel_enable[1] = channel_enable[1]==1 ? 0 : 1;
+					ao_sample_do[0] = ao_sample_do[0] ? 0 : 1;
 					break;
 				case SDLK_2:
-					channel_enable[2] = channel_enable[2]==1 ? 0 : 1;
+					ao_sample_do[1] = ao_sample_do[1] ? 0 : 1;
 					break;
 				case SDLK_3:
-					channel_enable[3] = channel_enable[3]==1 ? 0 : 1;
+					ao_sample_do[2] = ao_sample_do[2] ? 0 : 1;
 					break;
 				case SDLK_4:
-					channel_enable[4] = channel_enable[4]==1 ? 0 : 1;
+					ao_sample_do[3] = ao_sample_do[3] ? 0 : 1;
 					break;
 				case SDLK_5:
-					channel_enable[5] = channel_enable[5]==1 ? 0 : 1;
+					ao_sample_do[4] = ao_sample_do[4] ? 0 : 1;
 					break;
 				case SDLK_6:
-					channel_enable[6] = channel_enable[6]==1 ? 0 : 1;
+					ao_sample_do[5] = ao_sample_do[5] ? 0 : 1;
 					break;
 				case SDLK_7:
-					channel_enable[7] = channel_enable[7]==1 ? 0 : 1;
+					ao_sample_do[6] = ao_sample_do[6] ? 0 : 1;
+					break;
+				case SDLK_8:
+					ao_sample_do[7] = ao_sample_do[7] ? 0 : 1;
+					break;
+				case SDLK_9:
+					ao_sample_do[8] = ao_sample_do[8] ? 0 : 1;
+					break;
+				case SDLK_q:
+					ao_sample_do[9] = ao_sample_do[9] ? 0 : 1;
+					break;
+				case SDLK_w:
+					ao_sample_do[10] = ao_sample_do[10] ? 0 : 1;
+					break;
+				case SDLK_e:
+					ao_sample_do[11] = ao_sample_do[11] ? 0 : 1;
+					break;
+				case SDLK_r:
+					ao_sample_do[12] = ao_sample_do[12] ? 0 : 1;
+					break;
+				case SDLK_t:
+					ao_sample_do[13] = ao_sample_do[13] ? 0 : 1;
+					break;
+				case SDLK_y:
+					ao_sample_do[14] = ao_sample_do[14] ? 0 : 1;
+					break;
+				case SDLK_u:
+					ao_sample_do[15] = ao_sample_do[15] ? 0 : 1;
+					break;
+				case SDLK_i:
+					ao_sample_do[16] = ao_sample_do[16] ? 0 : 1;
+					break;
+				case SDLK_o:
+					ao_sample_do[17] = ao_sample_do[17] ? 0 : 1;
+					break;
+				case SDLK_p:
+					ao_sample_do[18] = ao_sample_do[18] ? 0 : 1;
 					break;
 				
 				default:
@@ -725,7 +921,7 @@ int main(int argc, char *argv[])
 		
 		update_ao_chdisp(screen);
 		
-		update_ao_ch_flag_disp(screen);
+		update_ao_ch_flag_disp(screen,2);
 		
 		if (get_corlett_title() != 0)
 		{
@@ -766,7 +962,7 @@ int main(int argc, char *argv[])
 		if (ispaused)
 			render_text(
 				screen, "- paused -", &tcol_a, &tcol_b,
-				font, 10,SCREENHEIGHT - 16,  1,SCREENWIDTH/2,tick);
+				font, 10,SCREENHEIGHT - 16,1 ,SCREENWIDTH/2 ,tick);
 		
 		if (mono==1)
 			render_text(
@@ -786,11 +982,15 @@ int main(int argc, char *argv[])
 			close_psf_file();
 			printf("audio loading...\n");
 			
+			ao_sample_idx_clear();
+			
 			/* HERE */
 			printf("file: %s\n",fn[fcur]);
 			
 			load_psf_file(fn[fcur]);
 			printf("audio unpause...\n");
+			
+			reset_u_buf();
 			
 			if (ispaused==0)
 				SDL_PauseAudio(0);

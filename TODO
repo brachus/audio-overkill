@@ -1,0 +1,5 @@
+ - specify max length of music track from cmd line.
+ - channel on/off mode and separate sample on/off mode.
+    consider selectable graphical displays for these.
+
+ - consider vgm/sid/nsf support.

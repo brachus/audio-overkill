@@ -1,0 +1,6 @@
+ - an array in ao.h that can catalog any used samples, and a
+   function to filter out by samples used.
+
+ - a flag in ao.h indicating play length.  ~0 by default.
+
+ - implement options in command line, starting with length specifier.
