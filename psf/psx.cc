@@ -15,7 +15,7 @@
 
 #include <stdio.h>
 #include <stdarg.h>
-#include "ao.h"
+#include "../ao.h"
 #include "cpuintrf.h"
 #include "psx.h"
 
@@ -2945,7 +2945,7 @@ void mips_get_info(uint32_t state, union cpuinfo *info)
 		case CPUINFO_PTR_RESET:							info->reset = mips_reset;				break;
 		case CPUINFO_PTR_EXIT:							info->exit = mips_exit;					break;
 		case CPUINFO_PTR_EXECUTE:						info->execute = mips_execute;			break;
-		case CPUINFO_PTR_BURN:							info->burn = nullptr;						break;
+		case CPUINFO_PTR_BURN:							info->burn = 0;						break;
 		case CPUINFO_PTR_DISASSEMBLE:					info->disassemble = mips_dasm;			break;
 		case CPUINFO_PTR_IRQ_CALLBACK:					info->irqcallback = mipscpu.irq_callback; break;
 		case CPUINFO_PTR_INSTRUCTION_COUNTER:			info->icount = &mips_ICount;			break;

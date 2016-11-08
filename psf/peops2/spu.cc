@@ -521,7 +521,7 @@ static void *MAINThread(void (*update)(const void *, int))
                // We play this block out first...
                //if(!(flags&2)|| s_chan[ch].pLoop==nullptr)
                                                        // 1+2: do loop... otherwise: stop
-               if(flags!=3 || s_chan[ch].pLoop==nullptr)  // PETE: if we don't check exactly for 3, loop hang ups will happen (DQ4, for example)
+               if(flags!=3 || s_chan[ch].pLoop==0)  // PETE: if we don't check exactly for 3, loop hang ups will happen (DQ4, for example)
                 {                                      // and checking if pLoop is set avoids crashes, yeah
                  start = (unsigned char*)-1;
                 }
@@ -544,7 +544,7 @@ static void *MAINThread(void (*update)(const void *, int))
                  lastch=ch;
 //                 lastns=ns;   // changemeback
 
-                 return nullptr;
+                 return 0;
                 }
               }
 
@@ -747,7 +747,7 @@ ENDX:   ;
        {
         if(sampcount>=decayend)
          {
-          update(nullptr, 0);
+          update(0, 0);
           return(0);
          }
 
@@ -909,7 +909,7 @@ static void SetupStreams(void)
 static void RemoveStreams(void)
 {
  free(pSpuBuffer);                                     // free mixing buffer
- pSpuBuffer=nullptr;
+ pSpuBuffer=0;
  free(sRVBStart[0]);                                   // free reverb buffer
  sRVBStart[0]=0;
  free(sRVBStart[1]);                                   // free reverb buffer

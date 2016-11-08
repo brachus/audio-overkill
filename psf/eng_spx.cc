@@ -35,7 +35,7 @@
 #include <string.h>
 #include <stdlib.h>
 
-#include "ao.h"
+#include "../ao.h"
 #include "eng_protos.h"
 #include "cpuintrf.h"
 #include "psx.h"

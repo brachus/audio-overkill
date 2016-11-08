@@ -7,9 +7,11 @@
 #include <SDL2/SDL_ttf.h>
 #include <string.h>
 
-#include "eng_protos.h"
+#include "psf/eng_protos.h"
 
 #include "ao.h"
+
+#include "conf.h"
 
 #define DEBUG_MAIN (0)
 
@@ -17,30 +19,46 @@
 #define SCREENHEIGHT 240
 #define SCOPEWIDTH 320
 
+
 #define TEXT_SCROLL_GAP 32
 
+#define CONFIG_FNAME "ao.conf"
 
 
-#define TEXT_COLOR 230,230,230
-#define TEXT_BG_COLOR 0,0,200
-#define BG_COLOR 0, 0, 0
-#define SCOPE_COLOR 255, 255, 255
+
+static int c_fps = 60;
+#define FPS c_fps
 
 
-#define TEXT_COLOR 50,50,50
-#define TEXT_BG_COLOR 230,230,250
-#define BG_COLOR 255, 255, 255
-#define SCOPE_COLOR 0, 0, 0
+static int col_text[3] = {50,50,50};
+static int col_text_bg[3] = {230,230,250};
+static int col_bg[3] = {255, 255, 255};
+static int col_scope[3] = {0, 0, 0};
+
+#define TEXT_COLOR col_text[0],col_text[1],col_text[2]
+#define TEXT_BG_COLOR col_text_bg[0],col_text_bg[1],col_text_bg[2]
+#define BG_COLOR col_bg[0],col_bg[1],col_bg[2]
+#define SCOPE_COLOR col_scope[0],col_scope[1],col_scope[2]
 
 
-#define WIN_TITLE "Audio Overkill - PSF"
+static char *c_ttf_font = "ttf/gohufont-11.ttf";
+#define TTF_FONT c_ttf_font
+
+
+#define WIN_TITLE "Audio Overkill"
 
 #define MAXCHAN 24
 
-#define ABUFSIZ 1024
+
+static int c_buf_size = (44100/30);
+#define ABUFSIZ c_buf_size
+
+static int f_borderless = 0;
 
 
 static int fok=AO_FAIL;
+
+
 static int samples=44100 / 30;
 
 static int16_t scope[SCOPEWIDTH];
@@ -53,19 +71,14 @@ static float scope_view = 0.5;
 
 static int mono = 0;
 
-
-const int col_text[3] = {TEXT_COLOR};
-const int col_text_bg[3] = {TEXT_BG_COLOR};
-const int col_bg[3] = {BG_COLOR};
-const int col_scope[3] = {SCOPE_COLOR};
-
 static int channel_enable[MAXCHAN] = {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1};
 
 static int u_size = 3000;
 static Uint8  *u_buf = ( Uint8 *) malloc(sizeof ( Uint8 ) * u_size);
 static int u_buf_fill_start = 0; /* where sdl begins to fill audio stream from */
-static int u_buf_fill_size = ABUFSIZ * 2; /* portion in bytes out of u_buf that is taken by sdl audio fill function*/
 static int u_buf_fill = 0; /* size in bytes filled from fill_start and on.*/
+
+#define STEREO_FILL_SIZE (c_buf_size*2)
 
 
 
@@ -74,6 +87,8 @@ static int pw_bpp, pw_pitch;
 static uint32_t pw_ucol;
 static uint8_t *pw_pixel;
 
+
+static int f_render_font = 1;
 
 int pw_init(SDL_Surface *in)
 {
@@ -104,8 +119,82 @@ void pw_set(SDL_Surface *in, int x, int y)
 	*((uint32_t*)pw_pixel) = pw_ucol;
 }
 
+int limint(int in, int from, int to)
+{
+	if (in < from)
+		in = from;
+	if (in > to)
+		in = to;
+	return in;
+}
 
 
+void load_conf(char * fn)
+{
+	struct cfg_entry *o, *tmp;
+	
+	o = read_conf(fn);
+	
+	tmp = o;
+	
+	#if DEBUG_MAIN
+	print_cfg_entries(o);
+	#endif
+	
+	while (tmp)
+	{
+		if (strcmp("fps",tmp->name) == 0 )
+		{
+			if (tmp->dat[0].val_int > 0)
+				c_fps = limint(tmp->dat[0].val_int, 1, 128);
+		}
+		else if (strcmp("ttf_font",tmp->name) == 0 )
+		{
+			/*free(c_ttf_font);*/
+			c_ttf_font = (char*) malloc(strlen(tmp->dat[0].val_str) + 1);
+			strcpy(c_ttf_font, tmp->dat[0].val_str);
+		}
+		else if (strcmp("text_color",tmp->name) == 0 )
+		{
+			col_text[0] = limint(tmp->dat[0].val_int, 0, 255);
+			col_text[1] = limint(tmp->dat[1].val_int, 0, 255);
+			col_text[2] = limint(tmp->dat[2].val_int, 0, 255);
+		}
+		
+		else if (strcmp("text_bg_color",tmp->name) == 0 )
+		{
+			col_text_bg[0] = limint(tmp->dat[0].val_int, 0, 255);
+			col_text_bg[1] = limint(tmp->dat[1].val_int, 0, 255);
+			col_text_bg[2] = limint(tmp->dat[2].val_int, 0, 255);
+		}
+		
+		else if (strcmp("bg_color",tmp->name) == 0 )
+		{
+			col_bg[0] = limint(tmp->dat[0].val_int, 0, 255);
+			col_bg[1] = limint(tmp->dat[1].val_int, 0, 255);
+			col_bg[2] = limint(tmp->dat[2].val_int, 0, 255);
+		}
+		else if (strcmp("scope_color",tmp->name) == 0 )
+		{
+			col_scope[0] = limint(tmp->dat[0].val_int, 0, 255);
+			col_scope[1] = limint(tmp->dat[1].val_int, 0, 255);
+			col_scope[2] = limint(tmp->dat[2].val_int, 0, 255);
+		}
+		else if (strcmp("buf_size", tmp->name)==0)
+		{
+			c_buf_size = limint(tmp->dat[0].val_int, 16, 4096*4);
+		}
+		else if (strcmp("noborder", tmp->name)==0)
+		{
+			f_borderless = tmp->dat[0].val_int;
+		}
+		
+		tmp = tmp->next;
+	}
+	
+	if (o!=0)
+		free_cfg_entries(o);
+}
 
 void dump_scope_buf()
 {
@@ -224,88 +313,30 @@ char *get_lib_dir(char *path)
 	
 }
 
-void update(const  Uint8  *buf, int size)
-{
-	
-	int i, tmp, tmp1;
-	signed short stmp, stmp1;
-	
-	if (mono==0) /* not mono, just copy to u_buf */
-	{
-		for (i=0;i<size;i++)
-			u_buf[i] = buf[i];
-	}
-	else
-	{
-		for (i=0;i<size;i++) /* assuming two channels */
-		{
-			if (i%4==0) /* average the two signed shorts making up 2 channels.*/
-			{
-				
-				
-				stmp = (buf[i+1]<<8) + (buf[i] & 0xff);
-				stmp1 = (buf[i+3]<<8) + (buf[i+2] & 0xff);
-				
-				tmp = ((int)stmp + (int)stmp1) / 2;
-				
-				u_buf[i] = tmp & 0xff;
-				u_buf[i+1] = (tmp>>8) & 0xff;
-				
-				u_buf[i+2] = tmp & 0xff;
-				u_buf[i+3] = (tmp>>8) & 0xff;
-			}
-			
-			//u_buf[i] = buf[i];
-		}
-			
-	}
-		
-	u_size = size;
-	/*printf("%d, %d\n",*buf,size);*/
-	return;
-}
-
-void fill_audio(void *udata, Uint8 *stream, int len)
-{
-	int i,j;
-	if (fok==AO_SUCCESS)
-	{
-		psf_execute(update);
-		
-		i=0;
-		
-		while (i < len && i<u_size)
-		{
-			stream[i] = u_buf[i]; /* fill stream */
-			i++;
-			
-			if (i%4==0 && i+1 < u_size && scope_bufsiz < 1024)
-			{
-				scope_buf[scope_bufsiz] = (u_buf[i+1]<<8) + (u_buf[i]); /*scope[j] = (u_buf[i+1]<<8) + (u_buf[i]);*/
-				scope_bufsiz++;
-			}
-		}
-	}
-}
-
 void reset_u_buf()
 {
 	u_buf_fill_start = 0;
 	u_buf_fill = 0;
 }
 
-void update_alt(const  Uint8  *buf, int size)
+void update(const Uint8 * buf, int size)
 {
-	
+	/* as the buffer execute_psf fills update with is always
+	 * fixed, we have another buffer to allow different buffer sizes.
+	 */
 	int i,j, tmp, tmp1, goal, over,newsz,got;
 	signed short stmp, stmp1;
 	Uint8 *ctmp;
+	
 	
 	/* resize u_buf if update thows too much data */
 	if (size > (u_size-(u_buf_fill*2)))
 	{
 		newsz = (size * 2 + (size/2)) + (u_buf_fill*2);
+		
+		#if DEBUG_MAIN
 		printf("note: buffer resize from %d to %d\n", (u_size), newsz);
+		#endif
 		ctmp = ( Uint8 *) malloc(sizeof ( Uint8 ) * newsz);
 		
 		
@@ -332,7 +363,7 @@ void update_alt(const  Uint8  *buf, int size)
 	
 	j=u_buf_fill_start;
 	i=0;
-	goal = u_buf_fill_start + (u_buf_fill_size);
+	goal = u_buf_fill_start + (STEREO_FILL_SIZE);
 	goal %= u_size;
 	
 	
@@ -386,19 +417,17 @@ void update_alt(const  Uint8  *buf, int size)
 	return;
 }
 
-void fill_audio_alt(void *udata, Uint8 *stream, int len)
+void fill_audio(void *udata, Uint8 *stream, int len)
 {
-	int i,j,goal;
+	int i, j;
 	
 	if (fok==AO_SUCCESS)
 	{
 		while (u_buf_fill < len)
-			psf_execute(update_alt);
+			psf_execute(update);
 		
 		i=0;
 		j=u_buf_fill_start;
-		goal=j+len; /* should be same as j + u_buf_fill_size */
-		goal%=u_size;
 		
 		while (i < len)
 		{
@@ -427,57 +456,66 @@ void fill_audio_alt(void *udata, Uint8 *stream, int len)
 	
 }
 
-void load_psf_file(char *fn)
+int load_psf_file(char *fn)
 {
 	char * ctmp;
+	struct filebuf *fb = filebuf_init();
+	int tlen;
+	FILE *fp;
 	
 	if (fok==AO_SUCCESS)
 		return fok;
 	
-	int tmp, tlen;
-	FILE *fp;
 	u_int8_t *tbuf;
+	#if DEBUG_MAIN
 	printf("prep?\n");
+	#endif
 	if (fn != 0)
 	{
 		ctmp=get_lib_dir(fn);
+		#if DEBUG_MAIN
 		printf("get_lib_dir ok\n");
-		//ctmp=str_prepend(ctmp,"file://");
 		printf("str_prepend ok\n");
+		#endif
 		set_libdir(ctmp);
+		#if DEBUG_MAIN
 		printf("set_libdir ok\n");
+		#endif
 	}
+	#if DEBUG_MAIN
 	else
 		printf("no libdir?\n");
 	printf("ok\n");
+	#endif
 	
-	if (!fn)
-		fp = fopen("test.psf","rb");
-	else
-		fp = fopen(fn,"rb");
-	fseek(fp, 0L, SEEK_END);
-	tlen = ftell(fp);
-	rewind(fp);
+	filebuf_load(fn, fb);
 	
-	tbuf = (u_int8_t *) malloc(sizeof(u_int8_t) * (tlen));
-	
-	tmp=0;
-	while (tmp<tlen)
+	if (fb->len==0)
 	{
-		tbuf[tmp]=fgetc(fp);
-		tmp++;
+		fok = AO_FAIL;
+		
+		#if DEBUG_MAIN
+		printf("load failed\n");
+		#endif
+		
+		return AO_FAIL;
 	}
+		
 	
-	fok = psf_start(tbuf, tlen);
+	fok = psf_start(fb->buf, fb->len);
 	
-	return tmp;
+	
+	filebuf_free(fb);
+	
+	return fok;
 }
 
 void close_psf_file()
 {
 	if (fok==AO_SUCCESS)
 		psf_stop();
-	fok=0;
+		
+	fok = AO_FAIL;
 }
 
 void clear_scope()
@@ -643,10 +681,15 @@ void render_text(
 	tclip.y=0;
 	tclip.h=256;
 	
+	if (!f_render_font)
+		return;
+	
+	
 	tr.w=SCREENWIDTH;
 	tr.h=SCREENHEIGHT;
 	
 	text = TTF_RenderText_Solid(font, str, *col_b);
+	
 	
 	tclip.h=text->h;
 	tclip.w=maxwidth;
@@ -660,6 +703,7 @@ void render_text(
 		
 		toobig=1;
 	}
+	
 	
 	if (toobig)
 		tclip.x += shiftx;
@@ -714,6 +758,9 @@ int main(int argc, char *argv[])
 	char *fn[1024];
 	char tmpstr[256];
 	char chtrack;
+	
+	load_conf(CONFIG_FNAME);
+	
 	SDL_AudioSpec wanted;
 	SDL_Window *win;
 	SDL_Surface *screen;
@@ -729,17 +776,24 @@ int main(int argc, char *argv[])
 	tr.h=SCREENHEIGHT;
 	
 	
+	
 	TTF_Init();
 	
-	
-    TTF_Font *font = TTF_OpenFont("ttf/gohufont-11.ttf", 11);
+    TTF_Font *font = TTF_OpenFont(TTF_FONT, 11);
+    
+    if (!font)
+    {
+		fprintf(stderr,"err: could't find \"%s\".\n no text will be rendered.\n", TTF_FONT);
+		f_render_font=0;
+	}
+		
 	
 	fcnt=0;
 	for (i=1;i<argc && fcnt<1024;i++)
 	{
 		fn[fcnt] = argv[i];
 		
-		if (cheap_is_dir(fn[fcnt]) == 1)
+		if (is_dir(fn[fcnt]))
 		{
 			fprintf(stderr, "opening directories not supported\n");
 			return 1;
@@ -754,7 +808,7 @@ int main(int argc, char *argv[])
 		SDL_WINDOWPOS_UNDEFINED,
 		SDL_WINDOWPOS_UNDEFINED,
 		SCREENWIDTH, SCREENHEIGHT,
-		SDL_WINDOW_OPENGL);
+		SDL_WINDOW_OPENGL | (SDL_WINDOW_BORDERLESS * f_borderless));
 		
 	screen = SDL_GetWindowSurface(win);
 	
@@ -762,13 +816,15 @@ int main(int argc, char *argv[])
 	
 	load_psf_file(fn[fcur]);
 	
+	
     /* set the audio format */
     wanted.freq = 44100;
     wanted.format = AUDIO_S16;
     wanted.channels = 2;    /* 1 = mono, 2 = stereo */
     wanted.samples = ABUFSIZ;
-    wanted.callback = fill_audio_alt;
+    wanted.callback = fill_audio;
     wanted.userdata = 0;
+    
 
     /* open the audio device, forcing the desired format */
     if ( SDL_OpenAudio(&wanted, NULL) < 0 )
@@ -777,7 +833,9 @@ int main(int argc, char *argv[])
         return 0;
     }
     
+    
     SDL_PauseAudio(0);
+    
     
     ispaused=0;
     chtrack=0;
@@ -900,6 +958,12 @@ int main(int argc, char *argv[])
 					ao_sample_do[18] = ao_sample_do[18] ? 0 : 1;
 					break;
 				
+				case SDLK_c:
+					load_conf(CONFIG_FNAME);
+					tcol_a = { TEXT_COLOR, 0 };
+					tcol_b = { TEXT_BG_COLOR, 0 };
+					break;
+				
 				default:
 					break;
 				}
@@ -913,19 +977,16 @@ int main(int argc, char *argv[])
 		SDL_FillRect(screen, 0, SDL_MapRGB(screen->format, BG_COLOR));
 		
 		
-		/*printf("sc update...\n");*/
 		if (ispaused==0)
 			dump_scope_buf();
 		update_scope(screen);
-		/*printf("ok\n");*/
 		
 		update_ao_chdisp(screen);
-		
 		update_ao_ch_flag_disp(screen,2);
+		
 		
 		if (get_corlett_title() != 0)
 		{
-			
 			
 			render_text(
 				screen,
@@ -980,22 +1041,21 @@ int main(int argc, char *argv[])
 		{
 			SDL_PauseAudio(1);
 			close_psf_file();
-			printf("audio loading...\n");
+			/*printf("audio loading...\n");()/
 			
 			ao_sample_idx_clear();
 			
-			/* HERE */
-			printf("file: %s\n",fn[fcur]);
+			/*printf("file: %s\n",fn[fcur]);*/
 			
 			load_psf_file(fn[fcur]);
-			printf("audio unpause...\n");
+			/*printf("audio unpause...\n");*/
 			
 			reset_u_buf();
 			
 			if (ispaused==0)
 				SDL_PauseAudio(0);
 				
-			printf("ok\n");
+			/*printf("ok\n");*/
 			
 			clear_scope();
 			update_scope(screen);
@@ -1023,7 +1083,7 @@ int main(int argc, char *argv[])
 		SDL_UpdateWindowSurface(win);
 		
 		
-        SDL_Delay(1000/60);
+        SDL_Delay(1000/FPS);
         
         if (newtrackcnt<0)
 			tick++;

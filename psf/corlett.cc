@@ -83,9 +83,9 @@ The following data is optional and may be omitted:
 
 #include <zlib.h>
 
-#include <libaudcore/audstrings.h>
+//#include <libaudcore/audstrings.h>
 
-#include "ao.h"
+#include "../ao.h"
 #include "corlett.h"
 
 #include "audstrings.h"
@@ -105,12 +105,10 @@ int corlett_decode(uint8_t *input, uint32_t input_len, uint8_t **output, uint64_
 	buf = (uint32_t *)input;
 
 	// Check we have a PSF format file.
-	printf("check psf format\n");
 	if ((input[0] != 'P') || (input[1] != 'S') || (input[2] != 'F'))
 	{
 		return AO_FAIL;
 	}
-	printf("ok\n");
 
 	// Get our values
 	res_area = LE32(buf[1]);
@@ -120,18 +118,15 @@ int corlett_decode(uint8_t *input, uint32_t input_len, uint8_t **output, uint64_
 	if (comp_length > 0)
 	{
 		// Check length
-		printf("check len\n");
 		if (input_len < comp_length + 16)
 			return AO_FAIL;
 
 		// Check CRC is correct
-		printf("check crc\n");
 		actual_crc = crc32(0, (unsigned char *)&buf[4+(res_area/4)], comp_length);
 		if (actual_crc != comp_crc)
 			return AO_FAIL;
 
 		// Decompress data if any
-		printf("decomp data\n");
 		decomp_dat = (uint8_t *) malloc(DECOMP_MAX_SIZE);
 		decomp_length = DECOMP_MAX_SIZE;
 		if (uncompress(decomp_dat, &decomp_length, (unsigned char *)&buf[4+(res_area/4)], comp_length) != Z_OK)
@@ -140,19 +135,17 @@ int corlett_decode(uint8_t *input, uint32_t input_len, uint8_t **output, uint64_
 			return AO_FAIL;
 		}
 		
-		printf("ok\n");
 
 		// Resize memory buffer to what we actually need
 		decomp_dat = (uint8_t *) realloc(decomp_dat, (size_t)decomp_length + 1);
 	}
 	else
 	{
-		decomp_dat = nullptr;
+		decomp_dat = 0;
 		decomp_length =  0;
 	}
 
 	// Make structure
-	printf("mk structure\n");
 	*c = (corlett_t *) malloc(sizeof(corlett_t));
 	if (!(*c))
 	{
@@ -173,7 +166,7 @@ int corlett_decode(uint8_t *input, uint32_t input_len, uint8_t **output, uint64_
 	(*c)->res_size = res_area;
 
 	// Return it
-	if (output != nullptr && size != nullptr)
+	if (output != 0 && size != 0)
 	{
 		*output = decomp_dat;
 		*size = decomp_length;
@@ -239,7 +232,7 @@ int corlett_decode(uint8_t *input, uint32_t input_len, uint8_t **output, uint64_
 		for (num_tags = 0; num_tags < MAX_UNKNOWN_TAGS; num_tags++)
 		{
 			// See if tag belongs in one of the special fields we have
-			if (!strcmp_nocase((*c)->tag_name[num_tags], "_lib"))
+			if (!strcmp_nocase((*c)->tag_name[num_tags], "_lib", -1))
 			{
 				strcpy((*c)->lib, (*c)->tag_data[num_tags]);
 				(*c)->tag_data[num_tags][0] = 0;

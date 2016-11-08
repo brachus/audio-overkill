@@ -318,7 +318,7 @@ u16 SPUreadRegister(u32 reg)
      case 0xE:                                          // get loop address
       {
        const int ch=(r>>4)-0xc0;
-       if(s_chan[ch].pLoop==nullptr) return 0;
+       if(s_chan[ch].pLoop==0) return 0;
        return (u16)((s_chan[ch].pLoop-spuMemC)>>3);
       }
     }

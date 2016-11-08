@@ -28,10 +28,9 @@
 #include <string.h>
 #include <stdlib.h>
 
-//#include <libaudcore/audstrings.h>
 #include "audstrings.h"
 
-#include "ao.h"
+#include "../ao.h"
 #include "eng_protos.h"
 #include "cpuintrf.h"
 #include "psx.h"
@@ -97,7 +96,6 @@ int32_t psf_start(uint8_t *buffer, uint32_t length)
 		return AO_FAIL;
 	}
 
-//	printf("file_len %d reserve %d\n", file_len, c->res_size);
 
 	// check for PSX EXE signature
 	#if DEBUG_LOADER
@@ -125,6 +123,7 @@ int32_t psf_start(uint8_t *buffer, uint32_t length)
 	{
 		psf_refresh = 60;
 	}
+		
 
 	PC = file[0x10] | file[0x11]<<8 | file[0x12]<<16 | file[0x13]<<24;
 	GP = file[0x14] | file[0x15]<<8 | file[0x16]<<16 | file[0x17]<<24;
@@ -148,6 +147,8 @@ int32_t psf_start(uint8_t *buffer, uint32_t length)
 
 		if (corlett_decode((uint8_t *)buf->buf, buf->len, &lib_decoded, &lib_len, &lib) != AO_SUCCESS)
 			return AO_FAIL;
+		
+		filebuf_free(buf);
 
 		if (strncmp((char *)lib_decoded, "PS-X EXE", 8))
 		{
@@ -207,7 +208,7 @@ int32_t psf_start(uint8_t *buffer, uint32_t length)
 		
 	}
 	
-	filebuf_free(buf);
+	
 
 	// now patch the main file into RAM OVER the libraries (but not the aux lib)
 	offset = file[0x18] | file[0x19]<<8 | file[0x1a]<<16 | file[0x1b]<<24;
@@ -237,6 +238,8 @@ int32_t psf_start(uint8_t *buffer, uint32_t length)
 
 			if (corlett_decode((uint8_t *)buf->buf, buf->len, &alib_decoded, &alib_len, &lib) != AO_SUCCESS)
 				return AO_FAIL;
+			
+			filebuf_free(buf);
 
 			if (strncmp((char *)alib_decoded, "PS-X EXE", 8))
 			{
@@ -271,7 +274,7 @@ int32_t psf_start(uint8_t *buffer, uint32_t length)
 		}
 	}
 	
-	filebuf_free(buf);
+	
 
 	free(file);
 //	free(lib_decoded);
@@ -289,7 +292,7 @@ int32_t psf_start(uint8_t *buffer, uint32_t length)
 	}
 
 	mips_init();
-	mips_reset(nullptr);
+	mips_reset(0);
 
 	// set the initial PC, SP, GP
 	#if DEBUG_LOADER
@@ -366,6 +369,7 @@ int32_t psf_start(uint8_t *buffer, uint32_t length)
 	initialSP = SP;
 
 	mips_execute(5000);
+	
 
 	return AO_SUCCESS;
 }
@@ -394,13 +398,14 @@ int32_t psf_execute(void (*update)(const void *, int))
 int32_t psf_stop(void)
 {
 	SPUclose();
-	free(c);
+	free(c); c=0;
 
 	return AO_SUCCESS;
 }
 
 void set_libdir(char *s)
 {
+	free(libdir);
 	libdir = s;
 }
 

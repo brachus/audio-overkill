@@ -85,7 +85,7 @@
 #include "../peops/registers.h"
 #include "../peops/spu.h"
 
-#include "../ao.h"
+#include "../../ao.h"
 
 // Enable experimental silence skipping
 // Currently it is too aggressive, destroying the rhythm of some songs
@@ -366,7 +366,7 @@ int SPUasync(u32 cycles, void (*update)(const void *, int))
               {
                // We play this block out first...
                //if(!(flags&2))                          // 1+2: do loop... otherwise: stop
-               if(flags!=3 || s_chan[ch].pLoop==nullptr)  // PETE: if we don't check exactly for 3, loop hang ups will happen (DQ4, for example)
+               if(flags!=3 || s_chan[ch].pLoop==0)  // PETE: if we don't check exactly for 3, loop hang ups will happen (DQ4, for example)
                 {                                      // and checking if pLoop is set avoids crashes, yeah
                  start = (u8*)-1;
                 }
@@ -464,7 +464,7 @@ int SPUasync(u32 cycles, void (*update)(const void *, int))
 	   
 	    ao_add_sample(temp, s_chan[ch].pStart);
 
-		if (ao_channel_enable[ch] && ao_sample_limit_ok(s_chan[ch].pStart) ) {
+		if (ao_channel_enable[ch] && (int) ao_sample_limit_ok(s_chan[ch].pStart) ) {
 		
 			tmpl=(s_chan[ch].sval*s_chan[ch].iLeftVolume)>>14;
 			tmpr=(s_chan[ch].sval*s_chan[ch].iRightVolume)>>14;
@@ -507,7 +507,7 @@ int SPUasync(u32 cycles, void (*update)(const void *, int))
    {
     if(sampcount>=decayend)
     {
-      update(nullptr, 0);
+      update(0, 0);
       return(0);
     }
     dmul=256-(256*(sampcount-decaybegin)/(decayend-decaybegin));
@@ -647,7 +647,7 @@ void SetupStreams(void)
 void RemoveStreams(void)
 {
  free(pSpuBuffer);                                     // free mixing buffer
- pSpuBuffer=nullptr;
+ pSpuBuffer=0;
 
  #ifdef TIMEO
  {

@@ -5,16 +5,39 @@
 #include <stdio.h>
 
 #include "ao.h"
+#include "psf/corlett.h"
+#include "psf/eng_protos.h"
 
-#include "corlett.h"
-#include "eng_protos.h"
+#ifdef unix
+#include <sys/stat.h>
+struct stat sb;
 
-/*#include <libaudcore/index.h>
-#include <libaudcore/audstrings.h>
-#include <libaudcore/vfs.h>*/
+#else
+#include <Windows.h>
+#include <FileAPI.h>
 
-//static String dirpath;
+#endif
 
+
+
+
+int is_dir(char *fn)
+{
+	#ifdef unix
+	
+	return (stat(fn, &sb) == 0 && S_ISDIR(sb.st_mode));
+		
+	#else
+	
+	DWORD dwAttrib = GetFileAttributes(fn);
+	
+	return (dwAttrib != INVALID_FILE_ATTRIBUTES && 
+		(dwAttrib & FILE_ATTRIBUTE_DIRECTORY));
+		
+	#endif
+	
+	return 0;
+}
 
 int ao_channel_enable[24] = {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1};
 
@@ -100,12 +123,11 @@ struct filebuf *filebuf_init()
 int filebuf_free(struct filebuf *r)
 {
 	if (r->state == 1)
-	{
 		free(r->buf);
-		r->state = 0;
-		r->len = 0;
-		r->buf=0;
-	}
+		
+	r->state = 0;
+	r->len = 0;
+	r->buf=0;
 	
 	return r->state;
 }
@@ -121,7 +143,12 @@ int filebuf_load(char *fn, struct filebuf *r)
 	if (!fn)
 		return 0;
 	
-	fp = fopen(fn, "r");
+	if (is_dir(fn))
+		return 0;
+	
+		
+	
+	fp = fopen(fn, "rb");
 	
 	if (!fp)
 		return 0;
@@ -135,6 +162,8 @@ int filebuf_load(char *fn, struct filebuf *r)
 	fread(r->buf, sizeof(uint8_t), r->len, fp);
 	
 	fclose(fp);	
+	
+	r->state = 1;
 	
 	return r->state;
 }
@@ -223,7 +252,7 @@ int ao_get_lib(struct filebuf *fbuf, char *libdir, char *filename)
 	else
 		tmpdir = filename_build(libdir, filename);
 		
-	printf("loading %s...\n", tmpdir);
+	/*printf("loading %s...\n", tmpdir);*/
     
     
     //r = filebuf_load((char *) filename_build({dirpath, filename}), fbuf);

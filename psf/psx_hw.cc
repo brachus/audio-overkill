@@ -48,7 +48,7 @@
 
 #include <stdio.h>
 
-#include "ao.h"
+#include "../ao.h"
 #include "cpuintrf.h"
 #include "psx.h"
 
@@ -2990,7 +2990,7 @@ void psx_iop_call(uint32_t pc, uint32_t callnum)
 					printf("IOP: Unhandled strtol with non-nullptr second parm\n");
 				}
 
-				mipsinfo.i = strtol(mname, nullptr, a2);
+				mipsinfo.i = strtol(mname, 0, a2);
 				mips_set_info(CPUINFO_INT_REGISTER + MIPS_R2, &mipsinfo);
 				break;
 
@@ -3399,7 +3399,7 @@ void psx_iop_call(uint32_t pc, uint32_t callnum)
 				printf("IOP: close(%d) (PC=%08x)\n", a0, mipsinfo.i);
 				#endif
 				free(filedata[a0]);
-				filedata[a0] = (uint8_t *)nullptr;
+				filedata[a0] = (uint8_t *)0;
 				filepos[a0] = 0;
 				filesize[a0] = 0;
 				filestat[a0] = 0;

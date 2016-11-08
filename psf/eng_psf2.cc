@@ -539,7 +539,7 @@ int32_t psf2_start(uint8_t *buffer, uint32_t length)
 	setlength2(lengthMS, fadeMS);
 
 	mips_init();
-	mips_reset(nullptr);
+	mips_reset(0);
 
 	mipsinfo.i = initialPC;
 	mips_set_info(CPUINFO_INT_PC, &mipsinfo);
@@ -570,7 +570,7 @@ int32_t psf2_start(uint8_t *buffer, uint32_t length)
 
 	psx_hw_init();
 	SPU2init();
-	SPU2open(nullptr);
+	SPU2open(0);
 
 	return AO_SUCCESS;
 }
@@ -617,10 +617,10 @@ int32_t psf2_command(int32_t command, int32_t parameter)
 			memcpy(psx_ram, initial_ram, 2*1024*1024);
 
 			mips_init();
-			mips_reset(nullptr);
+			mips_reset(0);
 			psx_hw_init();
 			SPU2init();
-			SPU2open(nullptr);
+			SPU2open(0);
 
 			mipsinfo.i = initialPC;
 			mips_set_info(CPUINFO_INT_PC, &mipsinfo);
