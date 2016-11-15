@@ -332,7 +332,8 @@ int32_t psf_start(uint8_t *buffer, uint32_t length)
 	lengthMS = psfTimeToMS(c->inf_length);
 	fadeMS = psfTimeToMS(c->inf_fade);
 	
-	lengthMS = ao_set_len;
+	if (ao_set_len != -2)
+		lengthMS = ao_set_len;
 	
 
 	#if DEBUG_LOADER
@@ -376,21 +377,23 @@ int32_t psf_start(uint8_t *buffer, uint32_t length)
 
 int32_t psf_execute(void (*update)(const void *, int))
 {
-	int i,j;
+	int i;
 	
-	bool stop_flag=false;
-	j=0;
-	//while (!stop_flag) {
-	while (j>=0)
+	
+	for (i = 0; i < 44100 / 60; i++)
 	{
-		for (i = 0; i < 44100 / 60; i++) {
-			psx_hw_slice();
-			SPUasync(384, update);
+		psx_hw_slice();
+		if (mips_break)
+		{
+			mips_break = 0;
+			return AO_FAIL;
 		}
-
-		psx_hw_frame();
-		j--;
+			
+		SPUasync(384, update);
 	}
+
+	psx_hw_frame();
+		
 
 	return AO_SUCCESS;
 }

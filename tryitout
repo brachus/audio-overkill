@@ -1,17 +1,16 @@
 
-# -I/usr/local/include -L/usr/local/lib -laudcore 
 
-gcc main.cc ao.cc conf.cc psf/audstrings.cc psf/corlett.cc \
-       psf/psx.cc \
-       psf/psx_hw.cc \
-       psf/eng_psf.cc \
-       psf/eng_psf2.cc \
-       psf/peops/spu.cc \
-       psf/peops2/dma.cc \
-       psf/peops2/registers.cc \
-       psf/peops2/spu.cc \
+gcc main.c ao.c conf.c psf/audstrings.c psf/corlett.c \
+       psf/psx.c \
+       psf/psx_hw.c \
+       psf/eng_psf.c \
+       psf/eng_psf2.c \
+       psf/peops/spu.c \
+       psf/peops2/dma.c \
+       psf/peops2/registers.c \
+       psf/peops2/spu.c \
 	    -lglib-2.0 -I/usr/include/glib-2.0\
         -I/usr/lib/x86_64-linux-gnu/glib-2.0/include\
         -I/usr/include/SDL2 -lSDL2 -lSDL2_ttf\
         -lz -Wno-sign-compare -I../.. -Ipsf/ -Ispu/\
-        -I. -ggdb3  -fpermissive -O2 -o audio_overkill_psf
+        -I. -ggdb3   -O2 -o audio_overkill

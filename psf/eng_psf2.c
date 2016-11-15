@@ -579,7 +579,7 @@ int32_t psf2_execute(void (*update)(const void *, int))
 {
 	int i;
 	
-	bool stop_flag=false;
+	int stop_flag=0;
 
 	while (!stop_flag)
 	{

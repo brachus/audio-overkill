@@ -145,12 +145,12 @@ static s32 ttemp;
 
 // dirty inline func includes
 
-#include "../peops/reverb.cc"
-#include "../peops/adsr.cc"
+#include "../peops/reverb.c"
+#include "../peops/adsr.c"
 
 // Try this to increase speed.
-#include "../peops/registers.cc"
-#include "../peops/dma.cc"
+#include "../peops/registers.c"
+#include "../peops/dma.c"
 
 ////////////////////////////////////////////////////////////////////////
 // helpers for so-called "gauss interpolation"

@@ -20,7 +20,7 @@ int32_t spx_execute(void (*update)(const void *, int));
 int   spx_seek(uint32_t);
 int32_t spx_stop(void);
 
-extern bool stop_flag;
+extern int stop_flag;
 
 void set_libdir(char *s);
 

@@ -11,19 +11,30 @@ enum
 	V_STR
 };
 
+enum
+{
+	E_NONE,
+	E_INT,
+	E_BOOL,
+	E_STR,
+	E_RGB
+};
+
 struct cvar
 {
-	int type;
-	int val_int;
-	char *val_str;
-	float val_float;
+	int i;
+	char *s;
+	float f;
 };
 
 struct cfg_entry
 {
-	char *name;
+	char name[64];
 	struct cvar dat[4];
 	int len;
+	
+	int type;
+	char section[64];
 	
 	struct cfg_entry *next;
 };

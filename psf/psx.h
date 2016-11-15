@@ -4,6 +4,8 @@
 #include "ao.h"
 //#include "driver.h"
 
+extern int mips_break;
+
 typedef void genf(void);
 typedef int offs_t;
 

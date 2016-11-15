@@ -212,6 +212,8 @@ static uint32_t mips_mtc0_writemask[]=
 	0x00000000
 };
 
+int mips_break = 0;
+
 #if 1
 void GTELOG(const char *a,...)
 {
@@ -484,7 +486,9 @@ int mips_execute( int cycles )
 				break;
 			case FUNCT_BREAK:
 				printf("BREAK!\n");
-				exit(-1);
+				//mips_break = 1;
+				//return;
+				//exit(-1);
 //				mips_exception( EXC_BP );
 				mips_advance_pc();
 				break;

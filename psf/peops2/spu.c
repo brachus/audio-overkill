@@ -172,8 +172,8 @@ static int iSecureStart=0; // secure start counter
 
 // dirty inline func includes
 
-#include "reverb.cc"
-#include "adsr.cc"
+#include "reverb.c"
+#include "adsr.c"
 
 ////////////////////////////////////////////////////////////////////////
 // helpers for simple interpolation
