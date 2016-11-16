@@ -150,8 +150,6 @@ struct cfg_entry * read_entry(char *s)
 	{
 		ch=s[i];
 		
-		
-		
 		if (ch=='#' || ch==';')
 			break;
 		
@@ -219,12 +217,30 @@ struct cfg_entry * read_entry(char *s)
 				
 				STR_ADD(str1,512);
 				
+				if (i+1>=len)
+				{
+					ints[valcnt] = atoi(str1);
+					types[valcnt] = MINT;
+					valcnt++;
+				}
+				
 			}
 			else if (!IF_CH_WSPC && ch!=',')
 			{
 				md=MSTR;
 				
 				STR_ADD(str1,512);
+				
+				if (i+1>=len)
+				{
+					strs[valcnt] = (char*) malloc(strlen(str1)+1);
+					strcpy(strs[valcnt], str1);
+					types[valcnt] = MSTR;
+					valcnt++;
+					
+					
+					STR_RESET(str1);
+				}
 			}
 		}
 		else if (md==MINT)

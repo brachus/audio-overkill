@@ -17,9 +17,7 @@
 
 #define DEBUG_MAIN (0)
 
-#define SCREENWIDTH 320
-#define SCREENHEIGHT 240
-#define SCOPEWIDTH 320
+
 
 
 #define TEXT_SCROLL_GAP 32
@@ -27,6 +25,12 @@
 #define CONFIG_FNAME "ao.conf"
 
 
+static int c_screen_w = 320;
+static int c_screen_h = 240;
+
+#define SCREENWIDTH c_screen_w
+#define SCREENHEIGHT c_screen_h
+#define SCOPEWIDTH c_screen_w
 
 static int c_fps = 60;
 #define FPS c_fps
@@ -70,7 +74,7 @@ static int fok=AO_FAIL;
 
 static int samples=44100 / 30;
 
-static int16_t scope[SCOPEWIDTH];
+static int16_t * scope;
 static int16_t scope_buf[1024];
 static int scope_bufsiz = -1;
 static int scope_clear = 1;
@@ -116,6 +120,8 @@ void update(const Uint8 * buf, int size);
 void fill_audio(void *udata, Uint8 *stream, int len);
 int load_psf_file(char *fn);
 void close_psf_file();
+void free_scope();
+void init_scope();
 void clear_scope();
 void update_scope(SDL_Surface *in);
 void update_ao_chdisp(SDL_Surface *in);
@@ -192,6 +198,8 @@ int main(int argc, char *argv[])
 	tr.h=SCREENHEIGHT;
 	
 	u_buf_init();
+	
+	init_scope();
 	
 	TTF_Init();
 	
@@ -278,7 +286,7 @@ int main(int argc, char *argv[])
 					break;
 					
 				case SDLK_SPACE:
-					if (play_stat == M_STOPPED)
+					if (play_stat == M_STOPPED || play_stat == M_ERR)
 						play_stat = M_LOAD;
 					else if (play_stat == M_PAUSE)
 						play_stat = M_PLAY;
@@ -302,6 +310,9 @@ int main(int argc, char *argv[])
 					else if (play_stat == M_PAUSE)
 						play_stat = M_RELOAD_IDLE;
 					
+					if (play_stat == M_STOPPED || play_stat == M_ERR)
+						play_stat = M_LOAD;
+					
 					break;
 				
 				case SDLK_RIGHT:
@@ -311,6 +322,9 @@ int main(int argc, char *argv[])
 						play_stat = M_RELOAD;
 					else if (play_stat == M_PAUSE)
 						play_stat = M_RELOAD_IDLE;
+					
+					if (play_stat == M_STOPPED || play_stat == M_ERR)
+						play_stat = M_LOAD;
 					
 					break;
 				
@@ -382,6 +396,8 @@ int main(int argc, char *argv[])
 					load_conf(CONFIG_FNAME);
 					sdl_set_col(&tcol_a, TEXT_COLOR, 0);
 					sdl_set_col(&tcol_b, TEXT_BG_COLOR, 0);
+					free_scope();
+					init_scope();
 					break;
 				
 				default:
@@ -560,7 +576,7 @@ int main(int argc, char *argv[])
 	
 	SDL_CloseAudio();
 	close_psf_file();
-	
+	free_scope();
 	
 }
 
@@ -622,6 +638,7 @@ void load_conf(char * fn)
 	{
 		if (strcmp("general",tmp->section)==0)
 		{
+			
 			if (strcmp("fps",tmp->name) == 0  && tmp->type==E_INT)
 			{
 				if (tmp->dat[0].i > 0)
@@ -684,6 +701,14 @@ void load_conf(char * fn)
 			else if (strcmp("scope_grad", tmp->name)==0 && (tmp->type==E_BOOL || tmp->type==E_INT))
 			{
 				c_scope_do_grad = tmp->dat[0].i;
+			}
+			else if (strcmp("screen_width", tmp->name)==0 && tmp->type==E_INT)
+			{
+				c_screen_w = limint(tmp->dat[0].i, 16, 4096*2);
+			}
+			else if (strcmp("screen_height", tmp->name)==0 && tmp->type==E_INT)
+			{
+				c_screen_h = limint(tmp->dat[0].i, 16, 4096*2);
 			}
 		}
 		
@@ -1061,6 +1086,16 @@ void close_psf_file()
 		play_stat=M_STOPPED;
 }
 
+void free_scope()
+{
+	free(scope);
+}
+
+void init_scope()
+{
+	scope = malloc(sizeof(int16_t) * SCOPEWIDTH);
+}
+
 void clear_scope()
 {
 	int i;
@@ -1090,9 +1125,11 @@ void update_scope(SDL_Surface *in)
 		
 		pw_set_rgb(col_scope[0], col_scope[1], col_scope[2]);
 		
-		for (i=0;i<SCOPEWIDTH;i++)
+		for (i=0;i<SCOPEWIDTH && i < SCREENWIDTH;i++)
 		{
+			
 			x=i;
+			
 			fy=(float) scope[i] / (0xffff/2);
 
 			if (c_scope_do_grad)
