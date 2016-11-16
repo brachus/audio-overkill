@@ -2,7 +2,6 @@
 #include <stdint.h>
 
 
-
 int32_t psf2_start(uint8_t *, uint32_t length);
 int32_t psf2_execute(void (*update)(const void *, int));
 int32_t psf2_stop(void);

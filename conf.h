@@ -3,6 +3,9 @@
 #include <stdlib.h>
 #include <string.h>
 
+#ifndef __AO_CONF_H
+#define __AO_CONF_H
+
 enum
 {
 	V_NONE,
@@ -46,3 +49,7 @@ void free_cfg_entries(struct cfg_entry *o);
 struct cfg_entry * read_entry(char *s);
 struct cfg_entry * read_conf(char *fn);
 void print_cfg_entries(struct cfg_entry *o);
+
+
+#endif
+

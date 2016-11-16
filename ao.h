@@ -130,6 +130,8 @@ int filebuf_free(struct filebuf *r);
 int filebuf_load(char *fn, struct filebuf *r);
 char * filename_build(char *dir, char *fn);
 
+char *get_lib_dir(char *path);
+
 int ao_get_lib(struct filebuf *fbuf, char *libdir, char *filename);
 
 extern int ao_channel_enable[24];
@@ -154,6 +156,28 @@ void ao_add_sample(int sndtick, int sample);
 int ao_sample_limit_ok(int sample);
 
 void ao_sample_idx_clear();
+
+extern char tag_track[256];
+extern char tag_author[256];
+extern char tag_game[256];
+extern char tag_system[256];
+extern char tag_year[256];
+extern char tag_notes[256];
+
+extern int play_stat;
+
+enum
+{
+	M_PLAY,
+	M_ERR,
+	M_PAUSE,
+	M_DO_STOP,
+	M_DO_ERR_STOP,
+	M_STOPPED,
+	M_LOAD,
+	M_RELOAD,
+	M_RELOAD_IDLE
+};
 
 
 #endif // AO_H

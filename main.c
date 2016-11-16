@@ -2,32 +2,36 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <string.h>
+
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_keycode.h>
 #include <SDL2/SDL_ttf.h>
-#include <string.h>
 
 #include <zlib.h>
-
-#include "psf/eng_protos.h"
 
 #include "ao.h"
 
 #include "conf.h"
 
+#include "psf/plugin.c"
+
 #define DEBUG_MAIN (0)
-
-
 
 
 #define TEXT_SCROLL_GAP 32
 
 #define CONFIG_FNAME "ao.conf"
 
+#define WIN_TITLE "Audio Overkill"
+
+#define MAXCHAN 24
+
+
+static int c_always_ontop = 0;
 
 static int c_screen_w = 320;
 static int c_screen_h = 240;
-
 #define SCREENWIDTH c_screen_w
 #define SCREENHEIGHT c_screen_h
 #define SCOPEWIDTH c_screen_w
@@ -35,14 +39,12 @@ static int c_screen_h = 240;
 static int c_fps = 60;
 #define FPS c_fps
 
-
 static int col_text[3] = {50,50,50};
 static int col_text_bg[3] = {230,230,250};
 static int col_bg[3] = {255, 255, 255};
 static int col_scope[3] = {0, 0, 0};
 static int col_scope_low[3] = {255, 0, 0};
 static int col_scope_high[3] = {0, 0, 255};
-
 #define TEXT_COLOR col_text[0],col_text[1],col_text[2]
 #define TEXT_BG_COLOR col_text_bg[0],col_text_bg[1],col_text_bg[2]
 #define BG_COLOR col_bg[0],col_bg[1],col_bg[2]
@@ -51,28 +53,14 @@ static int col_scope_high[3] = {0, 0, 255};
 
 static int c_scope_do_grad = 1;
 
-
 static char c_ttf_font[256] = "ttf/gohufont-11.ttf";
 #define TTF_FONT c_ttf_font
-
-static int set_len_ms;
-
-
-#define WIN_TITLE "Audio Overkill"
-
-#define MAXCHAN 24
 
 
 static int c_buf_size = (44100/30);
 #define ABUFSIZ c_buf_size
 
 static int f_borderless = 0;
-
-
-static int fok=AO_FAIL;
-
-
-static int samples=44100 / 30;
 
 static int16_t * scope;
 static int16_t scope_buf[1024];
@@ -95,7 +83,6 @@ static int u_buf_fill = 0; /* size in bytes filled from fill_start and on.*/
 #define STEREO_FILL_SIZE (c_buf_size*2)
 
 
-
 static SDL_PixelFormat *pw_fmt;
 static int pw_bpp, pw_pitch;
 static uint32_t pw_ucol;
@@ -114,12 +101,10 @@ void pw_set(SDL_Surface *in, int x, int y);
 void load_conf(char * fn);
 void dump_scope_buf();
 int cheap_is_dir(char *path);
-char *get_lib_dir(char *path);
 void reset_u_buf();
 void update(const Uint8 * buf, int size);
 void fill_audio(void *udata, Uint8 *stream, int len);
-int load_psf_file(char *fn);
-void close_psf_file();
+void safe_strcpy(char *dst, char *src, int lim);
 void free_scope();
 void init_scope();
 void clear_scope();
@@ -136,6 +121,9 @@ void u_buf_init();
 int get_file_type(char * fn);
 void print_f_type(int type);
 
+void experimental_sample_filter(int key);
+void clear_tags();
+
 enum
 {
 	F_UNKNOWN,
@@ -145,24 +133,21 @@ enum
 	F_VGM,
 };
 
-enum
-{
-	M_PLAY,
-	M_ERR,
-	M_PAUSE,
-	M_DO_STOP,
-	M_DO_ERR_STOP,
-	M_STOPPED,
-	M_LOAD,
-	M_RELOAD,
-	M_RELOAD_IDLE
-};
 
-static play_stat = M_STOPPED;
+int play_stat = M_STOPPED;
 
 static void (*file_close)(void);
 static int (*file_execute)(void (*update )(const void *, int));
 static int (*file_open)(char *);
+
+static int k_shift=0;
+
+char tag_track[256];
+char tag_author[256];
+char tag_game[256];
+char tag_system[256];
+char tag_year[256];
+char tag_notes[256];
 	
 int main(int argc, char *argv[])
 {
@@ -232,12 +217,16 @@ int main(int argc, char *argv[])
 		SDL_WINDOWPOS_UNDEFINED,
 		SDL_WINDOWPOS_UNDEFINED,
 		SCREENWIDTH, SCREENHEIGHT,
-		SDL_WINDOW_OPENGL | (SDL_WINDOW_BORDERLESS * f_borderless));
+		/*SDL_WINDOW_OPENGL |*/
+		(SDL_WINDOW_BORDERLESS * f_borderless)
+		);
 		
 	screen = SDL_GetWindowSurface(win);
 	
 	set_channel_enable(channel_enable);
 	
+	
+	clear_tags();
 	
 	
     /* set the audio format */
@@ -278,9 +267,10 @@ int main(int argc, char *argv[])
 				break;
 			case SDL_KEYDOWN:
 				
+				k_shift = e.key.keysym.mod & (KMOD_LSHIFT | KMOD_RSHIFT);
+				
 				switch ( e.key.keysym.sym )
 				{
-				/*case SDLK_q:*/
 				case SDLK_ESCAPE:
 					run = 0;
 					break;
@@ -296,10 +286,7 @@ int main(int argc, char *argv[])
 					break;
 				
 				case SDLK_m:
-					if (mono==1)
-						mono=0;
-					else
-						mono=1;
+					mono = (mono == 1) ? 0 : 1;
 					break;
 				
 				case SDLK_LEFT:
@@ -328,76 +315,29 @@ int main(int argc, char *argv[])
 					
 					break;
 				
-				case SDLK_0:
-					if (ao_sample_limit[0]==0)
-						ao_sample_limit[0]=1;
-					else
-						ao_sample_limit[0]=0;
-					break;
-				case SDLK_1:
-					ao_sample_do[0] = ao_sample_do[0] ? 0 : 1;
-					break;
-				case SDLK_2:
-					ao_sample_do[1] = ao_sample_do[1] ? 0 : 1;
-					break;
-				case SDLK_3:
-					ao_sample_do[2] = ao_sample_do[2] ? 0 : 1;
-					break;
-				case SDLK_4:
-					ao_sample_do[3] = ao_sample_do[3] ? 0 : 1;
-					break;
-				case SDLK_5:
-					ao_sample_do[4] = ao_sample_do[4] ? 0 : 1;
-					break;
-				case SDLK_6:
-					ao_sample_do[5] = ao_sample_do[5] ? 0 : 1;
-					break;
-				case SDLK_7:
-					ao_sample_do[6] = ao_sample_do[6] ? 0 : 1;
-					break;
-				case SDLK_8:
-					ao_sample_do[7] = ao_sample_do[7] ? 0 : 1;
-					break;
-				case SDLK_9:
-					ao_sample_do[8] = ao_sample_do[8] ? 0 : 1;
-					break;
-				case SDLK_q:
-					ao_sample_do[9] = ao_sample_do[9] ? 0 : 1;
-					break;
-				case SDLK_w:
-					ao_sample_do[10] = ao_sample_do[10] ? 0 : 1;
-					break;
-				case SDLK_e:
-					ao_sample_do[11] = ao_sample_do[11] ? 0 : 1;
-					break;
-				case SDLK_r:
-					ao_sample_do[12] = ao_sample_do[12] ? 0 : 1;
-					break;
-				case SDLK_t:
-					ao_sample_do[13] = ao_sample_do[13] ? 0 : 1;
-					break;
-				case SDLK_y:
-					ao_sample_do[14] = ao_sample_do[14] ? 0 : 1;
-					break;
-				case SDLK_u:
-					ao_sample_do[15] = ao_sample_do[15] ? 0 : 1;
-					break;
-				case SDLK_i:
-					ao_sample_do[16] = ao_sample_do[16] ? 0 : 1;
-					break;
-				case SDLK_o:
-					ao_sample_do[17] = ao_sample_do[17] ? 0 : 1;
-					break;
-				case SDLK_p:
-					ao_sample_do[18] = ao_sample_do[18] ? 0 : 1;
+				case SDLK_0:case SDLK_1:case SDLK_2:
+				case SDLK_3:case SDLK_4:case SDLK_5:
+				case SDLK_6:case SDLK_7:case SDLK_8:
+				case SDLK_9:case SDLK_q:case SDLK_w:
+				case SDLK_e:case SDLK_r:case SDLK_t:
+				case SDLK_y:case SDLK_u:case SDLK_i:
+				case SDLK_o:case SDLK_p:
+					experimental_sample_filter( e.key.keysym.sym );
 					break;
 				
 				case SDLK_c:
+					
 					load_conf(CONFIG_FNAME);
+					
+					/* refresh a couple things... */
 					sdl_set_col(&tcol_a, TEXT_COLOR, 0);
 					sdl_set_col(&tcol_b, TEXT_BG_COLOR, 0);
 					free_scope();
 					init_scope();
+					SDL_SetWindowSize(win, c_screen_w, c_screen_h);
+					
+					/* should screen be freed ? */
+					screen = SDL_GetWindowSurface(win);
 					break;
 				
 				default:
@@ -423,46 +363,40 @@ int main(int argc, char *argv[])
 		
 		rtmpy = 8;
 		
-		if (get_corlett_title() != 0)
-		{
+		render_text(
+			screen,
+			tag_track,
+			&tcol_a,
+			&tcol_b,
+			font,
+			10,rtmpy,
+			1,SCREENWIDTH/2,tick);
+		
+		rtmpy += 12;
+		
+		render_text(
+			screen,
+			tag_author,
+			&tcol_a,
+			&tcol_b,
+			font,
+			10,rtmpy,
+			1,SCREENWIDTH/2,tick);
+		
+		rtmpy += 12;
 			
-			render_text(
-				screen,
-				get_corlett_title(),
-				&tcol_a,
-				&tcol_b,
-				font,
-				10,rtmpy,
-				1,SCREENWIDTH/2,tick);
+		render_text(
+			screen,
+			tag_game,
+			&tcol_a,
+			&tcol_b,
+			font,
+			10,rtmpy,
+			1,SCREENWIDTH/2,tick);
+		
+		rtmpy += 12;
 			
-			rtmpy += 12;
-			
-			render_text(
-				screen,
-				get_corlett_artist(),
-				&tcol_a,
-				&tcol_b,
-				font,
-				10,rtmpy,
-				1,SCREENWIDTH/2,tick);
-			
-			rtmpy += 12;
-				
-			render_text(
-				screen,
-				get_corlett_game(),
-				&tcol_a,
-				&tcol_b,
-				font,
-				10,rtmpy,
-				1,SCREENWIDTH/2,tick);
-			
-			rtmpy += 12;
-			
-				
-		}
-		else
-			rtmpy += 12*3;
+		
 		
 		switch (play_stat)
 		{
@@ -499,19 +433,23 @@ int main(int argc, char *argv[])
 		{
 		case M_DO_STOP:
 		case M_DO_ERR_STOP:
+			clear_tags();
 			SDL_PauseAudio(1);
 			close_psf_file();
 			break;
 		
 		case M_RELOAD_IDLE:
 		case M_RELOAD:
+			clear_tags();
+			
 			SDL_PauseAudio(1);
 			
 			reset_u_buf();
 		
-			file_close();
+			file_close(); /* no break, so reload can segue into M_LOAD.*/
 			
 		case M_LOAD:
+		
 			SDL_PauseAudio(1);
 			
 			reset_u_buf();
@@ -696,7 +634,7 @@ void load_conf(char * fn)
 			}
 			else if (strcmp("len_ms", tmp->name)==0 && tmp->type==E_INT)
 			{
-				set_len_ms = tmp->dat[0].i;
+				ao_set_len = tmp->dat[0].i;
 			}
 			else if (strcmp("scope_grad", tmp->name)==0 && (tmp->type==E_BOOL || tmp->type==E_INT))
 			{
@@ -709,6 +647,14 @@ void load_conf(char * fn)
 			else if (strcmp("screen_height", tmp->name)==0 && tmp->type==E_INT)
 			{
 				c_screen_h = limint(tmp->dat[0].i, 16, 4096*2);
+			}
+			else if (strcmp("always_on_top", tmp->name)==0 && (tmp->type==E_BOOL || tmp->type==E_INT))
+			{
+				c_always_ontop = tmp->dat[0].i;
+			}
+			else if (strcmp("mono", tmp->name)==0 && (tmp->type==E_BOOL || tmp->type==E_INT))
+			{
+				mono = tmp->dat[0].i;
 			}
 		}
 		
@@ -804,36 +750,7 @@ int cheap_is_dir(char *path)
 	
 }
 
-char *get_lib_dir(char *path)
-{
-	int i;
-	char *slash, *npath, *ch;
-	
-	if (!path)
-		return 0;
-		
-	slash = strrchr(path, '/');
-	
-	if (!slash)
-		return 0;
-		
-	npath = (char *) malloc(strlen(path));
-	
-	ch = path;
-	i=0;
-	while ((ch) <= slash)
-	{
-		npath[i] = path[i];
-		
-		ch++;
-		i++;
-	}
-	
-	npath[i] = '\0';	
-	
-	return npath;
-	
-}
+
 
 void reset_u_buf()
 {
@@ -857,7 +774,7 @@ void update(const Uint8 * buf, int size)
 	
 	if (buf==0 || size==0)
 	{
-		fok=0; /* if function calling update returns 0, 0, halt playback.
+		/* if function calling update returns 0, 0, halt playback.
 				* 
 				* (WATCH THIS)
 				*/
@@ -962,9 +879,7 @@ void fill_audio(void *udata, Uint8 *stream, int len)
 	{
 		while (u_buf_fill < len && play_stat == M_PLAY)
 		{
-			fok = file_execute(update);
-			
-			if (fok==AO_FAIL)
+			if (file_execute(update) == AO_FAIL)
 				play_stat = M_DO_STOP;
 		}
 			
@@ -1010,80 +925,25 @@ void fill_audio(void *udata, Uint8 *stream, int len)
 	
 }
 
-int load_psf_file(char *fn)
+void safe_strcpy(char *dst, char *src, int lim)
 {
-	char * ctmp;
-	struct filebuf *fb = filebuf_init();
-	int tlen;
-	FILE *fp;
+	int i = 0;
 	
-	if (play_stat == M_PLAY)
-		return 1;
-		
-	ao_set_len = set_len_ms;
+	if (!src)
+		return;
 	
-	u_int8_t *tbuf;
-	#if DEBUG_MAIN
-	printf("prep?\n");
-	#endif
-	if (fn != 0)
+	while (i<lim)
 	{
-		ctmp=get_lib_dir(fn);
-		#if DEBUG_MAIN
-		printf("get_lib_dir ok\n");
-		printf("str_prepend ok\n");
-		#endif
-		set_libdir(ctmp);
-		#if DEBUG_MAIN
-		printf("set_libdir ok\n");
-		#endif
-	}
-	#if DEBUG_MAIN
-	else
-		printf("no libdir?\n");
-	printf("ok\n");
-	#endif
-	
-	filebuf_load(fn, fb);
-	
-	if (fb->len==0)
-	{
-		play_stat = M_ERR;
+		if (i == (lim-1) || src[i] == '\0')
+		{
+			dst[i] = '\0';
+			return;
+		}
 		
-		#if DEBUG_MAIN
-		printf("load failed\n");
-		#endif
+		dst[i] = src[i];
 		
-		return 0;
-	}
-		
-	
-	fok = psf_start(fb->buf, fb->len);
-	
-	if (fok == AO_FAIL)
-		play_stat = M_ERR;
-	
-	filebuf_free(fb);
-	
-	
-	
-	
-	return fok;
-}
-
-void close_psf_file()
-{
-	if (  play_stat==M_PLAY ||
-		  play_stat==M_DO_STOP || 
-		  play_stat==M_DO_ERR_STOP ||
-		  play_stat==M_RELOAD ||
-		  play_stat==M_RELOAD_IDLE)
-		psf_stop();
-	
-	if (play_stat==M_DO_ERR_STOP)
-		play_stat=M_ERR;
-	else if (play_stat != M_RELOAD && play_stat != M_RELOAD_IDLE)
-		play_stat=M_STOPPED;
+		i++;
+	}		
 }
 
 void free_scope()
@@ -1266,11 +1126,8 @@ void update_ao_ch_flag_disp(SDL_Surface *in, int md)
 			}
 			
 			pw_set_rgb(SCOPE_COLOR);
-				
-			/*printf("%d\n",tmp);*/
 		}
 	}
-	
 }
 
 void render_text(
@@ -1299,7 +1156,7 @@ void render_text(
 	tr.w=SCREENWIDTH;
 	tr.h=SCREENHEIGHT;
 	
-	text = TTF_RenderText_Solid(font, str, *col_b);
+	text = TTF_RenderUTF8_Solid(font, str, *col_b);
 	
 	
 	tclip.h=text->h;
@@ -1324,7 +1181,7 @@ void render_text(
 	SDL_BlitSurface(text, &tclip, dst, &tr);
 	SDL_FreeSurface(text);
 	
-	text = TTF_RenderText_Solid(font, str, *col_a);
+	text = TTF_RenderUTF8_Solid(font, str, *col_a);
 	tr.x=x;
 	SDL_BlitSurface(text, &tclip, dst, &tr);
 	
@@ -1344,11 +1201,11 @@ void render_text(
 		tclip.w-=(maxtks/2)-shiftx;
 		
 		tr.x=x-1;
-		text = TTF_RenderText_Solid(font, str, *col_b);
+		text = TTF_RenderUTF8_Solid(font, str, *col_b);
 		SDL_BlitSurface(text, &tclip, dst, &tr);
 		SDL_FreeSurface(text);
 		
-		text = TTF_RenderText_Solid(font, str, *col_a);
+		text = TTF_RenderUTF8_Solid(font, str, *col_a);
 		tr.x=x;
 		SDL_BlitSurface(text, &tclip, dst, &tr);
 		
@@ -1403,56 +1260,25 @@ int get_file_type(char * fn)
 	
 	ext = get_ext(fn);
 	
-	fp = fopen(fn, "r");
-	
-	if (!fp)
+	if (!(fp = fopen(fn, "r")))
 		return -1;
-	
-	fclose(fp);
 		
+	fclose(fp);
 		
 	if (strcmp(ext,"psf") == 0 || strcmp(ext,"PSF") == 0)
 		return F_PSF;
+		
 	if (strcmp(ext,"psf2") == 0 || strcmp(ext,"PSF2") == 0)
 		return F_PSF2;
+		
 	if (strcmp(ext,"usf") == 0 || strcmp(ext,"USF") == 0)
 		return F_USF;
+		
 	if (strcmp(ext,"vgm") == 0 || strcmp(ext,"VGM") == 0)
 		return F_VGM;
 	
 	return F_UNKNOWN;
 	
-	/* psf ? 
-	is=1;
-	i=0;
-	while ((ch=getc()) != EOF && is)
-	{
-		switch(i)
-		{
-		case 0:
-			if (ch!='P')
-				is=0;
-			break;
-		case 1:
-			if (ch!='S')
-				is=0;
-			break;
-		case 2:
-			if (ch!='F')
-				is=0;
-			break;
-		}
-		i++;
-	}
-	
-	if (is)
-	{
-		
-	}
-		
-	rewind(fp);
-	
-	/* vgm ? */
 }
 
 void print_f_type(int type)
@@ -1476,11 +1302,84 @@ void print_f_type(int type)
 	}
 }
 
-/*
-	F_UNKNOWN,
-	F_PSF,
-	F_PSF2,
-	F_USF,
-	F_VGM,
+void experimental_sample_filter(int key)
+{
+	switch(key)
+	{
+	case SDLK_0:
+		if (ao_sample_limit[0]==0)
+			ao_sample_limit[0]=1;
+		else
+			ao_sample_limit[0]=0;
+		break;
+	case SDLK_1:
+		ao_sample_do[0] = ao_sample_do[0] ? 0 : 1;
+		break;
+	case SDLK_2:
+		ao_sample_do[1] = ao_sample_do[1] ? 0 : 1;
+		break;
+	case SDLK_3:
+		ao_sample_do[2] = ao_sample_do[2] ? 0 : 1;
+		break;
+	case SDLK_4:
+		ao_sample_do[3] = ao_sample_do[3] ? 0 : 1;
+		break;
+	case SDLK_5:
+		ao_sample_do[4] = ao_sample_do[4] ? 0 : 1;
+		break;
+	case SDLK_6:
+		ao_sample_do[5] = ao_sample_do[5] ? 0 : 1;
+		break;
+	case SDLK_7:
+		ao_sample_do[6] = ao_sample_do[6] ? 0 : 1;
+		break;
+	case SDLK_8:
+		ao_sample_do[7] = ao_sample_do[7] ? 0 : 1;
+		break;
+	case SDLK_9:
+		ao_sample_do[8] = ao_sample_do[8] ? 0 : 1;
+		break;
+	case SDLK_q:
+		ao_sample_do[9] = ao_sample_do[9] ? 0 : 1;
+		break;
+	case SDLK_w:
+		ao_sample_do[10] = ao_sample_do[10] ? 0 : 1;
+		break;
+	case SDLK_e:
+		ao_sample_do[11] = ao_sample_do[11] ? 0 : 1;
+		break;
+	case SDLK_r:
+		ao_sample_do[12] = ao_sample_do[12] ? 0 : 1;
+		break;
+	case SDLK_t:
+		ao_sample_do[13] = ao_sample_do[13] ? 0 : 1;
+		break;
+	case SDLK_y:
+		ao_sample_do[14] = ao_sample_do[14] ? 0 : 1;
+		break;
+	case SDLK_u:
+		ao_sample_do[15] = ao_sample_do[15] ? 0 : 1;
+		break;
+	case SDLK_i:
+		ao_sample_do[16] = ao_sample_do[16] ? 0 : 1;
+		break;
+	case SDLK_o:
+		ao_sample_do[17] = ao_sample_do[17] ? 0 : 1;
+		break;
+	case SDLK_p:
+		ao_sample_do[18] = ao_sample_do[18] ? 0 : 1;
+		break;
+		
+	default:break;
+	}	
+}
 
-*/
+void clear_tags()
+{
+	strcpy(tag_track, "???");
+	strcpy(tag_author, "???");
+	strcpy(tag_game, "???");
+	strcpy(tag_system, "???");
+	strcpy(tag_year, "???");
+	strcpy(tag_notes, "???");
+}

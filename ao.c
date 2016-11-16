@@ -237,6 +237,36 @@ char *filename_build(char *dir, char *fn)
 	
 }
 
+char *get_lib_dir(char *path)
+{
+	int i;
+	char *slash, *npath, *ch;
+	
+	if (!path)
+		return 0;
+		
+	slash = strrchr(path, '/');
+	
+	if (!slash)
+		return 0;
+		
+	npath = (char *) malloc(strlen(path));
+	
+	ch = path;
+	i=0;
+	while ((ch) <= slash)
+	{
+		npath[i] = path[i];
+		
+		ch++;
+		i++;
+	}
+	
+	npath[i] = '\0';	
+	
+	return npath;
+	
+}
 
 /* ao_get_lib: called to load secondary files */
 int ao_get_lib(struct filebuf *fbuf, char *libdir, char *filename)
