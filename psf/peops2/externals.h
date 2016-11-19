@@ -33,7 +33,7 @@
 #ifndef PEOPS2_EXTERNALS
 #define PEOPS2_EXTERNALS
 
-#include "ao.h"
+#include "../../ao.h"
 
 typedef int8_t s8;
 typedef int16_t s16;

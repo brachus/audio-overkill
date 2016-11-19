@@ -50,7 +50,7 @@
 /*#include <libaudcore/audstrings.h>*/
 #include "audstrings.h"
 
-#include "ao.h"
+#include "../ao.h"
 #include "eng_protos.h"
 #include "cpuintrf.h"
 #include "psx.h"

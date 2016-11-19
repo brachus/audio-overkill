@@ -1,7 +1,12 @@
- - specify max length of music track from cmd line.
+ 
+ 
+ 
+  
+ - finish vgm support: tags, conf reading, cleanup, etc.
+ 
+ - specify max length of music track from cmd line / config (in config?).
 
- - consider vgm/sid/nsf support:
- -  implement a more robust mode tracking system, e.g. idle, playing, load, stop, paused.
+ - consider sid/nsf support:
  -  modes for keeping track of current/selected format.
  -  functions such as:  detecting file type, loading based on current format, playing based on current format.
  -  make psf_execute into a pointer function name file_execute.

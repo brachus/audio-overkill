@@ -95,6 +95,16 @@ extern uint64_t bswap64 (uint64_t x)
 #endif
 
 
+/*#define UINT32 uint32_t
+#define UINT16 uint16_t
+#define UINT8 uint8_t
+#define INT32 int32_t
+#define INT16 int16_t
+#define INT8 int8_t*/
+#define u_int32_t uint32_t
+#define u_int16_t uint16_t
+#define u_int8_t uint8_t
+
 
 #define AO_SUCCESS					1
 #define AO_FAIL						0
@@ -130,7 +140,7 @@ int filebuf_free(struct filebuf *r);
 int filebuf_load(char *fn, struct filebuf *r);
 char * filename_build(char *dir, char *fn);
 
-char *get_lib_dir(char *path);
+char *strip_dir(char *path);
 
 int ao_get_lib(struct filebuf *fbuf, char *libdir, char *filename);
 

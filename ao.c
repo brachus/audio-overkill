@@ -237,7 +237,7 @@ char *filename_build(char *dir, char *fn)
 	
 }
 
-char *get_lib_dir(char *path)
+char *strip_dir(char *path)
 {
 	int i;
 	char *slash, *npath, *ch;

@@ -16,7 +16,7 @@
  *                                                                         *
  ***************************************************************************/
 
-#include "ao.h"
+#include "../../ao.h"
 
 #ifndef PEOPS_EXTERNALS
 #define PEOPS_EXTERNALS

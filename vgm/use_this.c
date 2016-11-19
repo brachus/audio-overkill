@@ -8,6 +8,8 @@
 #include "VGMPlay.h"
 #include "VGMPlay_Intf.h"
 
+#include "../ao.h"
+
 #define SAMPLESIZE sizeof(WAVE_16BS)
 
 UINT8 CmdList[0x100]; // used by VGMPlay.c and VGMPlay_AddFmts.c
@@ -90,5 +92,36 @@ int main(int argc, char *argv[]) {
 
 void vgm_execute ( void (*update)(const void *, int ))
 {
+	/* create a buffer consisting of u8 ints, and use it to satisfy update.*/
+}
+
+int vgm_open ( char * fn)
+{
+	VGMPlay_Init();
+    VGMPlay_Init2();
+    
+    clear_tags();
+    
+	if ( !OpenVGMFile(fn) )
+	{
+		play_stat = M_ERR;
+		
+		return 0;
+	}
 	
+	/* implement code to fill tags from gd3 tags vgmplay creates. */
+
+	PlayVGM();
+
+    //sampleBuffer = (WAVE_16BS*)malloc(SAMPLESIZE * SampleRate); ???
+	
+	return 1;
+	}
+}
+
+void vgm_close ( void (*update)(const void *, int ))
+{
+	StopVGM();
+    CloseVGMFile();
+    VGMPlay_Deinit();
 }

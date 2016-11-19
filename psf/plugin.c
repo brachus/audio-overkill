@@ -10,15 +10,11 @@ int load_psf_file(char *fn)
 	
 	clear_tags();
 	
-	if (play_stat == M_PLAY)
-		return 1;
-		
-	
 	u_int8_t *tbuf;
 	
 	if (fn != 0)
 	{
-		ctmp = get_lib_dir(fn);
+		ctmp = strip_dir(fn);
 		
 		set_libdir(ctmp);
 		
@@ -32,7 +28,6 @@ int load_psf_file(char *fn)
 		
 		return 0;
 	}
-		
 	
 	fok = psf_start(fb->buf, fb->len);
 	
@@ -41,11 +36,9 @@ int load_psf_file(char *fn)
 	
 	filebuf_free(fb);
 	
-	
 	safe_strcpy(tag_track, get_corlett_title(), 256);
 	safe_strcpy(tag_author, get_corlett_artist(), 256);
 	safe_strcpy(tag_game, get_corlett_game(), 256);
-	
 	
 	return fok;
 }

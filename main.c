@@ -1,4 +1,9 @@
 
+
+#include <unistd.h>
+#include <sys/types.h>
+#include <dirent.h>
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -8,13 +13,23 @@
 #include <SDL2/SDL_keycode.h>
 #include <SDL2/SDL_ttf.h>
 
+
+
 #include <zlib.h>
 
 #include "ao.h"
 
 #include "conf.h"
 
-#include "psf/plugin.c"
+#include "psf/plugin.h"
+
+#define PLUGIN_VGM
+
+#ifdef PLUGIN_VGM
+#include "vgm/plugin.h"
+#endif
+
+#include "filelist.h"
 
 #define DEBUG_MAIN (0)
 
@@ -148,6 +163,10 @@ char tag_game[256];
 char tag_system[256];
 char tag_year[256];
 char tag_notes[256];
+
+
+void listdir_flist(struct flist_base *b, const char *name, int level);
+
 	
 int main(int argc, char *argv[])
 {
@@ -155,14 +174,12 @@ int main(int argc, char *argv[])
 		key, ispaused=0, newtrackcnt=20,
 		tick, rtmpy;
 	SDL_Event e;
-	char *fn[1024];
 	char tmpstr[256];
 	char chtrack;
+	struct flist_base *flist;
 	
 	/* point to psf functions only for now. */
-	file_close = &close_psf_file;
-	file_execute = &psf_execute;
-	file_open = &load_psf_file;
+	
 	
 	load_conf(CONFIG_FNAME);
 	
@@ -185,6 +202,7 @@ int main(int argc, char *argv[])
 	u_buf_init();
 	
 	init_scope();
+	clear_scope();
 	
 	TTF_Init();
 	
@@ -195,21 +213,27 @@ int main(int argc, char *argv[])
 		fprintf(stderr,"err: could't find \"%s\".\n no text will be rendered.\n", TTF_FONT);
 		f_render_font=0;
 	}
-		
+	
+	flist = flist_init();
 	
 	fcnt=0;
-	for (i=1;i<argc && fcnt<1024;i++)
+	for (i=1;i<argc;i++)
 	{
-		fn[fcnt] = argv[i];
-		
-		if (is_dir(fn[fcnt]))
-		{
-			fprintf(stderr, "opening directories not supported\n");
-			return 1;
-		}
-		
-		fcnt++;
+		if (is_dir(argv[i]))
+			listdir_flist(flist, argv[i], 0);
+		else
+			add_flist_item(flist, argv[i]);
 	}
+	fcnt = flist->len;
+	
+	
+	if (fcnt == 0)
+	{
+		printf("no files.\n");
+		return 0;
+		
+	}
+		
 	
 	fcur = 0;
 	
@@ -446,7 +470,7 @@ int main(int argc, char *argv[])
 			
 			reset_u_buf();
 		
-			file_close(); /* no break, so reload can segue into M_LOAD.*/
+			file_close(); /* segues into M_LOAD on purpose. */
 			
 		case M_LOAD:
 		
@@ -454,13 +478,27 @@ int main(int argc, char *argv[])
 			
 			reset_u_buf();
 			
-			if (get_file_type(fn[fcur]) != F_PSF)
+			if (get_file_type(get_flist_idx(flist,fcur)) == F_PSF)
+			{
+				file_close = &close_psf_file;
+				file_execute = &psf_execute;
+				file_open = &load_psf_file;
+			}
+			#ifdef PLUGIN_VGM
+			else if (get_file_type(get_flist_idx(flist,fcur)) == F_VGM)
+			{
+				file_close = &vgm_close;
+				file_execute = &vgm_execute;
+				file_open = &vgm_open;
+			}
+			#endif
+			else
 			{
 				play_stat = M_ERR;
 				break;
 			}
 		
-			file_open(fn[fcur]);
+			file_open(get_flist_idx(flist,fcur));
 			
 			clear_scope();
 			
@@ -775,9 +813,9 @@ void update(const Uint8 * buf, int size)
 	if (buf==0 || size==0)
 	{
 		/* if function calling update returns 0, 0, halt playback.
-				* 
-				* (WATCH THIS)
-				*/
+		 * 
+		 * (WATCH THIS)
+		 */
 		play_stat = M_DO_STOP;
 		
 		return;
@@ -1257,7 +1295,7 @@ int get_file_type(char * fn)
 	
 	if (!fn)
 		return -1;
-	
+
 	ext = get_ext(fn);
 	
 	if (!(fp = fopen(fn, "r")))
@@ -1265,17 +1303,21 @@ int get_file_type(char * fn)
 		
 	fclose(fp);
 		
-	if (strcmp(ext,"psf") == 0 || strcmp(ext,"PSF") == 0)
+	if (!strcmp(ext,"psf") || !strcmp(ext,"PSF"))
 		return F_PSF;
 		
-	if (strcmp(ext,"psf2") == 0 || strcmp(ext,"PSF2") == 0)
+	if (!strcmp(ext,"psf2") || !strcmp(ext,"PSF2"))
 		return F_PSF2;
 		
-	if (strcmp(ext,"usf") == 0 || strcmp(ext,"USF") == 0)
+	if (!strcmp(ext,"usf") || !strcmp(ext,"USF"))
 		return F_USF;
 		
-	if (strcmp(ext,"vgm") == 0 || strcmp(ext,"VGM") == 0)
+	if (!strcmp(ext,"vgm") || !strcmp(ext,"VGM"))
 		return F_VGM;
+	
+	if (!strcmp(ext,"vgz")||!strcmp(ext,"VGZ"))
+		return F_VGM;
+	
 	
 	return F_UNKNOWN;
 	
@@ -1382,4 +1424,33 @@ void clear_tags()
 	strcpy(tag_system, "???");
 	strcpy(tag_year, "???");
 	strcpy(tag_notes, "???");
+}
+
+void listdir_flist(struct flist_base *b, const char *name, int level)
+{
+	struct dirent **namelist;
+	char pathcat[1024];
+	int i, n;
+
+
+    n = scandir(name, &namelist, 0, alphasort);
+    if (n < 0)
+        return;
+    else
+	{
+
+		for (i = 0; i < n; i++)
+        {
+			if (namelist[i]->d_type != DT_DIR)
+            {
+				pathcat[0] = '\0';
+				strcat(pathcat, name);
+				strcat(pathcat, namelist[i]->d_name);
+				add_flist_item(b, pathcat);
+			}
+			
+			free(namelist[i]);
+		}
+	}
+	free(namelist);
 }

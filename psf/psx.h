@@ -1,7 +1,7 @@
 #ifndef _MIPS_H
 #define _MIPS_H
 
-#include "ao.h"
+#include "../ao.h"
 //#include "driver.h"
 
 extern int mips_break;

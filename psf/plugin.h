@@ -2,8 +2,10 @@
 #ifndef __PSF_PLUGIN_H
 #define __PSF_PLUGIN_H
 
+#include <stdio.h>
+#include <stdlib.h>
 
-#include "psf/eng_protos.h"
+#include "eng_protos.h"
 
 #include "../ao.h"
 
