@@ -432,6 +432,11 @@ struct cfg_entry * read_entry(char *s)
 			}
 			
 		}
+		else if (types[0]==MFLOAT)
+		{
+			n->type = E_INT;
+			n->dat[0].f = floats[0];
+		}
 	}
 	
 	

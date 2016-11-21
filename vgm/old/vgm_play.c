@@ -379,135 +379,7 @@ UINT16 Last95Drum;	// for optvgm debugging
 UINT16 Last95Max;	// for optvgm debugging
 UINT32 Last95Freq;	// for optvgm debugging
 
-void VGMPlay_Init(void)
-{
-	UINT8 CurChip;
-	UINT8 curcset;
-	UINT8 curch;
-	CHIP_OPTS* tmpcopt;
-	CAUD_ATTR* TempCAud;
-	
-	SampleRate = 44100;
-	FadeTime = 5000;
-	PauseTime = 0;
-	HardStopOldVGMs = 0x00;
-	FadeRAWLog = 0;
-	VolumeLevel = 1.0f;
-	FMPort = 0x0000;
-	FMForce = false;
-	FMBreakFade = 0;
-	FMVol = 0.0f;
-	SurroundSound = 0;
-	VGMMaxLoop = 0x02;
-	VGMPbRate = 0;
-#ifdef ADDITIONAL_FORMATS
-	CMFMaxLoop = 0x01;
-#endif
-	ResampleMode = 0x00;
-	CHIP_SAMPLING_MODE = 0x00;
-	CHIP_SAMPLE_RATE = 0x00000000;
-	PauseEmulate = 0;
-	DoubleSSGVol = 0;
-	
-	for (curcset = 0x00; curcset < 0x02; curcset ++)
-	{
-		TempCAud = (CAUD_ATTR*)&ChipAudio[curcset];
-		for (CurChip = 0x00; CurChip < CHIP_COUNT; CurChip ++, TempCAud ++)
-		{
-			tmpcopt = (CHIP_OPTS*)&ChipOpts[curcset] + CurChip;
-			
-			tmpcopt->Disabled = 0;
-			tmpcopt->EmuCore = 0x00;
-			tmpcopt->SpecialFlags = 0x00;
-			tmpcopt->ChnCnt = 0x00;
-			tmpcopt->ChnMute1 = 0x00;
-			tmpcopt->ChnMute2 = 0x00;
-			tmpcopt->ChnMute3 = 0x00;
-			tmpcopt->Panning = 0;
-			
-			// Set up some important fields to prevent in_vgm from crashing
-			// when clicking on Muting checkboxes after init.
-			TempCAud->ChipType = 0xFF;
-			TempCAud->ChipID = curcset;
-			TempCAud->Paired = 0;
-		}
-		ChipOpts[curcset].GameBoy.SpecialFlags = 0x0003;
-		// default options, 0x8000 skips the option write and keeps NSFPlay's default values
-		// TODO: Is this really necessary??
-		ChipOpts[curcset].NES.SpecialFlags = 0x8000 |
-										(0x00 << 12) | (0x3B << 4) | (0x01 << 2) | (0x03 << 0);
-		ChipOpts[curcset].SCSP.SpecialFlags = 0x0001;	// bypass SCSP DSP
-		
-		TempCAud = CA_Paired[curcset];
-		for (CurChip = 0x00; CurChip < 0x03; CurChip ++, TempCAud ++)
-		{
-			TempCAud->ChipType = 0xFF;
-			TempCAud->ChipID = curcset;
-			TempCAud->Paired = 0;
-		}
-		
-		// currently the only chips with Panning support are
-		// SN76496 and YM2413, it should be not a problem that it's hardcoded.
-		tmpcopt = (CHIP_OPTS*)&ChipOpts[curcset].SN76496;
-		tmpcopt->ChnCnt = 0x04;
-		tmpcopt->Panning = (INT16*)malloc(sizeof(INT16) * tmpcopt->ChnCnt);
-		for (curch = 0x00; curch < tmpcopt->ChnCnt; curch ++)
-			tmpcopt->Panning[curch] = 0x00;
-		
-		tmpcopt = (CHIP_OPTS*)&ChipOpts[curcset].YM2413;
-		tmpcopt->ChnCnt = 0x0E;
-		tmpcopt->Panning = (INT16*) malloc(sizeof(INT16) * tmpcopt->ChnCnt);
-		for (curch = 0x00; curch < tmpcopt->ChnCnt; curch ++)
-			tmpcopt->Panning[curch] = 0x00;
-	}
-	
-	for (curch = 0; curch < 8; curch ++)
-		AppPaths[curch] = 0;
-	AppPaths[0] = "";
-	
-	FileMode = 0xFF;
-	
-	PausePlay = 0;
-	
-	
-	return;
-}
 
-void load_conf(char * fn)
-{
-	struct cfg_entry *o, *tmp;
-	
-	o = read_conf(fn);
-	
-	if (!o)
-		return;
-	
-	tmp = o;
-	
-	#if DEBUG_MAIN
-	print_cfg_entries(o);
-	#endif
-	
-	while (tmp)
-	{
-		if (strcmp("general",tmp->section)==0)
-		{
-			
-			if (strcmp("fps",tmp->name) == 0  && tmp->type==E_INT)
-			{
-				if (tmp->dat[0].i > 0)
-					c_fps = limint(tmp->dat[0].i, 1, 128);
-			}
-			else if (strcmp("ttf_font",tmp->name) == 0 && tmp->type==E_STR  )
-			{
-				strcpy(c_ttf_font, tmp->dat[0].s);
-			}
-			else if (strcmp("text_color",tmp->name) == 0  && tmp->type==E_RGB )
-			{
-				col_text[0] = limint(tmp->dat[0].i, 0, 255);
-				col_text[1] = limint(tmp->dat[1].i, 0, 255);
-				col_text[2] = limint(tmp->dat[2].i, 0, 255);
-			}
 
 static void ReadOptions(char *fn)
 {
@@ -602,8 +474,8 @@ static void ReadOptions(char *fn)
 			if (!strcmp("DoubleSSGVol",tmp->name)  && (tmp->type==E_INT || tmp->type==E_BOOL))
 				DoubleSSGVol = tmp->dat[0].i;
 				
-			if (!strcmp("PreferJapTag",tmp->name)  && (tmp->type==E_INT || tmp->type==E_BOOL) )
-				PreferJapTag = tmp->dat[0].i;
+			/*if (!strcmp("PreferJapTag",tmp->name)  && (tmp->type==E_INT || tmp->type==E_BOOL) )
+				PreferJapTag = tmp->dat[0].i;*/
 				
 			if (!strcmp("FadeTime",tmp->name)  && tmp->type==E_INT)
 				FadeTimeN = tmp->dat[0].i;

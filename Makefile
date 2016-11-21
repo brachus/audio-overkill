@@ -72,6 +72,7 @@ CC = gcc
 CFLAGS := -O3  $(CFLAGS) 
 
 CFLAGS += -Wno-unused-variable -Wno-unused-value -Wno-unused-but-set-variable
+CFLAGS += -Wno-pointer-to-int-cast
 
 LDFLAGS := -lm -lz -lglib-2.0 $(LDFLAGS)
 

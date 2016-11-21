@@ -72,11 +72,14 @@ char * get_flist_idx(struct flist_base *n,int idx)
 	
 	while (tmp!=0 && i < n->len)
 	{
+		
 		if (idx == i)
 			return tmp->nm;
 			
 		tmp = tmp->next;
 		i++;
 	}
+	
+	return 0;
 };
 

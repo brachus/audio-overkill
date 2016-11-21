@@ -169,7 +169,7 @@ int filebuf_load(char *fn, struct filebuf *r)
 }
 
 
-char *filename_build(char *dir, char *fn)
+char *filename_build(const char *dir, char *fn)
 {
 	int i, j, dlen, flen, len, md;
 	char dr='/';
@@ -198,10 +198,13 @@ char *filename_build(char *dir, char *fn)
 			if (j == dlen-1)
 			{
 				
-				if (dir[j] != dr)
-					r[i] = dir[j];
+				r[i] = dir[j];
 				
-				md=1;
+				if (dir[j] != dr)
+					md=1;
+				else
+					md=2;
+					
 				j=0;
 			}
 			else
@@ -211,7 +214,7 @@ char *filename_build(char *dir, char *fn)
 			}
 				
 		}
-		if (md==1)
+		else if (md==1)
 		{
 			r[i] = dr;
 			md=2;
@@ -341,4 +344,15 @@ void mix_chan_disp(int ch, short l, short r)
 	
 	sp_cnt[ch]++;
 	
+}
+
+void clear_tags()
+{
+	strcpy(tag_track, "???");
+	strcpy(tag_author, "???");
+	strcpy(tag_game, "???");
+	strcpy(tag_system, "???");
+	strcpy(tag_year, "???");
+	strcpy(tag_notes, "???");
+	strcpy(tag_chips, "\0");
 }

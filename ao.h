@@ -138,7 +138,7 @@ int is_dir(char *fn);
 struct filebuf *filebuf_init();
 int filebuf_free(struct filebuf *r);
 int filebuf_load(char *fn, struct filebuf *r);
-char * filename_build(char *dir, char *fn);
+char * filename_build(const char *dir, char *fn);
 
 char *strip_dir(char *path);
 
@@ -167,12 +167,15 @@ int ao_sample_limit_ok(int sample);
 
 void ao_sample_idx_clear();
 
+void clear_tags();
+
 extern char tag_track[256];
 extern char tag_author[256];
 extern char tag_game[256];
 extern char tag_system[256];
 extern char tag_year[256];
 extern char tag_notes[256];
+extern char tag_chips[1024];
 
 extern int play_stat;
 

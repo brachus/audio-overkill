@@ -40,6 +40,9 @@ int load_psf_file(char *fn)
 	safe_strcpy(tag_author, get_corlett_artist(), 256);
 	safe_strcpy(tag_game, get_corlett_game(), 256);
 	
+	safe_strcpy(tag_system, "Playstation", 256);
+	safe_strcpy(tag_chips, "psf spc", 256);
+	
 	return fok;
 }
 

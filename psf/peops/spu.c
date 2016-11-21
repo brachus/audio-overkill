@@ -340,7 +340,7 @@ int SPUasync(u32 cycles, void (*update)(const void *, int))
              //////////////////////////////////////////// flag handler
              
              /*ao_chan_flag_disp[ch]= flags;*/
-             ao_chan_flag_disp[ch]= s_chan[ch].pStart;
+             ao_chan_flag_disp[ch] = (int) s_chan[ch].pStart;
              
             
              
@@ -462,9 +462,9 @@ int SPUasync(u32 cycles, void (*update)(const void *, int))
            // ok, left/right sound volume (psx volume goes from 0 ... 0x3fff)
 	   int tmpl,tmpr;
 	   
-	    ao_add_sample(temp, s_chan[ch].pStart);
+	    ao_add_sample(temp, (int) s_chan[ch].pStart);
 
-		if (ao_channel_enable[ch] && (int) ao_sample_limit_ok(s_chan[ch].pStart) ) {
+		if (ao_channel_enable[ch] && (int) ao_sample_limit_ok((int) s_chan[ch].pStart) ) {
 		
 			tmpl=(s_chan[ch].sval*s_chan[ch].iLeftVolume)>>14;
 			tmpr=(s_chan[ch].sval*s_chan[ch].iRightVolume)>>14;
