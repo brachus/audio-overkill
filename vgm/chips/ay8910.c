@@ -120,6 +120,9 @@ has twice the steps, happening twice as fast.
 #include <stdlib.h>
 #include <string.h>	// for memset
 #include <stdio.h>
+
+#include "../../ao.h"
+
 #include "ay8910.h"
 
 /*************************************
@@ -756,6 +759,8 @@ void ay8910_update_one(void *param, stream_sample_t **outputs, int samples)
 			}
 		}
 		psg->env_volume = (psg->env_step ^ psg->attack);
+		
+		ao_chan_disp_nchannels = 24; /* from AO.H */
 
 		//if (psg->streams == NUM_CHANNELS)
 		//{
@@ -767,15 +772,30 @@ void ay8910_update_one(void *param, stream_sample_t **outputs, int samples)
 					if (psg->chip_type == CHTYPE_AY8914) // AY8914 Has a two bit tone_envelope field
 					{
 						*(buf[chan]++) = psg->env_table[chan][psg->vol_enabled[chan] ? psg->env_volume >> (3-TONE_ENVELOPE(psg,chan)) : 0];
+						
+						mix_chan_disp( /* from AO.H */
+							chan,
+							psg->env_table[chan][psg->vol_enabled[chan] ? psg->env_volume >> (3-TONE_ENVELOPE(psg,chan)) : 0],
+							psg->env_table[chan][psg->vol_enabled[chan] ? psg->env_volume >> (3-TONE_ENVELOPE(psg,chan)) : 0]);
 					}
 					else
 					{
 						*(buf[chan]++) = psg->env_table[chan][psg->vol_enabled[chan] ? psg->env_volume : 0];
+						
+						mix_chan_disp( /* from AO.H */
+							chan,
+							psg->env_table[chan][psg->vol_enabled[chan] ? psg->env_volume : 0],
+							psg->env_table[chan][psg->vol_enabled[chan] ? psg->env_volume : 0]);
 					}
 				}
 				else
 				{
 					*(buf[chan]++) = psg->vol_table[chan][psg->vol_enabled[chan] ? TONE_VOLUME(psg, chan) : 0];
+					
+					mix_chan_disp( /* from AO.H */
+							chan,
+							psg->vol_table[chan][psg->vol_enabled[chan] ? TONE_VOLUME(psg, chan) : 0],
+							psg->vol_table[chan][psg->vol_enabled[chan] ? TONE_VOLUME(psg, chan) : 0]);
 				}
 		/*}
 		else

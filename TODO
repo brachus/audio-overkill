@@ -1,12 +1,15 @@
  
- 
- 
-  
- - finish vgm support: tags, conf reading, cleanup, etc.
+ - finish vgm support: find way to properly read wchar_t encoding from
+	vgm format for rendering text with.
  
  - specify max length of music track from cmd line / config (in config?).
 
- - consider sid/nsf support:
+ - consider usf/spc/nsf support:
  -  modes for keeping track of current/selected format.
  -  functions such as:  detecting file type, loading based on current format, playing based on current format.
  -  make psf_execute into a pointer function name file_execute.
+ 
+ - consider having channel display have separate buffers
+		for different chips/systems, as right now
+		some vgm files using multiple chips might end up with
+		a clobbered channel display.

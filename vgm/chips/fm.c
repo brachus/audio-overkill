@@ -117,6 +117,8 @@
 #include <stdarg.h>
 #include <math.h>
 
+#include "../../ao.h"
+
 #include "mamedef.h"
 //#ifndef __RAINE__
 //#include "sndintrf.h"		/* use M.A.M.E. */
@@ -2194,6 +2196,11 @@ void ym2203_update_one(void *chip, FMSAMPLE **buffer, int length)
 			#ifdef SAVE_SAMPLE
 				SAVE_ALL_CHANNELS
 			#endif
+			
+			
+			mix_chan_disp(0, OPN->out_fm[0], OPN->out_fm[0]); /* from AO.H */
+			mix_chan_disp(1, OPN->out_fm[1], OPN->out_fm[1]);
+			mix_chan_disp(2, OPN->out_fm[2], OPN->out_fm[2]);
 
 			/* buffering */
 			bufL[i] = lt;
@@ -3452,6 +3459,35 @@ void ym2608_update_one(void *chip, FMSAMPLE **buffer, int length)
 			rt += (out_fm[4] & OPN->pan[9]);
 			lt += (out_fm[5] & OPN->pan[10]);
 			rt += (out_fm[5] & OPN->pan[11]);
+			
+			ao_chan_disp_nchannels = 24;
+      
+			mix_chan_disp(9, (OPN->out_adpcm[OUTD_LEFT]  +
+				OPN->out_adpcm[OUTD_CENTER]) << 1,
+					(OPN->out_adpcm[OUTD_RIGHT] +
+						OPN->out_adpcm[OUTD_CENTER]) << 1); /* from AO.h */
+			mix_chan_disp(10, (OPN->out_delta[OUTD_LEFT]  +
+				OPN->out_delta[OUTD_CENTER])>>8,
+				(OPN->out_delta[OUTD_RIGHT] +
+					OPN->out_delta[OUTD_CENTER])>>8);
+			mix_chan_disp(11,
+				(out_fm[0] & OPN->pan[0]),
+				(out_fm[0] & OPN->pan[1]));
+			mix_chan_disp(12,
+				(out_fm[1] & OPN->pan[2]),
+				(out_fm[1] & OPN->pan[3]));
+			mix_chan_disp(13,
+				(out_fm[2] & OPN->pan[4]),
+				(out_fm[2] & OPN->pan[5]));
+			mix_chan_disp(14,
+				(out_fm[3] & OPN->pan[6]),
+				(out_fm[3] & OPN->pan[7]));
+			mix_chan_disp(15,
+				(out_fm[4] & OPN->pan[8]),
+				(out_fm[4] & OPN->pan[9]));
+			mix_chan_disp(16,
+				(out_fm[5] & OPN->pan[10]),
+				(out_fm[5] & OPN->pan[11]));
 
 			lt >>= FINAL_SH;
 			rt >>= FINAL_SH;
