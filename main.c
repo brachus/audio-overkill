@@ -23,11 +23,11 @@
 
 #include "psf/plugin.h"
 
-#define PLUGIN_VGM
-
-#ifdef PLUGIN_VGM
 #include "vgm/plugin.h"
-#endif
+
+#include "sid/plugin.h"
+
+
 
 #include "filelist.h"
 
@@ -87,12 +87,16 @@ static float scope_view = 0.5;
 
 static int mono = 0;
 
-static int channel_enable[MAXCHAN] = {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1};
+static int channel_enable[MAXCHAN] =
+	{1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1};
+
 
 static int u_size = 3000;
 static Uint8  *u_buf;
-static int u_buf_fill_start = 0; /* where sdl begins to fill audio stream from */
-static int u_buf_fill = 0; /* size in bytes filled from fill_start and on.*/
+static int u_buf_fill_start = 0;
+	/* where sdl begins to fill audio stream from */
+static int u_buf_fill = 0;
+	/* size in bytes filled from fill_start and on.*/
 
 
 #define STEREO_FILL_SIZE (c_buf_size*2)
@@ -105,6 +109,47 @@ static uint8_t *pw_pixel;
 
 
 static int f_render_font = 1;
+
+
+static int k_shift=0;
+
+char tag_track[256];
+char tag_author[256];
+char tag_game[256];
+char tag_system[256];
+char tag_year[256];
+char tag_notes[256];
+char tag_chips[1024];
+
+enum
+{
+	D_TRACK,
+	D_AUTHOR,
+	D_GAME,
+	D_SYSTEM,
+	D_YEAR,
+	D_NOTES,
+	D_CHIPS
+	
+};
+
+int info_disp[7] = {1,1,1,1,0,0,1};
+
+enum
+{
+	F_UNKNOWN,
+	F_PSF,
+	F_PSF2,
+	F_USF,
+	F_VGM,
+	F_SID
+};
+
+int play_stat = M_STOPPED;
+
+static void (*file_close)(void);
+static int (*file_execute)(void (*update )(const void *, int));
+static int (*file_open)(char *);
 
 int limint(int in, int from, int to);
 char *str_prepend(char *s, char *pre);
@@ -132,70 +177,22 @@ void render_text( SDL_Surface* dst, char *str,
 	int bold, int maxwidth, int tick);
 void sdl_set_col(SDL_Color *c, int r,int  g,int  b,int  a);
 void u_buf_init();
-
 int get_file_type(char * fn);
 void print_f_type(int type);
-
 void experimental_sample_filter(int key);
-
 int recon_file(char* fn);
-
-enum
-{
-	F_UNKNOWN,
-	F_PSF,
-	F_PSF2,
-	F_USF,
-	F_VGM,
-};
-
-
-int play_stat = M_STOPPED;
-
-static void (*file_close)(void);
-static int (*file_execute)(void (*update )(const void *, int));
-static int (*file_open)(char *);
-
-static int k_shift=0;
-
-char tag_track[256];
-char tag_author[256];
-char tag_game[256];
-char tag_system[256];
-char tag_year[256];
-char tag_notes[256];
-char tag_chips[1024];
-
-enum
-{
-	D_TRACK,
-	D_AUTHOR,
-	D_GAME,
-	D_SYSTEM,
-	D_YEAR,
-	D_NOTES,
-	D_CHIPS
-	
-};
-
-int info_disp[7] = {1,1,1,1,0,0,1};
-
-
 void listdir_flist(struct flist_base *b, const char *name, int level);
 
 	
 int main(int argc, char *argv[])
 {
-	int run=1, i, fcnt, fcur,
-		key, ispaused=0, newtrackcnt=20,
+	int run, i, fcnt, fcur,
+		key, tickdelay,
 		tick, rtmpy;
 	SDL_Event e;
 	char tmpstr[256];
 	char chtrack, *ctmp;
-	struct flist_base *flist;
-	
-	/* point to psf functions only for now. */
-	
+	struct flist_base *flist;	
 	
 	load_conf(CONFIG_FNAME);
 	
@@ -226,27 +223,25 @@ int main(int argc, char *argv[])
     
     if (!font)
     {
-		fprintf(stderr,"err: could't find \"%s\".\n no text will be rendered.\n", TTF_FONT);
+		fprintf(stderr,
+			"err: could't find \"%s\".\n no text will be rendered.\n",
+			TTF_FONT);
 		f_render_font=0;
 	}
 	
 	flist = flist_init();
-	
-	fcnt=0;
+		
 	for (i=1;i<argc;i++)
 	{
 		if (is_dir(argv[i]))
 			listdir_flist(flist, argv[i], 0);
-		else
-		{
-			if (recon_file(argv[i])==1)
-				add_flist_item(flist, argv[i]);
 			
-		}
+		else if (recon_file(argv[i])==1)
+			add_flist_item(flist, argv[i]);
 			
 	}
-	fcnt = flist->len;
 	
+	fcnt = flist->len;
 	
 	if (fcnt == 0)
 	{
@@ -254,14 +249,14 @@ int main(int argc, char *argv[])
 		return 0;
 		
 	}
-	
 	fcur = 0;
+	
+	sid_subsong_sel=0; /* this needs to go. */
 	
 	win = SDL_CreateWindow(WIN_TITLE,
 		SDL_WINDOWPOS_UNDEFINED,
 		SDL_WINDOWPOS_UNDEFINED,
 		SCREENWIDTH, SCREENHEIGHT,
-		/*SDL_WINDOW_OPENGL |*/
 		(SDL_WINDOW_BORDERLESS * f_borderless)
 		);
 		
@@ -272,10 +267,10 @@ int main(int argc, char *argv[])
 	clear_tags();
 	
 	
-    /* set the audio format */
+    /* set audio format */
     wanted.freq = 44100;
     wanted.format = AUDIO_S16;
-    wanted.channels = 2;    /* 1 = mono, 2 = stereo */
+    wanted.channels = 2;
     wanted.samples = ABUFSIZ;
     wanted.callback = fill_audio;
     wanted.userdata = 0;
@@ -294,10 +289,13 @@ int main(int argc, char *argv[])
     play_stat = M_LOAD;
     
     
-    ispaused=0;
     chtrack=0;
 
 	tick=0;
+	
+	run=1;
+	
+	tickdelay=20;
 	
 	while (run)
 	{
@@ -334,10 +332,10 @@ int main(int argc, char *argv[])
 				
 				case SDLK_LEFT:
 				case SDLK_RIGHT:
-					if (e.key.keysym.sym==SDLK_LEFT)
-						if (fcur>0) fcur--;
-					else
-						if (fcur<(fcnt-1)) fcur++;
+					if (e.key.keysym.sym==SDLK_LEFT && fcur>0)
+						fcur--;
+					else if (fcur<(fcnt-1)) 
+						fcur++;
 					
 					if (play_stat == M_PLAY)
 						play_stat = M_RELOAD;
@@ -359,6 +357,23 @@ int main(int argc, char *argv[])
 					experimental_sample_filter( e.key.keysym.sym );
 					break;
 				
+				/* get rid of sid_subsong_sel */
+				case SDLK_a:
+				case SDLK_d:	
+					if (e.key.keysym.sym==SDLK_d)
+						sid_subsong_sel++;
+					else
+						sid_subsong_sel--;
+					
+					if (play_stat == M_PLAY)
+						play_stat = M_RELOAD;
+					else if (play_stat == M_PAUSE)
+						play_stat = M_RELOAD_IDLE;
+					
+					if (play_stat == M_STOPPED || play_stat == M_ERR)
+						play_stat = M_LOAD;
+					break;
+					
 				case SDLK_c:
 					
 					load_conf(CONFIG_FNAME);
@@ -368,6 +383,7 @@ int main(int argc, char *argv[])
 					sdl_set_col(&tcol_b, TEXT_BG_COLOR, 0);
 					free_scope();
 					init_scope();
+					
 					SDL_SetWindowSize(win, c_screen_w, c_screen_h);
 					
 					/* should screen be freed ? */
@@ -485,20 +501,26 @@ int main(int argc, char *argv[])
 			
 			reset_u_buf();
 			
+			reset_chan_disp();
+			
 			if (get_file_type(get_flist_idx(flist,fcur)) == F_PSF)
 			{
 				file_close = &close_psf_file;
 				file_execute = &psf_execute;
 				file_open = &load_psf_file;
 			}
-			#ifdef PLUGIN_VGM
 			else if (get_file_type(get_flist_idx(flist,fcur)) == F_VGM)
 			{
 				file_close = &vgm_close;
 				file_execute = &vgm_execute;
 				file_open = &vgm_open;
 			}
-			#endif
+			else if (get_file_type(get_flist_idx(flist,fcur)) == F_SID)
+			{
+				file_close = &sid_close;
+				file_execute = &sid_execute;
+				file_open = &sid_open;
+			}
 			else
 			{
 				play_stat = M_ERR;
@@ -514,7 +536,7 @@ int main(int argc, char *argv[])
 			
 			update_scope(screen);
 			
-			newtrackcnt=20;
+			tickdelay=20;
 			tick=0;
 			
 			if (play_stat == M_RELOAD_IDLE)
@@ -555,10 +577,10 @@ int main(int argc, char *argv[])
 		
         SDL_Delay(1000/FPS);
         
-        if (newtrackcnt<0)
+        if (tickdelay < 0)
 			tick++;
-        
-        newtrackcnt--;
+        else
+			tickdelay--;
 	
 	}
 	
@@ -575,7 +597,7 @@ int pw_init(SDL_Surface *in)
 	pw_bpp = pw_fmt->BytesPerPixel;
 	pw_pitch = in->pitch;
 	
-	return pw_bpp==4;
+	return (pw_bpp==4);
 		
 }
 
@@ -622,100 +644,107 @@ void load_conf(char * fn)
 	print_cfg_entries(o);
 	#endif
 	
+	#ifndef CONF_IS_BOOL
+	 #define CONF_IS_BOOL (tmp->type==E_BOOL || tmp->type==E_INT)
+	 #define ENTRY_NAME(x) (strcmp(x,tmp->name) == 0)
+	 #define CONF_INT (tmp->dat[0].i)
+	 #define CONF_FLOAT (tmp->dat[0].f)
+	#endif
+	
 	while (tmp)
 	{
 		if (strcmp("general",tmp->section)==0)
 		{
 			
-			if (strcmp("fps",tmp->name) == 0  && tmp->type==E_INT)
+			if (ENTRY_NAME("fps")  && tmp->type==E_INT)
 			{
 				if (tmp->dat[0].i > 0)
 					c_fps = limint(tmp->dat[0].i, 1, 128);
 			}
-			else if (strcmp("ttf_font",tmp->name) == 0 && tmp->type==E_STR  )
+			else if (ENTRY_NAME("ttf_font") && tmp->type==E_STR  )
 				strcpy(c_ttf_font, tmp->dat[0].s);
 				
-			else if (strcmp("text_color",tmp->name) == 0  && tmp->type==E_RGB )
+			else if (ENTRY_NAME("text_color")  && tmp->type==E_RGB )
 			{
 				col_text[0] = limint(tmp->dat[0].i, 0, 255);
 				col_text[1] = limint(tmp->dat[1].i, 0, 255);
 				col_text[2] = limint(tmp->dat[2].i, 0, 255);
 			}
 			
-			else if (strcmp("text_bg_color",tmp->name) == 0 && tmp->type==E_RGB )
+			else if (ENTRY_NAME("text_bg_color") && tmp->type==E_RGB )
 			{
 				col_text_bg[0] = limint(tmp->dat[0].i, 0, 255);
 				col_text_bg[1] = limint(tmp->dat[1].i, 0, 255);
 				col_text_bg[2] = limint(tmp->dat[2].i, 0, 255);
 			}
 			
-			else if (strcmp("bg_color",tmp->name) == 0 && tmp->type==E_RGB )
+			else if (ENTRY_NAME("bg_color") && tmp->type==E_RGB )
 			{
 				col_bg[0] = limint(tmp->dat[0].i, 0, 255);
 				col_bg[1] = limint(tmp->dat[1].i, 0, 255);
 				col_bg[2] = limint(tmp->dat[2].i, 0, 255);
 			}
-			else if (strcmp("scope_color",tmp->name) == 0 && tmp->type==E_RGB)
+			else if (ENTRY_NAME("scope_color") && tmp->type==E_RGB)
 			{
 				col_scope[0] = limint(tmp->dat[0].i, 0, 255);
 				col_scope[1] = limint(tmp->dat[1].i, 0, 255);
 				col_scope[2] = limint(tmp->dat[2].i, 0, 255);
 			}
-			else if (strcmp("scope_low_grad_color",tmp->name) == 0 && tmp->type==E_RGB)
+			else if (ENTRY_NAME("scope_low_grad_color") && tmp->type==E_RGB)
 			{
 				col_scope_low[0] = limint(tmp->dat[0].i, 0, 255);
 				col_scope_low[1] = limint(tmp->dat[1].i, 0, 255);
 				col_scope_low[2] = limint(tmp->dat[2].i, 0, 255);
 			}
-			else if (strcmp("scope_high_grad_color",tmp->name) == 0 && tmp->type==E_RGB)
+			else if (ENTRY_NAME("scope_high_grad_color") && tmp->type==E_RGB)
 			{
 				col_scope_high[0] = limint(tmp->dat[0].i, 0, 255);
 				col_scope_high[1] = limint(tmp->dat[1].i, 0, 255);
 				col_scope_high[2] = limint(tmp->dat[2].i, 0, 255);
 			}
-			else if (strcmp("buf_size", tmp->name)==0 && tmp->type==E_INT)
+			else if (ENTRY_NAME("buf_size") && tmp->type==E_INT)
 				c_buf_size = limint(tmp->dat[0].i, 16, 4096*4);
 				
-			else if (strcmp("noborder", tmp->name)==0 && (tmp->type==E_BOOL || tmp->type==E_INT))
+			else if (ENTRY_NAME("noborder") && CONF_IS_BOOL)
 				f_borderless = tmp->dat[0].i;
 				
-			else if (strcmp("len_ms", tmp->name)==0 && tmp->type==E_INT)
+			else if (ENTRY_NAME("len_ms") && tmp->type==E_INT)
 				ao_set_len = tmp->dat[0].i;
 				
-			else if (strcmp("scope_grad", tmp->name)==0 && (tmp->type==E_BOOL || tmp->type==E_INT))
+			else if (ENTRY_NAME("scope_grad") && CONF_IS_BOOL)
 				c_scope_do_grad = tmp->dat[0].i;
 				
-			else if (strcmp("screen_width", tmp->name)==0 && tmp->type==E_INT)
+			else if (ENTRY_NAME("screen_width") && tmp->type==E_INT)
 				c_screen_w = limint(tmp->dat[0].i, 16, 4096*2);
 				
-			else if (strcmp("screen_height", tmp->name)==0 && tmp->type==E_INT)
+			else if (ENTRY_NAME("screen_height") && tmp->type==E_INT)
 				c_screen_h = limint(tmp->dat[0].i, 16, 4096*2);
 				
-			else if (strcmp("always_on_top", tmp->name)==0 && (tmp->type==E_BOOL || tmp->type==E_INT))
+			else if (ENTRY_NAME("always_on_top") && CONF_IS_BOOL)
 				c_always_ontop = tmp->dat[0].i;
 				
-			else if (strcmp("mono", tmp->name)==0 && (tmp->type==E_BOOL || tmp->type==E_INT))
+			else if (ENTRY_NAME("mono") && CONF_IS_BOOL)
 				mono = tmp->dat[0].i;
 				
-			else if (strcmp("show_track", tmp->name)==0 && (tmp->type==E_BOOL || tmp->type==E_INT))
+			else if (ENTRY_NAME("show_track") && CONF_IS_BOOL)
 				info_disp[0] = (tmp->dat[0].i) ? 1:0;
 				
-			else if (strcmp("show_author", tmp->name)==0 && (tmp->type==E_BOOL || tmp->type==E_INT))
+			else if (ENTRY_NAME("show_author") && CONF_IS_BOOL)
 				info_disp[1] = (tmp->dat[0].i) ? 1:0;
 				
-			else if (strcmp("show_game", tmp->name)==0 && (tmp->type==E_BOOL || tmp->type==E_INT))
+			else if (ENTRY_NAME("show_game") && CONF_IS_BOOL)
 				info_disp[2] = (tmp->dat[0].i) ? 1:0;
 				
-			else if (strcmp("show_system", tmp->name)==0 && (tmp->type==E_BOOL || tmp->type==E_INT))
+			else if (ENTRY_NAME("show_system") && CONF_IS_BOOL)
 				info_disp[3] = (tmp->dat[0].i) ? 1:0;
 				
-			else if (strcmp("show_year", tmp->name)==0 && (tmp->type==E_BOOL || tmp->type==E_INT))
+			else if (ENTRY_NAME("show_year") && CONF_IS_BOOL)
 				info_disp[4] = (tmp->dat[0].i) ? 1:0;
 				
-			else if (strcmp("show_notes", tmp->name)==0 && (tmp->type==E_BOOL || tmp->type==E_INT))
+			else if (ENTRY_NAME("show_notes") && CONF_IS_BOOL)
 				info_disp[5] = (tmp->dat[0].i) ? 1:0;
 				
-			else if (strcmp("show_chips", tmp->name)==0 && (tmp->type==E_BOOL || tmp->type==E_INT))
+			else if (ENTRY_NAME("show_chips") && CONF_IS_BOOL)
 				info_disp[6] = (tmp->dat[0].i) ? 1:0;
 			
 		}
@@ -751,8 +780,7 @@ void dump_scope_buf()
 		{
 			j = bufj*i;
 			
-			j = j < 0 ? 0 : j;
-			j = j >= scope_bufsiz ? scope_bufsiz-1 : j;
+			j = limint(j, 0, scope_bufsiz - 1);
 			
 			scope[i] = scope_buf[j];
 		}
@@ -807,12 +835,7 @@ int cheap_is_dir(char *path)
 		return 1;
 		
 	return 0;
-		
-	
-	
 }
-
-
 
 void reset_u_buf()
 {
@@ -1080,7 +1103,7 @@ void update_scope(SDL_Surface *in)
 void update_ao_chdisp(SDL_Surface *in)
 {
 	
-	int i, x, y, to_y;
+	int i, x, y, to_y, minmax;
 	
 	float fy;
 	
@@ -1089,15 +1112,25 @@ void update_ao_chdisp(SDL_Surface *in)
 	{		
 		pw_set_rgb(SCOPE_COLOR);
 		
-		for (i=0;i<(24*2);i++)
+		for (i=0;i<(ao_chan_disp_nchannels*2);i++)
 		{
-			fy=(float) ( ao_chan_disp[i] ) / (0xfff);
+			fy = 0.0;
+			
+			if (ao_chan_disp_max[i] > ao_chan_disp_min[i])
+			{
+				/*fy=(float) ( ao_chan_disp[i] ) / (0xfff);*/
+				minmax = ao_chan_disp_max[i]-ao_chan_disp_min[i];
+				
+				fy=(float) ( ao_chan_disp[i] ) / (minmax);
+			}
+			
+			
 			
 			fy=fy>1.0?1.0:fy;
 			fy=fy<0.0?0.0:fy;
 			
 			
-			x = SCREENWIDTH - 10 - (24*2*2) +  ((i) + (i/2 * 2)  );
+			x = SCREENWIDTH - 10 - (ao_chan_disp_nchannels*2*2) +  ((i) + (i/2 * 2)  );
 			y = SCREENHEIGHT - 10;
 			to_y = y - (int) (fy*16);
 			
@@ -1140,14 +1173,14 @@ void update_ao_ch_flag_disp(SDL_Surface *in, int md)
 	{		
 		pw_set_rgb(SCOPE_COLOR);
 		
-		for (i=0;i<(24);i++)
+		for (i=0;i<(ao_chan_disp_nchannels);i++)
 		{
 			tmp = ao_chan_flag_disp[i];
-			y=SCREENHEIGHT - (24*2) - 4 + (i*2);
+			y=SCREENHEIGHT - (ao_chan_disp_nchannels*2) - 4 + (i*2);
 			
 			
 			y = SCREENHEIGHT - 10;
-			x = SCREENWIDTH - 10 - (24*2*2) +  (i + (i * 3))  ;
+			x = SCREENWIDTH - 10 - (ao_chan_disp_nchannels*2*2) +  (i + (i * 3))  ;
 			
 			
 			if (md==1)
@@ -1328,6 +1361,9 @@ int get_file_type(char * fn)
 	
 	if (!strcmp(ext,"vgz")||!strcmp(ext,"VGZ"))
 		return F_VGM;
+		
+	if (!strcmp(ext,"sid")||!strcmp(ext,"SID"))
+		return F_SID;
 	
 	
 	return F_UNKNOWN;

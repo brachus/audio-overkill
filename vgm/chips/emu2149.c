@@ -22,6 +22,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#include "../../ao.h"
+
 #include "emu2149.h"
 
 static e_uint32 voltbl[2][32] = {
@@ -413,11 +416,15 @@ calc_stereo (PSG * psg, e_int32 out[2])
         l += psg->cout[i];
       if (psg->stereo_mask[i] & 0x02)
         r += psg->cout[i];
+      
+      mix_chan_disp(9+i, psg->cout[i], psg->cout[i]); /* from AO.h */
     }
   }
 
   out[0] = l << 5;
   out[1] = r << 5;
+  
+  
 
   return;
 }

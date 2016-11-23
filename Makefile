@@ -50,24 +50,6 @@ CC = gcc
 #MAINFLAGS += -DDISABLE_HW_SUPPORT
 #endif
 
-#gcc main.c ao.c conf.c psf/plugin.c psf/audstrings.c psf/corlett.c\
-#       psf/psx.c \
-#       psf/psx_hw.c \
-#       psf/eng_psf.c \
-#       psf/eng_psf2.c \
-#       psf/peops/spu.c \
-#       psf/peops2/dma.c \
-#       psf/peops2/registers.c \
-#       psf/peops2/spu.c\
-#       \
-#       -Wno-unused-variable -Wno-unused-value -Wno-unused-but-set-variable\
-#        -g0\
-#	    -lglib-2.0 -I/usr/include/glib-2.0\
-#        -I/usr/lib/x86_64-linux-gnu/glib-2.0/include\
-#        -I/usr/include/SDL2 \
-#        -lz -lm -Wno-sign-compare -I../.. -Ipsf/ -Ispu/\
-#        -I. -Ivgm/chips/ -lrt -lpthread -pthread -ggdb3   -O2 -o audio_overkill
-
 
 CFLAGS := -O3  $(CFLAGS) 
 
@@ -112,6 +94,11 @@ VGMMAINOBJS = \
 	$(OBJ)/vgm/Stream.o \
 	$(OBJ)/vgm/ChipMapper.o\
 	$(OBJ)/vgm/plugin.o
+
+SIDMAINOBJS = \
+	$(OBJ)/sid/plugin.o \
+	$(OBJ)/sid/sidengine.o \
+	$(OBJ)/sid/soundcard.o
 	
 EMUOBJ = $(OBJ)/chips
 
@@ -238,9 +225,9 @@ MAINOBJS=\
 
 all: audiooverkill
 
-audiooverkill: $(EMUOBJS) $(VGMMAINOBJS) psf.o main.o
+audiooverkill: $(EMUOBJS) $(VGMMAINOBJS) $(SIDMAINOBJS) psf.o main.o
 	@echo Linking audio overkill ...
-	@$(CC) $(LDFLAGS) $(EMUOBJS) $(VGMMAINOBJS) $(PSFOBJS) $(MAINOBJS)  -o audio_overkill
+	@$(CC) $(LDFLAGS) $(EMUOBJS) $(VGMMAINOBJS) $(SIDMAINOBJS) $(PSFOBJS) $(MAINOBJS)  -o audio_overkill
 	@echo Done.
 	
 audiooverkill_onlypsf: psf.o main.o
@@ -248,9 +235,8 @@ audiooverkill_onlypsf: psf.o main.o
 	@$(CC) $(LDFLAGS) $(PSFOBJS) $(MAINOBJS) -o audio_overkill
 	@echo Done.
 
- #$(OBJ)/psf/peops/dma.o\
 
-# compile the chip-emulator c-files
+# compile the vgm chip-emulator c-files
 $(EMUOBJ)/%.o:	$(SRC)/vgm/chips/%.c
 	@echo Compiling $< ...
 	@mkdir -p $(@D)
@@ -258,6 +244,12 @@ $(EMUOBJ)/%.o:	$(SRC)/vgm/chips/%.c
 
 # compile the main vgm c-files
 $(OBJ)/vgm/%.o:	$(SRC)/vgm/%.c
+	@echo Compiling $< ...
+	@mkdir -p $(@D)
+	@$(CC) $(CFLAGS)  $(LDFLAGS) -c $< -o $@
+
+# compile the main sid c-files
+$(OBJ)/sid/%.o:	$(SRC)/sid/%.c
 	@echo Compiling $< ...
 	@mkdir -p $(@D)
 	@$(CC) $(CFLAGS)  $(LDFLAGS) -c $< -o $@

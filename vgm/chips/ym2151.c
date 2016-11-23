@@ -7,6 +7,8 @@
 #include <stdio.h>
 #include <math.h>
 
+#include "../../ao.h"
+
 #include "mamedef.h"
 #include <stdlib.h>
 #include <string.h>	// for memset
@@ -2458,6 +2460,20 @@ void ym2151_update_one(void *chip, SAMP **buffers, int length)
 		SAVE_SINGLE_CHANNEL(6)
 		chan7_calc();
 		SAVE_SINGLE_CHANNEL(7)
+		
+		/* for channel visualization */ /* from AO.h */
+		ao_chan_disp_nchannels = 24;
+		/*ao_chan_flag_disp[v*2] = (0xff << (8*v)) | 0x888888;
+		ao_chan_flag_disp[v*2+1] = (0xff << (8*v)) | 0x888888;*/
+		mix_chan_disp(0, chanout[0] & PSG->pan[0], chanout[0] & PSG->pan[1]);
+		mix_chan_disp(1, chanout[1] & PSG->pan[2], chanout[0] & PSG->pan[3]);
+		mix_chan_disp(2, chanout[2] & PSG->pan[4], chanout[0] & PSG->pan[5]);
+		mix_chan_disp(3, chanout[3] & PSG->pan[6], chanout[0] & PSG->pan[7]);
+		mix_chan_disp(4, chanout[4] & PSG->pan[8], chanout[0] & PSG->pan[9]);
+		mix_chan_disp(5, chanout[5] & PSG->pan[10], chanout[0] & PSG->pan[11]);
+		mix_chan_disp(6, chanout[6] & PSG->pan[12], chanout[0] & PSG->pan[13]);
+		mix_chan_disp(7, chanout[7] & PSG->pan[14], chanout[0] & PSG->pan[15]);
+		/* --- */
 
 		outl = chanout[0] & PSG->pan[0];
 		outr = chanout[0] & PSG->pan[1];

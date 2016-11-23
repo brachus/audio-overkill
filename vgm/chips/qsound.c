@@ -32,6 +32,9 @@
 ***************************************************************************/
 
 //#include "emu.h"
+
+#include "../../ao.h"
+
 #include "mamedef.h"
 #ifdef _DEBUG
 #include <stdio.h>
@@ -410,10 +413,18 @@ void qsound_update(UINT8 ChipID, stream_sample_t **outputs, int samples)
 					}
 				}
 				
+				
 				offset = (pC->bank | pC->address) % chip->sample_rom_length;
 				sample = chip->sample_rom[offset];
 				*pOutL++ += ((sample * pC->lvol * pC->vol) >> 14);
 				*pOutR++ += ((sample * pC->rvol * pC->vol) >> 14);
+				
+				ao_chan_disp_nchannels = QSOUND_CHANNELS;
+				
+				mix_chan_disp(
+					i,
+					((sample * pC->lvol * pC->vol) >> 14),
+					((sample * pC->rvol * pC->vol) >> 14)); /* from AO.h */
 			}
 		}
 	}

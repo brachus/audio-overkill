@@ -7,6 +7,9 @@
 #include <stdlib.h>
 #include <string.h>	// for memset
 #include <stddef.h>	// for NULL
+
+#include "../../ao.h"
+
 #include "mamedef.h"
 #include "../stdbool.h"
 #include "np_nes_apu.h"	// for NES_APU_np_FrameSequence
@@ -522,6 +525,11 @@ UINT32 NES_DMC_np_Render(void* chip, INT32 b[2])
 	b[1] += m[1] * dmc->sm[1][1];
 	b[1] +=-m[2] * dmc->sm[1][2];
 	b[1] >>= 7-2;
+	
+	ao_chan_disp_nchannels=6; /* from AO.H */
+	mix_chan_disp(0, m[0] * dmc->sm[0][0], m[0] * dmc->sm[1][0]);/*tri*/
+	mix_chan_disp(1, m[1] * dmc->sm[0][1], m[1] * dmc->sm[1][1]);/*noise*/
+	mix_chan_disp(2, m[2] * dmc->sm[0][2], m[2] * dmc->sm[1][2]);/*pcm*/
 
 	return 2;
 }

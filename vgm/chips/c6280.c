@@ -57,6 +57,9 @@
 #include <stdlib.h>	// for rand
 #include <string.h>	// for memset
 #include <math.h>	// for pow
+
+#include "../../ao.h"
+
 #include "mamedef.h"
 #include "c6280.h"
 
@@ -250,6 +253,8 @@ void c6280m_update(void* param, stream_sample_t **outputs, int samples)
         outputs[0][i] = 0;
         outputs[1][i] = 0;
     }
+    
+    ao_chan_disp_nchannels = 6; /* from AO.h */
 
     for(ch = 0; ch < 6; ch++)
     {
@@ -290,6 +295,11 @@ void c6280m_update(void* param, stream_sample_t **outputs, int samples)
                     p->channel[ch].noise_counter &= 0x7FF;
                     outputs[0][i] += (INT16)(vll * (data - 16));
                     outputs[1][i] += (INT16)(vlr * (data - 16));
+                    
+                    mix_chan_disp(
+						ch,
+						(INT16)(vll * (data - 16)),
+						(INT16)(vlr * (data - 16)));
                 }
             }
             else
@@ -300,6 +310,11 @@ void c6280m_update(void* param, stream_sample_t **outputs, int samples)
                 {
                     outputs[0][i] += (INT16)(vll * (p->channel[ch].dda - 16));
                     outputs[1][i] += (INT16)(vlr * (p->channel[ch].dda - 16));
+                    
+                    mix_chan_disp(
+						ch,
+						(INT16)(vll * (p->channel[ch].dda - 16)),
+						(INT16)(vlr * (p->channel[ch].dda - 16)));
                 }
             }
             else
@@ -316,6 +331,11 @@ void c6280m_update(void* param, stream_sample_t **outputs, int samples)
                     data = p->channel[ch].waveform[offset];
                     outputs[0][i] += (INT16)(vll * (data - 16));
                     outputs[1][i] += (INT16)(vlr * (data - 16));
+                    
+                    mix_chan_disp(
+						ch,
+						(INT16)(vll * (data - 16)),
+						(INT16)(vlr * (data - 16)));
                 }
             }
         }

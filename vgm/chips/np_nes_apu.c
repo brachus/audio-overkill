@@ -10,6 +10,9 @@
 #include <stdlib.h>
 #include <string.h>	// for memset
 #include <stddef.h>	// for NULL
+
+#include "../../ao.h"
+
 #include "mamedef.h"
 #include "../stdbool.h"
 #include "np_nes_apu.h"
@@ -291,6 +294,10 @@ UINT32 NES_APU_np_Render(void* chip, INT32 b[2])
 	b[1]  = m[0] * apu->sm[1][0];
 	b[1] += m[1] * apu->sm[1][1];
 	b[1] >>= 7-2;	// see above
+	
+	ao_chan_disp_nchannels=6; /* from AO.H */
+	mix_chan_disp(3, m[0] * apu->sm[0][0], m[0] * apu->sm[1][0]);/*sq1*/
+	mix_chan_disp(4, m[1] * apu->sm[0][1], m[1] * apu->sm[1][1]);/*sq2*/
 
 	return 2;
 }

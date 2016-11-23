@@ -20,7 +20,8 @@ enum
 	E_INT,
 	E_BOOL,
 	E_STR,
-	E_RGB
+	E_RGB,
+	E_FLOAT
 };
 
 struct cvar

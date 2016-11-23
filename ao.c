@@ -48,6 +48,19 @@ int ao_chan_disp[25*2];
  * like channel_enable, set around the 24 max channels
  * psf has.  25 is master.
  */
+
+int ao_chan_disp_min[25*2] = {
+	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+	};
+		
+		
+int ao_chan_disp_max[25*2] = {
+	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+	};
+
+int ao_chan_disp_nchannels = 24;
  
  
 int ao_chan_flag_disp[24];
@@ -63,6 +76,8 @@ int ao_sample_idx_cur = 0;
 int ao_sample_limit[2] = {0, 2};
 
 int ao_set_len=~0;
+
+int sid_subsong_sel = 0;
 
 void ao_add_sample(int sndtick, int sample)
 {
@@ -208,11 +223,7 @@ char *filename_build(const char *dir, char *fn)
 				j=0;
 			}
 			else
-			{
-				r[i] = dir[j];
-				j++;
-			}
-				
+				r[i] = dir[j++];
 		}
 		else if (md==1)
 		{
@@ -221,13 +232,11 @@ char *filename_build(const char *dir, char *fn)
 		}
 		else if (md==2)
 		{
-			r[i] = fn[j];
-			
-			j++;
+			r[i] = fn[j++];
 			
 			if (j>=flen)
 			{
-				r[i+1] = '\0';
+				r[++i] = '\0';
 				break;
 			}
 				
@@ -236,14 +245,12 @@ char *filename_build(const char *dir, char *fn)
 	}
 	
 	return r;
-	
-	
 }
 
 char *strip_dir(char *path)
 {
 	int i;
-	char *slash, *npath, *ch;
+	char *slash, *npath, *nptmp, *ch;
 	
 	if (!path)
 		return 0;
@@ -253,19 +260,14 @@ char *strip_dir(char *path)
 	if (!slash)
 		return 0;
 		
-	npath = (char *) malloc(strlen(path));
+	npath = (char *) malloc(strlen(path) + 1);
 	
-	ch = path;
-	i=0;
-	while ((ch) <= slash)
-	{
-		npath[i] = path[i];
-		
-		ch++;
-		i++;
-	}
+	nptmp = npath;
 	
-	npath[i] = '\0';	
+	while ((path) <= slash)
+		*(nptmp++) = *(path++);
+	
+	*nptmp = '\0';	/* null it */
 	
 	return npath;
 	
@@ -320,30 +322,71 @@ void mix_chan_disp(int ch, short l, short r)
 {
 	static int sp_cnt[25]={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 	
+	static int sp_acc[25*2]={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+			0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+	
+	int refr=44100/60, tmpl, tmpr;
+	
 	l=l<0?-l:l;
 	r=r<0?-r:r;
 	
-	if (sp_cnt[ch] % (44100/60) == 0)
+	if (sp_cnt[ch] % (refr) == 0) /* either refresh or min-max */
 	{
-		ao_chan_disp[ch*2] = l;
-		ao_chan_disp[(ch*2)+1] = r;
+		ao_chan_disp[ch*2] = sp_acc[ch*2] / refr;//l;
+		ao_chan_disp[(ch*2)+1] = sp_acc[ch*2+1] / refr;//r;
+		
+		sp_acc[ch*2] = 0;
+		sp_acc[ch*2+1] = 0;
 	}
 	else
 	{
+		/*
 		if (l>ao_chan_disp[ch*2])
 			ao_chan_disp[ch*2] = l;
 		
 		if (r>ao_chan_disp[ch*2+1])
-			ao_chan_disp[ch*2+1] = r;
+			ao_chan_disp[ch*2+1] = r;*/
 		
-		/*ao_chan_disp[ch*2] += l;
-		ao_chan_disp[ch*2] /= 2;
-		ao_chan_disp[(ch*2)+1] += r;
-		ao_chan_disp[(ch*2)+1] /= 2;*/
+		sp_acc[ch*2] += l;
+		sp_acc[ch*2+1] += r;
+			
+		
 	}
+	
+	/* update min-max.  this will be the window for displaying the values. */
+	
+	tmpl=l;tmpr=r;
+	
+	tmpl=ao_chan_disp[ch*2];
+	tmpr=ao_chan_disp[ch*2+1];
+	
+	ao_chan_disp_min[ch*2] = (tmpl<ao_chan_disp_min[ch*2]) ? tmpl : ao_chan_disp_min[ch*2];
+	ao_chan_disp_min[ch*2+1] = (tmpr<ao_chan_disp_min[ch*2+1]) ? tmpr : ao_chan_disp_min[ch*2+1];
+	
+	ao_chan_disp_max[ch*2] = (tmpl>ao_chan_disp_max[ch*2]) ? tmpl : ao_chan_disp_max[ch*2];
+	ao_chan_disp_max[ch*2+1] = (tmpr>ao_chan_disp_max[ch*2+1]) ? tmpr : ao_chan_disp_max[ch*2+1];
 	
 	sp_cnt[ch]++;
 	
+}
+
+void reset_chan_disp()
+{
+	
+	int i;
+	
+	for (i=0;i<(24*2);i++)
+		ao_chan_disp[i] = 0;
+	for (i=0;i<(24*2);i++)
+		ao_chan_disp_min[i] = 0;
+	for (i=0;i<(24*2);i++)
+		ao_chan_disp_max[i] = 0;
+		
+	ao_chan_disp_nchannels = 0;
+ 
+	for (i=0;i<(24);i++)
+		ao_chan_flag_disp[i]=0x888888;
+		
 }
 
 void clear_tags()

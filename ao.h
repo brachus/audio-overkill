@@ -148,6 +148,11 @@ extern int ao_channel_enable[24];
 extern int ao_chan_disp[25*2];
 extern int ao_chan_flag_disp[24];
 
+extern int ao_chan_disp_min[25*2];
+extern int ao_chan_disp_max[25*2];
+
+extern int ao_chan_disp_nchannels;
+
 extern int ao_sample_idx[64];
 extern int ao_sample_do[64];
 extern int ao_sample_cur;
@@ -167,6 +172,8 @@ int ao_sample_limit_ok(int sample);
 
 void ao_sample_idx_clear();
 
+void reset_chan_disp();
+
 void clear_tags();
 
 extern char tag_track[256];
@@ -178,6 +185,9 @@ extern char tag_notes[256];
 extern char tag_chips[1024];
 
 extern int play_stat;
+
+/* get rid of sid_subsong_sel */
+extern int sid_subsong_sel;
 
 enum
 {

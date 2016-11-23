@@ -480,6 +480,8 @@ int SPUasync(u32 cycles, void (*update)(const void *, int))
 	    * use it for channel indicator usage.
 	    */
 	   
+	   ao_chan_disp_nchannels = 24;
+	   
 	   mix_chan_disp(ch, tmpl, tmpr);
 	   
 

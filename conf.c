@@ -381,7 +381,7 @@ struct cfg_entry * read_entry(char *s)
 		i++;
 	}
 	
-	if (valcnt!=0 && types[0] != MFLOAT)
+	if (valcnt > 0)
 	{
 		n = new_cfg_entry();
 		

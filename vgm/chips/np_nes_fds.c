@@ -5,6 +5,9 @@
 #include <string.h>	// for memset
 #include <stddef.h>	// for NULL
 #include <math.h>	// for exp
+
+#include "../../ao.h"
+
 #include "mamedef.h"
 #include "../stdbool.h"
 #include "np_nes_fds.h"
@@ -407,11 +410,17 @@ UINT32 NES_FDS_Render(void* chip, INT32 b[2])
 	rc_out = ((fds->rc_accum * fds->rc_k) + (v * fds->rc_l)) >> RC_BITS;
 	fds->rc_accum = rc_out;
 	v = rc_out;
+	
+	
 
 	// output mix
 	m = fds->mask ? 0 : v;
 	b[0] = (m * fds->sm[0]) >> (7-2);
 	b[1] = (m * fds->sm[1]) >> (7-2);
+	
+	ao_chan_disp_nchannels=6; /* from AO.H */
+	mix_chan_disp(5, b[0], b[1]);
+	
 	return 2;
 }
 

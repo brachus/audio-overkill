@@ -52,6 +52,9 @@ Copyright(C)2006-2012 Kitao Nakamura.
 #include <stdlib.h>
 #include <string.h>	// for memset
 #include <math.h>
+
+#include "../../ao.h"
+
 #include "mamedef.h"
 #include "Ootake_PSG.h"
 //#include "MainBoard.h" //Kitao追加
@@ -560,7 +563,7 @@ PSG_Mix(
 	Sint32		lfo;
 	Sint32		sampleAllL; //Kitao追加。6chぶんのサンプルを足していくためのバッファ。精度を維持するために必要。6chぶん合計が終わった後に、これをSint16に変換して書き込むようにした。
 	Sint32		sampleAllR; //Kitao追加。上のＲチャンネル用
-	Sint32		smp; //Kitao追加。DDA音量,ノイズ音量計算用
+	Sint32		smp,smpl; //Kitao追加。DDA音量,ノイズ音量計算用
 	Sint32*		bufL = pDst[0];
 	Sint32*		bufR = pDst[1];
 
@@ -573,16 +576,23 @@ PSG_Mix(
 		sampleAllR = 0;
 		for (i=0; i<N_CHANNEL; i++)
 		{
+			ao_chan_disp_nchannels = N_CHANNEL; /* from AO.H */
+			
 			PSGChn = &info->Psg[i];
 			
 			if ((PSGChn->bOn)&&((i != 1)||(info->LfoCtrl == 0))&&(!info->bPsgMute[i])) //Kitao更新
 			{
 				if (PSGChn->bDDA)
 				{
-					smp = PSGChn->ddaSample * PSGChn->outVolumeL;
+					smp = PSGChn->ddaSample * PSGChn->outVolumeL; smpl=smp;
 					sampleAllL += smp + (smp >> 3) + (smp >> 4) + (smp >> 5) + (smp >> 7) + (smp >> 12) + (smp >> 14) + (smp >> 15); //Kitao更新。サンプリング音の音量を実機並みに調整。v2.39,v2.40,v2.62,v2.65再調整した。
 					smp = PSGChn->ddaSample * PSGChn->outVolumeR;
 					sampleAllR += smp + (smp >> 3) + (smp >> 4) + (smp >> 5) + (smp >> 7) + (smp >> 12) + (smp >> 14) + (smp >> 15); //Kitao更新。サンプリング音の音量を実機並みに調整。v2.39,v2.40,v2.62,v2.65再調整した。
+				
+					mix_chan_disp( /* from AO.H */
+						i,
+						smpl + (smpl >> 3) + (smpl >> 4) + (smpl >> 5) + (smpl >> 7) + (smpl >> 12) + (smpl >> 14) + (smpl >> 15),
+						smp + (smp >> 3) + (smp >> 4) + (smp >> 5) + (smp >> 7) + (smp >> 12) + (smp >> 14) + (smp >> 15));
 				}
 				else if (PSGChn->bNoiseOn)
 				{
@@ -590,17 +600,27 @@ PSG_Mix(
 					
 					if (PSGChn->noiseFrq == 0) //Kitao追加。noiseFrq=0(dataに0x1Fが書き込まれた)のときは音量が通常の半分とした。（ファイヤープロレスリング３、パックランド、桃太郎活劇、がんばれゴルフボーイズなど）
 					{
-						smp = sample * PSGChn->outVolumeL;
+						smp = sample * PSGChn->outVolumeL; smpl=smp;
 						sampleAllL += (smp >> 1) + (smp >> 12) + (smp >> 14); //(1/2 + 1/4096 + (1/32768 + 1/32768))
 						smp = sample * PSGChn->outVolumeR;
 						sampleAllR += (smp >> 1) + (smp >> 12) + (smp >> 14);
+						
+						mix_chan_disp( /* from AO.H */
+							i,
+							(smpl >> 1) + (smpl >> 12) + (smpl >> 14),
+							(smp >> 1) + (smp >> 12) + (smp >> 14));
 					}
 					else //通常
 					{
-						smp = sample * PSGChn->outVolumeL;
+						smp = sample * PSGChn->outVolumeL; smpl=smp;
 						sampleAllL += smp + (smp >> 11) + (smp >> 14) + (smp >> 15); //Kitao更新。ノイズの音量を実機並みに調整(1 + 1/2048 + 1/16384 + 1/32768)。この"+1/32768"で絶妙(主観。大魔界村,ソルジャーブレイドなど)になる。v2.62更新
 						smp = sample * PSGChn->outVolumeR;
 						sampleAllR += smp + (smp >> 11) + (smp >> 14) + (smp >> 15); //Kitao更新。ノイズの音量を実機並みに調整
+					
+						mix_chan_disp( /* from AO.H */
+							i,
+							smpl + (smpl >> 11) + (smpl >> 14) + (smpl >> 15),
+							smp + (smp >> 11) + (smp >> 14) + (smp >> 15));
 					}
 					
 					PSGChn->phase += PSGChn->deltaNoisePhase; //Kitao更新
@@ -615,6 +635,11 @@ PSG_Mix(
 					sampleAllL += sample * PSGChn->outVolumeL; //Kitao更新
 					sampleAllR += sample * PSGChn->outVolumeR; //Kitao更新
 					
+					mix_chan_disp( /* from AO.H */
+						i,
+						sample * PSGChn->outVolumeL,
+						sample * PSGChn->outVolumeR);
+					
 					//Kitao更新。Lfoオンが有効になるようにし、Lfoの掛かり具合を実機に近づけた。v1.59
 					if ((i==0)&&(info->LfoCtrl>0))
 					{
@@ -628,6 +653,12 @@ PSG_Mix(
 						PSGChn->phase += PSGChn->deltaPhase;
 				}
 			}
+			else
+				mix_chan_disp( /* from AO.H */
+						i,
+						0,
+						0);
+			
 			//Kitao追加。DDA消音時はノイズ軽減のためフェードアウトで消音する。
 			//			 ベラボーマン(「わしがばくだはかせじゃ」から数秒後)やパワーテニス(タイトル曲終了から数秒後。点数コール)，将棋初心者無用(音声)等で効果あり。
 			if (info->DdaFadeOutL[i] > 0)
