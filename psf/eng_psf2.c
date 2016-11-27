@@ -47,8 +47,6 @@
 #include <stdlib.h>
 
 #include <zlib.h>
-/*#include <libaudcore/audstrings.h>*/
-#include "audstrings.h"
 
 #include "../ao.h"
 #include "eng_protos.h"

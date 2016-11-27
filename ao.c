@@ -4,6 +4,8 @@
 #include <stdint.h>
 #include <stdio.h>
 
+#include <glib.h>
+
 #include "ao.h"
 #include "psf/corlett.h"
 #include "psf/eng_protos.h"
@@ -77,7 +79,9 @@ int ao_sample_limit[2] = {0, 2};
 
 int ao_set_len=~0;
 
-int sid_subsong_sel = 0;
+int ao_track_select = 0;
+
+int ao_sample_rate = 44100;
 
 void ao_add_sample(int sndtick, int sample)
 {
@@ -398,4 +402,38 @@ void clear_tags()
 	strcpy(tag_year, "???");
 	strcpy(tag_notes, "???");
 	strcpy(tag_chips, "\0");
+}
+
+void safe_strcpy(char *dst, char *src, int lim)
+{
+	int i = 0;
+	
+	if (!src)
+		return;
+	
+	while (i<lim)
+	{
+		if (i == (lim-1) || src[i] == '\0')
+		{
+			dst[i] = '\0';
+			return;
+		}
+		
+		dst[i] = src[i];
+		
+		i++;
+	}		
+}
+
+
+
+/* ascii only */
+int strcmp_nocase (const char * a, const char * b, int len)
+{
+    if (! a)
+        return b ? -1 : 0;
+    if (! b)
+        return 1;
+
+    return len < 0 ? g_ascii_strcasecmp (a, b) : g_ascii_strncasecmp (a, b, len);
 }

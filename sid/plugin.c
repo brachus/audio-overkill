@@ -7,18 +7,17 @@
 #include "../ao.h"
 
 
-
 #include "plugin.h"
 
 
-static word init_addr, play_addr;
-static byte actual_subsong, max_subsong, play_speed;
-static char song_name[32], song_author[32], song_copyright[32], subsong_disp[32];
+extern word init_addr, play_addr;
+extern byte actual_subsong, max_subsong, play_speed;
+extern char song_name[32], song_author[32], song_copyright[32], subsong_disp[32];
 
-static word *wave_buf;
+extern word *wave_buf;
 
 /* get rid of sid_subsong_sel */
-extern int sid_subsong_sel;
+extern int ao_track_select;
 
 
 void sid_fill_tags()
@@ -90,19 +89,19 @@ int sid_open (char * fn)
 	sid_fill_tags();
 	
 	/* get rid of sid_subsong_sel */	
-	sid_subsong_sel = (sid_subsong_sel > max_subsong) ?
-		max_subsong : sid_subsong_sel;
-	sid_subsong_sel = (sid_subsong_sel<0)? 0: sid_subsong_sel;
+	ao_track_select = (ao_track_select > max_subsong) ?
+		max_subsong : ao_track_select;
+	ao_track_select = (ao_track_select<0)? 0: ao_track_select;
 
 	/* watch this */
 	if (max_subsong>0)
 	{
-		sprintf(subsong_disp," (%d/%d)",sid_subsong_sel+1,max_subsong+1);
+		sprintf(subsong_disp," (%d/%d)",ao_track_select+1,max_subsong+1);
 		strcat(tag_track, subsong_disp);
 	}
 	
 
-	cpuJSR(init_addr, sid_subsong_sel);
+	cpuJSR(init_addr, ao_track_select);
 	
 	
 	wave_buf = (word *) malloc (sizeof(word) * SAMPLERATE);

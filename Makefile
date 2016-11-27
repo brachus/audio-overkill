@@ -23,13 +23,12 @@ BYTE_ORDER = 1
 EMUFLAGS := -DENABLE_ALL_CORES
 
 CC = gcc
+
+CCPP = g++
+
 #PREFIX = /usr/local
 #MANPREFIX = $(PREFIX)/share/man
 
-# -- VGMPlay specific Compile Flags --
-#MAINFLAGS := -DCONSOLE_MODE -DADDITIONAL_FORMATS -DSET_CONSOLE_TITLE
-
-#EMUFLAGS := -DENABLE_ALL_CORES
 
 ## -- Byte Order Optimizations --
 #ifeq ($(BYTE_ORDER), 1)
@@ -51,10 +50,13 @@ CC = gcc
 #endif
 
 
-CFLAGS := -O3  $(CFLAGS) 
+CFLAGS :=  -O3 $(CFLAGS) 
 
 CFLAGS += -Wno-unused-variable -Wno-unused-value -Wno-unused-but-set-variable
 CFLAGS += -Wno-pointer-to-int-cast
+
+CPPFLAGS := -O3 -fpermissive -Wno-unused-variable -Wno-unused-value
+CPPFLAGS += -Wno-unused-but-set-variable -Wno-overflow -Wno-deprecated
 
 LDFLAGS := -lm -lz -lglib-2.0 $(LDFLAGS)
 
@@ -172,18 +174,9 @@ EMUOBJS = \
 	$(EMUOBJ)/sn76496_opl.o \
 	$(EMUOBJ)/ym2413hd.o \
 	$(EMUOBJ)/ym2413_opl.o
-#VGMPLAY_OBJS = \
-#	$(OBJ)/VGMPlayUI.o
-#VGM2PCM_OBJS = \
-#	$(OBJ)/vgm2pcm.o
-#VGM2WAV_OBJS = \
-#	$(OBJ)/vgm2wav.o
-#EXTRA_OBJS = $(VGMPLAY_OBJS) $(VGM2PCM_OBJS) $(VGM2WAV_OBJS)
-
 
 PSFOBJS = \
 	$(OBJ)/psf/plugin.o\
-	$(OBJ)/psf/audstrings.o\
 	$(OBJ)/psf/corlett.o\
 	$(OBJ)/psf/psx.o\
 	$(OBJ)/psf/psx_hw.o\
@@ -199,6 +192,54 @@ PSFOBJS = \
 	$(OBJ)/psf/peops2/adsr.o\
 	$(OBJ)/psf/peops2/reverb.o
 
+GMEOBJS = \
+	$(OBJ)/gme/plugin.o\
+	$(OBJ)/gme/Ay_Apu.o\
+	$(OBJ)/gme/Ay_Cpu.o\
+	$(OBJ)/gme/Ay_Emu.o\
+	$(OBJ)/gme/Blip_Buffer.o\
+	$(OBJ)/gme/Classic_Emu.o\
+	$(OBJ)/gme/Data_Reader.o\
+	$(OBJ)/gme/Dual_Resampler.o\
+	$(OBJ)/gme/Effects_Buffer.o\
+	$(OBJ)/gme/Fir_Resampler.o\
+	$(OBJ)/gme/Gb_Apu.o\
+	$(OBJ)/gme/Gb_Cpu.o\
+	$(OBJ)/gme/Gb_Oscs.o\
+	$(OBJ)/gme/Gbs_Emu.o\
+	$(OBJ)/gme/gme.o\
+	$(OBJ)/gme/Gme_File.o\
+	$(OBJ)/gme/Gym_Emu.o\
+	$(OBJ)/gme/Hes_Apu.o\
+	$(OBJ)/gme/Hes_Cpu.o\
+	$(OBJ)/gme/Hes_Emu.o\
+	$(OBJ)/gme/Kss_Cpu.o\
+	$(OBJ)/gme/Kss_Emu.o\
+	$(OBJ)/gme/Kss_Scc_Apu.o\
+	$(OBJ)/gme/M3u_Playlist.o\
+	$(OBJ)/gme/Multi_Buffer.o\
+	$(OBJ)/gme/Music_Emu.o\
+	$(OBJ)/gme/Nes_Apu.o\
+	$(OBJ)/gme/Nes_Cpu.o\
+	$(OBJ)/gme/Nes_Fme7_Apu.o\
+	$(OBJ)/gme/Nes_Namco_Apu.o\
+	$(OBJ)/gme/Nes_Oscs.o\
+	$(OBJ)/gme/Nes_Vrc6_Apu.o\
+	$(OBJ)/gme/Nsfe_Emu.o\
+	$(OBJ)/gme/Nsf_Emu.o\
+	$(OBJ)/gme/Sap_Apu.o\
+	$(OBJ)/gme/Sap_Cpu.o\
+	$(OBJ)/gme/Sap_Emu.o\
+	$(OBJ)/gme/Sms_Apu.o\
+	$(OBJ)/gme/Snes_Spc.o\
+	$(OBJ)/gme/Spc_Cpu.o\
+	$(OBJ)/gme/Spc_Dsp.o\
+	$(OBJ)/gme/Spc_Emu.o\
+	$(OBJ)/gme/Vgm_Emu.o\
+	$(OBJ)/gme/Vgm_Emu_Impl.o\
+	$(OBJ)/gme/Ym2413_Emu.o\
+	$(OBJ)/gme/Ym2612_Emu.o
+
 MAINOBJS=\
 	$(OBJ)/ao.o\
 	$(OBJ)/conf.o\
@@ -206,33 +247,11 @@ MAINOBJS=\
 	$(OBJ)/main.o
 
 
-#all:	vgmplay vgm2pcm vgm2wav
-
-#vgmplay:	$(EMUOBJS) $(MAINOBJS) $(VGMPLAY_OBJS)
-#	@echo Linking vgmplay ...
-#	@$(CC) $(VGMPLAY_OBJS) $(MAINOBJS) $(EMUOBJS) $(LDFLAGS) -o vgmplay
-#	@echo Done.
-
-#vgm2pcm:	$(EMUOBJS) $(MAINOBJS) $(VGM2PCM_OBJS)
-#	@echo Linking vgm2pcm ...
-#	@$(CC) $(VGM2PCM_OBJS) $(MAINOBJS) $(EMUOBJS) $(LDFLAGS) -o vgm2pcm
-#	@echo Done.
-
-#vgm2wav:	$(EMUOBJS) $(MAINOBJS) $(VGM2WAV_OBJS)
-#	@echo Linking vgm2wav ...
-#	@$(CC) $(VGM2WAV_OBJS) $(MAINOBJS) $(EMUOBJS) $(LDFLAGS) -o vgm2wav
-#	@echo Done.
-
 all: audiooverkill
 
-audiooverkill: $(EMUOBJS) $(VGMMAINOBJS) $(SIDMAINOBJS) psf.o main.o
+audiooverkill: $(EMUOBJS) $(VGMMAINOBJS) $(SIDMAINOBJS) $(GMEOBJS) psf.o main.o
 	@echo Linking audio overkill ...
-	@$(CC) $(LDFLAGS) $(EMUOBJS) $(VGMMAINOBJS) $(SIDMAINOBJS) $(PSFOBJS) $(MAINOBJS)  -o audio_overkill
-	@echo Done.
-	
-audiooverkill_onlypsf: psf.o main.o
-	@echo Linking audio overkill \( PSF support only. \) ...
-	@$(CC) $(LDFLAGS) $(PSFOBJS) $(MAINOBJS) -o audio_overkill
+	@$(CCPP) $(LDFLAGS) $(EMUOBJS) $(VGMMAINOBJS) $(SIDMAINOBJS) $(GMEOBJS) $(PSFOBJS) $(MAINOBJS)  -o audio_overkill
 	@echo Done.
 
 
@@ -254,6 +273,12 @@ $(OBJ)/sid/%.o:	$(SRC)/sid/%.c
 	@mkdir -p $(@D)
 	@$(CC) $(CFLAGS)  $(LDFLAGS) -c $< -o $@
 
+# compile blargg's gme library files (c++)
+$(OBJ)/gme/%.o:	$(SRC)/gme/%.cpp
+	@echo Compiling $< ...
+	@mkdir -p $(@D)
+	@$(CCPP) $(CPPFLAGS) -c $< -o $@
+
 # compile psf
 psf.o:
 	@echo Compiling psf objects ...
@@ -261,7 +286,6 @@ psf.o:
 	@mkdir -p $(OBJ)/psf/peops/
 	@mkdir -p $(OBJ)/psf/peops2/
 	@$(CC) $(CFLAGS) $(LDFLAGS) -c psf/plugin.c -o $(OBJ)/psf/plugin.o
-	@$(CC) $(CFLAGS) $(LDFLAGS) -c psf/audstrings.c -o $(OBJ)/psf/audstrings.o
 	@$(CC) $(CFLAGS) $(LDFLAGS) -c psf/corlett.c -o $(OBJ)/psf/corlett.o
 	@$(CC) $(CFLAGS) $(LDFLAGS) -c psf/psx.c -o $(OBJ)/psf/psx.o
 	@$(CC) $(CFLAGS) $(LDFLAGS) -c psf/psx_hw.c -o $(OBJ)/psf/psx_hw.o

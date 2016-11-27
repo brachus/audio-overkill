@@ -27,12 +27,12 @@
 
 #include "sid/plugin.h"
 
+#include "gme/plugin.h"
 
 
 #include "filelist.h"
 
 #define DEBUG_MAIN (0)
-
 
 #define TEXT_SCROLL_GAP 32
 
@@ -142,7 +142,8 @@ enum
 	F_PSF2,
 	F_USF,
 	F_VGM,
-	F_SID
+	F_SID,
+	F_GME
 };
 
 int play_stat = M_STOPPED;
@@ -251,7 +252,7 @@ int main(int argc, char *argv[])
 	}
 	fcur = 0;
 	
-	sid_subsong_sel=0; /* this needs to go. */
+	ao_track_select=0; /* this needs to go. */
 	
 	win = SDL_CreateWindow(WIN_TITLE,
 		SDL_WINDOWPOS_UNDEFINED,
@@ -357,13 +358,13 @@ int main(int argc, char *argv[])
 					experimental_sample_filter( e.key.keysym.sym );
 					break;
 				
-				/* get rid of sid_subsong_sel */
+				/* get rid of ao_track_select */
 				case SDLK_a:
 				case SDLK_d:	
 					if (e.key.keysym.sym==SDLK_d)
-						sid_subsong_sel++;
+						ao_track_select++;
 					else
-						sid_subsong_sel--;
+						ao_track_select--;
 					
 					if (play_stat == M_PLAY)
 						play_stat = M_RELOAD;
@@ -520,6 +521,12 @@ int main(int argc, char *argv[])
 				file_close = &sid_close;
 				file_execute = &sid_execute;
 				file_open = &sid_open;
+			}
+			else if (get_file_type(get_flist_idx(flist,fcur)) == F_GME)
+			{
+				file_close = &gme_close;
+				file_execute = &gme_execute;
+				file_open = &gme_open;
 			}
 			else
 			{
@@ -1004,26 +1011,7 @@ void fill_audio(void *udata, Uint8 *stream, int len)
 	
 }
 
-void safe_strcpy(char *dst, char *src, int lim)
-{
-	int i = 0;
-	
-	if (!src)
-		return;
-	
-	while (i<lim)
-	{
-		if (i == (lim-1) || src[i] == '\0')
-		{
-			dst[i] = '\0';
-			return;
-		}
-		
-		dst[i] = src[i];
-		
-		i++;
-	}		
-}
+
 
 void free_scope()
 {
@@ -1347,24 +1335,34 @@ int get_file_type(char * fn)
 		
 	fclose(fp);
 		
-	if (!strcmp(ext,"psf") || !strcmp(ext,"PSF"))
+	if (!strcmp_nocase(ext,"psf",-1))
 		return F_PSF;
 		
-	if (!strcmp(ext,"psf2") || !strcmp(ext,"PSF2"))
+	if (!strcmp_nocase(ext,"psf2",-1))
 		return F_PSF2;
 		
-	if (!strcmp(ext,"usf") || !strcmp(ext,"USF"))
+	if (!strcmp_nocase(ext,"usf",-1))
 		return F_USF;
 		
-	if (!strcmp(ext,"vgm") || !strcmp(ext,"VGM"))
-		return F_VGM;
-	
-	if (!strcmp(ext,"vgz")||!strcmp(ext,"VGZ"))
+	if (!strcmp_nocase(ext,"vgm",-1) || 
+		!strcmp_nocase(ext,"vgz",-1))
 		return F_VGM;
 		
-	if (!strcmp(ext,"sid")||!strcmp(ext,"SID"))
+	if (!strcmp_nocase(ext,"sid",-1))
 		return F_SID;
 	
+	if (	!strcmp_nocase(ext,"ay",-1) ||
+			!strcmp_nocase(ext,"gb",-1) ||
+			!strcmp_nocase(ext,"gbs",-1) ||
+			!strcmp_nocase(ext,"gym",-1) ||
+			!strcmp_nocase(ext,"hes",-1) ||
+			!strcmp_nocase(ext,"kss",-1) ||
+			!strcmp_nocase(ext,"nsf",-1) ||
+			!strcmp_nocase(ext,"nsfe",-1) ||
+			!strcmp_nocase(ext,"sap",-1) ||
+			!strcmp_nocase(ext,"spc",-1) /* not including vgm*/
+			)
+		return F_GME;
 	
 	return F_UNKNOWN;
 	
@@ -1385,6 +1383,12 @@ void print_f_type(int type)
 		return;
 	case F_VGM:
 		printf("vgm\n");
+		return;
+	case F_SID:
+		printf("sid\n");
+		return;
+	case F_GME:
+		printf("gme\n");
 		return;
 	default:
 		printf("unknown\n");

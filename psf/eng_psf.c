@@ -28,7 +28,6 @@
 #include <string.h>
 #include <stdlib.h>
 
-#include "audstrings.h"
 
 #include "../ao.h"
 #include "eng_protos.h"

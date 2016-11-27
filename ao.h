@@ -144,6 +144,36 @@ char *strip_dir(char *path);
 
 int ao_get_lib(struct filebuf *fbuf, char *libdir, char *filename);
 
+
+
+enum
+{
+	_AO_H_PSF,
+	
+	_AO_H_PSF2,
+	
+	
+	/* fill out chips supported in vgm format here */
+	
+	
+	_AO_H_SID,
+	
+	
+	_AO_H_GME_NSF,
+	_AO_H_GME_SPC,
+	_AO_H_GME_KSS
+	/* fill out chips supported in blargg's game music emulator here */
+	
+	
+}
+
+extern int ao_channel_enable_chip[128];
+extern int ao_channel_mix[128*128*2]; /* up to 128 different chips with up to 128 channels each */
+extern int ao_channel_nchannels[128];
+extern int ao_channel_min[128*128];
+extern int ao_channel_max[128*128];
+
+
 extern int ao_channel_enable[24];
 extern int ao_chan_disp[25*2];
 extern int ao_chan_flag_disp[24];
@@ -176,6 +206,11 @@ void reset_chan_disp();
 
 void clear_tags();
 
+/* DESTROY THIS!!! USE strncpy!!!  (strncpy doen't add null btw. )*/
+void safe_strcpy(char *dst, char *src, int lim);
+
+int strcmp_nocase (const char * a, const char * b, int len);
+
 extern char tag_track[256];
 extern char tag_author[256];
 extern char tag_game[256];
@@ -187,7 +222,9 @@ extern char tag_chips[1024];
 extern int play_stat;
 
 /* get rid of sid_subsong_sel */
-extern int sid_subsong_sel;
+extern int ao_track_select;
+
+extern int ao_sample_rate;
 
 enum
 {

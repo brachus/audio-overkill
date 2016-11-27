@@ -83,12 +83,8 @@ The following data is optional and may be omitted:
 
 #include <zlib.h>
 
-//#include <libaudcore/audstrings.h>
-
 #include "../ao.h"
 #include "corlett.h"
-
-#include "audstrings.h"
 
 #define LE32(x) FROM_LE32(x)
 

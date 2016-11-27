@@ -47,8 +47,8 @@ struct cfg_entry
 struct cfg_entry *new_cfg_entry();
 int append_cfg_entry(struct cfg_entry *o, struct cfg_entry *addme);
 void free_cfg_entries(struct cfg_entry *o);
-struct cfg_entry * read_entry(char *s);
-struct cfg_entry * read_conf(char *fn);
+struct cfg_entry * read_entry(const char *s);
+struct cfg_entry * read_conf(const char *fn);
 void print_cfg_entries(struct cfg_entry *o);
 
 

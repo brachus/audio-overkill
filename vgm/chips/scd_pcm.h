@@ -1,3 +1,19 @@
+struct pcm_chan_
+{
+	unsigned int ENV;		/* envelope register */
+	unsigned int PAN;		/* pan register */
+	unsigned int MUL_L;		/* envelope & pan product letf */
+	unsigned int MUL_R;		/* envelope & pan product right */
+	unsigned int St_Addr;	/* start address register */
+	unsigned int Loop_Addr;	/* loop address register */
+	unsigned int Addr;		/* current address register */
+	unsigned int Step;		/* frequency register */
+	unsigned int Step_B;	/* frequency register binaire */
+	unsigned int Enable;	/* channel on/off register */
+	int Data;				/* wave data */
+	unsigned int Muted;
+};
+
 struct pcm_chip_
 {
 	float Rate;
@@ -6,21 +22,7 @@ struct pcm_chip_
 	int Cur_Chan;
 	int Bank;
 
-	struct pcm_chan_
-	{
-		unsigned int ENV;		/* envelope register */
-		unsigned int PAN;		/* pan register */
-		unsigned int MUL_L;		/* envelope & pan product letf */
-		unsigned int MUL_R;		/* envelope & pan product right */
-		unsigned int St_Addr;	/* start address register */
-		unsigned int Loop_Addr;	/* loop address register */
-		unsigned int Addr;		/* current address register */
-		unsigned int Step;		/* frequency register */
-		unsigned int Step_B;	/* frequency register binaire */
-		unsigned int Enable;	/* channel on/off register */
-		int Data;				/* wave data */
-		unsigned int Muted;
-	} Channel[8];
+	struct pcm_chan_ Channel[8];
 	
 	unsigned long int RAMSize;
 	unsigned char* RAM;

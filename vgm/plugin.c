@@ -84,7 +84,7 @@ static int buffered_len;
 
 
 
-const char * get_chip_str(UINT8 c_id, UINT8 sub_type, UINT32 clock)
+char * get_chip_str(UINT8 c_id, UINT8 sub_type, UINT32 clock)
 {
 	if (! clock)
 		return 0;
@@ -265,7 +265,7 @@ void fill_tags()
 		
 }
 
-static void ReadOptions(char *fn);
+static void ReadOptions(const char *fn);
 
 int vgm_execute ( void (*update)(const void *, int ))
 {
@@ -340,7 +340,7 @@ void vgm_close ( void )
 
 
 
-static void ReadOptions(char *fn)
+static void ReadOptions(const char *fn)
 {
 	const UINT8 CHN_COUNT[CHIP_COUNT] =
 	{	0x04, 0x09, 0x06, 0x08, 0x10, 0x08, 0x03, 0x00,

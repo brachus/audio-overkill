@@ -86,7 +86,7 @@ void free_cfg_entries(struct cfg_entry *o)
 }
 
 
-struct cfg_entry * read_entry(char *s)
+struct cfg_entry * read_entry(const char *s)
 {
 	int i,j,tmp,len;
 	
@@ -444,7 +444,7 @@ struct cfg_entry * read_entry(char *s)
 };
 
 
-struct cfg_entry * read_conf(char *fn)
+struct cfg_entry * read_conf(const char *fn)
 {
 	int j;
 	char chtmp[256], md, ch;
