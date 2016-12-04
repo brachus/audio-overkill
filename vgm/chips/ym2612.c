@@ -1072,7 +1072,8 @@ DO_LIMIT
 buf[0][i] += CH->OUTd & CH->LEFT;    \
 buf[1][i] += CH->OUTd & CH->RIGHT; \
  mix_chan_disp( \
-	CHAN_INT+8, \
+	2,6, \
+	CHAN_INT, \
 	CH->OUTd & CH->LEFT, \
 	CH->OUTd & CH->RIGHT);
 
@@ -1084,7 +1085,8 @@ if((int_cnt += YM2612->Inter_Step) & 0x04000)  \
   buf[0][i] += CH->OUTd & CH->LEFT;      \
   buf[1][i] += CH->OUTd & CH->RIGHT;      \
    mix_chan_disp( \
-	CHAN_INT+8, \
+    2,6, \
+	CHAN_INT, \
 	CH->OUTd & CH->LEFT, \
 	CH->OUTd & CH->RIGHT); \
 }                        \
@@ -1099,7 +1101,8 @@ if((int_cnt += YM2612->Inter_Step) & 0x04000)  \
   buf[0][i] += CH->Old_OUTd & CH->LEFT;    \
   buf[1][i] += CH->Old_OUTd & CH->RIGHT;    \
   mix_chan_disp( \
-	CHAN_INT+8, \
+    2,6, \
+	CHAN_INT, \
 	CH->Old_OUTd & CH->LEFT, \
 	CH->Old_OUTd & CH->RIGHT); \
 }                        \
@@ -1114,7 +1117,8 @@ if((int_cnt += YM2612->Inter_Step) & 0x04000)    \
   buf[0][i] += CH->Old_OUTd & CH->LEFT;      \
   buf[1][i] += CH->Old_OUTd & CH->RIGHT;      \
   mix_chan_disp( \
-	CHAN_INT+8, \
+    2,6, \
+	CHAN_INT, \
 	CH->Old_OUTd & CH->LEFT, \
 	CH->Old_OUTd & CH->RIGHT); \
 }                          \
@@ -1130,7 +1134,8 @@ if((int_cnt += YM2612->Inter_Step) & 0x04000)  \
   buf[0][i] += CH->Old_OUTd & CH->LEFT;    \
   buf[1][i] += CH->Old_OUTd & CH->RIGHT;    \
   mix_chan_disp( \
-	CHAN_INT+8, \
+    2,6, \
+	CHAN_INT, \
 	CH->Old_OUTd & CH->LEFT, \
 	CH->Old_OUTd & CH->RIGHT); \
 }                        \
@@ -2459,22 +2464,20 @@ void YM2612_Update(ym2612_ *YM2612, int **buf, int length)
   }
 
   /* beware, AO.H hacks ahead: */
-  
-  ao_chan_disp_nchannels=24;
-  
+    
   if (!YM2612->CHANNEL[0].Mute) UPDATE_CHAN[YM2612->CHANNEL[0].ALGO + algo_type](YM2612, &(YM2612->CHANNEL[0]), buf, length, 0);
-  else mix_chan_disp( 0,0,0);
+  else mix_chan_disp(2,6,0,0,0);
 	if (!YM2612->CHANNEL[1].Mute) UPDATE_CHAN[YM2612->CHANNEL[1].ALGO + algo_type](YM2612, &(YM2612->CHANNEL[1]), buf, length, 1);
-	  else mix_chan_disp( 1,0,0);
+	  else mix_chan_disp(2,6, 1,0,0);
 	if (!YM2612->CHANNEL[2].Mute) UPDATE_CHAN[YM2612->CHANNEL[2].ALGO + algo_type](YM2612, &(YM2612->CHANNEL[2]), buf, length, 2);
-	  else mix_chan_disp( 2,0,0);
+	  else mix_chan_disp(2,6, 2,0,0);
 	if (!YM2612->CHANNEL[3].Mute) UPDATE_CHAN[YM2612->CHANNEL[3].ALGO + algo_type](YM2612, &(YM2612->CHANNEL[3]), buf, length, 3);
-	  else mix_chan_disp( 3,0,0);
+	  else mix_chan_disp(2,6, 3,0,0);
 	if (!YM2612->CHANNEL[4].Mute) UPDATE_CHAN[YM2612->CHANNEL[4].ALGO + algo_type](YM2612, &(YM2612->CHANNEL[4]), buf, length, 4);
-	  else mix_chan_disp( 4,0,0);
+	  else mix_chan_disp(2,6, 4,0,0);
 	if (!YM2612->CHANNEL[5].Mute 
 		&& !(YM2612->DAC))          UPDATE_CHAN[YM2612->CHANNEL[5].ALGO + algo_type](YM2612, &(YM2612->CHANNEL[5]), buf, length, 5);
-	  else mix_chan_disp( 5,0,0);
+	  else mix_chan_disp(2,6, 5,0,0);
 
   YM2612->Inter_Cnt = int_cnt;
 

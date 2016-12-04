@@ -134,6 +134,9 @@
 #include <stddef.h>	// for NULL
 #include <math.h>
 #include "mamedef.h"
+
+#include "../../ao.h"
+
 #include "fm.h"
 
 /* shared function building option */
@@ -2378,6 +2381,19 @@ void ym2612_update_one(void *chip, FMSAMPLE **buffer, int length)
 		}
 		lt += ((out_fm[5]>>0) & OPN->pan[10]);
 		rt += ((out_fm[5]>>0) & OPN->pan[11]);
+		
+		/* hacks from AO.H */
+		mix_chan_disp(_AO_H_FM_2612, 6,0, ((out_fm[0]>>0) & OPN->pan[0]), ((out_fm[0]>>0) & OPN->pan[1]));
+		mix_chan_disp(_AO_H_FM_2612, 6,1, ((out_fm[1]>>0) & OPN->pan[2]), ((out_fm[1]>>0) & OPN->pan[3]));
+		mix_chan_disp(_AO_H_FM_2612, 6,2, ((out_fm[2]>>0) & OPN->pan[4]), ((out_fm[2]>>0) & OPN->pan[5]));
+		mix_chan_disp(_AO_H_FM_2612, 6,3, ((out_fm[3]>>0) & OPN->pan[6]), ((out_fm[3]>>0) & OPN->pan[7]));
+		
+		if (! F2612->dac_test)
+			mix_chan_disp(_AO_H_FM_2612, 6,4, ((out_fm[4]>>0) & OPN->pan[8]), ((out_fm[4]>>0) & OPN->pan[9]));
+		else
+			mix_chan_disp(_AO_H_FM_2612, 6,4, dacout, dacout);
+		
+		mix_chan_disp(_AO_H_FM_2612, 6,5, ((out_fm[5]>>0) & OPN->pan[10]), ((out_fm[5]>>0) & OPN->pan[11]));
 
 //      Limit( lt, MAXOUT, MINOUT );
 //      Limit( rt, MAXOUT, MINOUT );

@@ -418,8 +418,7 @@ UINT32 NES_FDS_Render(void* chip, INT32 b[2])
 	b[0] = (m * fds->sm[0]) >> (7-2);
 	b[1] = (m * fds->sm[1]) >> (7-2);
 	
-	ao_chan_disp_nchannels=6; /* from AO.H */
-	mix_chan_disp(5, b[0], b[1]);
+	mix_chan_disp(_AO_H_NP_NES,6,5, b[0], b[1]);
 	
 	return 2;
 }

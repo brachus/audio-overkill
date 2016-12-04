@@ -254,7 +254,6 @@ void c6280m_update(void* param, stream_sample_t **outputs, int samples)
         outputs[1][i] = 0;
     }
     
-    ao_chan_disp_nchannels = 6; /* from AO.h */
 
     for(ch = 0; ch < 6; ch++)
     {
@@ -297,6 +296,8 @@ void c6280m_update(void* param, stream_sample_t **outputs, int samples)
                     outputs[1][i] += (INT16)(vlr * (data - 16));
                     
                     mix_chan_disp(
+						_AO_H_C6280,
+						6,
 						ch,
 						(INT16)(vll * (data - 16)),
 						(INT16)(vlr * (data - 16)));
@@ -312,6 +313,8 @@ void c6280m_update(void* param, stream_sample_t **outputs, int samples)
                     outputs[1][i] += (INT16)(vlr * (p->channel[ch].dda - 16));
                     
                     mix_chan_disp(
+						_AO_H_C6280,
+						6,
 						ch,
 						(INT16)(vll * (p->channel[ch].dda - 16)),
 						(INT16)(vlr * (p->channel[ch].dda - 16)));
@@ -333,6 +336,8 @@ void c6280m_update(void* param, stream_sample_t **outputs, int samples)
                     outputs[1][i] += (INT16)(vlr * (data - 16));
                     
                     mix_chan_disp(
+						_AO_H_C6280,
+						6,
 						ch,
 						(INT16)(vll * (data - 16)),
 						(INT16)(vlr * (data - 16)));

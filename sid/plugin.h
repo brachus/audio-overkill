@@ -2,7 +2,8 @@
 
 #include "tinysid.h"
 
-#define SAMPLERATE 2048
+/* this has to be 882*2 or else. */
+#define SID_SAMPLERATE (882*2)
 
 static word init_addr, play_addr;
 static byte actual_subsong, max_subsong, play_speed;

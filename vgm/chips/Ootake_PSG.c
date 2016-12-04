@@ -576,7 +576,6 @@ PSG_Mix(
 		sampleAllR = 0;
 		for (i=0; i<N_CHANNEL; i++)
 		{
-			ao_chan_disp_nchannels = N_CHANNEL; /* from AO.H */
 			
 			PSGChn = &info->Psg[i];
 			
@@ -590,6 +589,7 @@ PSG_Mix(
 					sampleAllR += smp + (smp >> 3) + (smp >> 4) + (smp >> 5) + (smp >> 7) + (smp >> 12) + (smp >> 14) + (smp >> 15); //Kitao更新。サンプリング音の音量を実機並みに調整。v2.39,v2.40,v2.62,v2.65再調整した。
 				
 					mix_chan_disp( /* from AO.H */
+						_AO_H_OOTAKE_PSG, N_CHANNEL,
 						i,
 						smpl + (smpl >> 3) + (smpl >> 4) + (smpl >> 5) + (smpl >> 7) + (smpl >> 12) + (smpl >> 14) + (smpl >> 15),
 						smp + (smp >> 3) + (smp >> 4) + (smp >> 5) + (smp >> 7) + (smp >> 12) + (smp >> 14) + (smp >> 15));
@@ -606,6 +606,7 @@ PSG_Mix(
 						sampleAllR += (smp >> 1) + (smp >> 12) + (smp >> 14);
 						
 						mix_chan_disp( /* from AO.H */
+							_AO_H_OOTAKE_PSG, N_CHANNEL,
 							i,
 							(smpl >> 1) + (smpl >> 12) + (smpl >> 14),
 							(smp >> 1) + (smp >> 12) + (smp >> 14));
@@ -618,6 +619,7 @@ PSG_Mix(
 						sampleAllR += smp + (smp >> 11) + (smp >> 14) + (smp >> 15); //Kitao更新。ノイズの音量を実機並みに調整
 					
 						mix_chan_disp( /* from AO.H */
+							_AO_H_OOTAKE_PSG, N_CHANNEL,
 							i,
 							smpl + (smpl >> 11) + (smpl >> 14) + (smpl >> 15),
 							smp + (smp >> 11) + (smp >> 14) + (smp >> 15));
@@ -636,6 +638,7 @@ PSG_Mix(
 					sampleAllR += sample * PSGChn->outVolumeR; //Kitao更新
 					
 					mix_chan_disp( /* from AO.H */
+						_AO_H_OOTAKE_PSG, N_CHANNEL,
 						i,
 						sample * PSGChn->outVolumeL,
 						sample * PSGChn->outVolumeR);
@@ -655,6 +658,7 @@ PSG_Mix(
 			}
 			else
 				mix_chan_disp( /* from AO.H */
+						_AO_H_OOTAKE_PSG, N_CHANNEL,
 						i,
 						0,
 						0);

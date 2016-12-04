@@ -760,7 +760,6 @@ void ay8910_update_one(void *param, stream_sample_t **outputs, int samples)
 		}
 		psg->env_volume = (psg->env_step ^ psg->attack);
 		
-		ao_chan_disp_nchannels = 24; /* from AO.H */
 
 		//if (psg->streams == NUM_CHANNELS)
 		//{
@@ -774,6 +773,8 @@ void ay8910_update_one(void *param, stream_sample_t **outputs, int samples)
 						*(buf[chan]++) = psg->env_table[chan][psg->vol_enabled[chan] ? psg->env_volume >> (3-TONE_ENVELOPE(psg,chan)) : 0];
 						
 						mix_chan_disp( /* from AO.H */
+							_AO_H_AY8910,
+							NUM_CHANNELS,
 							chan,
 							psg->env_table[chan][psg->vol_enabled[chan] ? psg->env_volume >> (3-TONE_ENVELOPE(psg,chan)) : 0],
 							psg->env_table[chan][psg->vol_enabled[chan] ? psg->env_volume >> (3-TONE_ENVELOPE(psg,chan)) : 0]);
@@ -783,6 +784,8 @@ void ay8910_update_one(void *param, stream_sample_t **outputs, int samples)
 						*(buf[chan]++) = psg->env_table[chan][psg->vol_enabled[chan] ? psg->env_volume : 0];
 						
 						mix_chan_disp( /* from AO.H */
+							_AO_H_AY8910,
+							NUM_CHANNELS,
 							chan,
 							psg->env_table[chan][psg->vol_enabled[chan] ? psg->env_volume : 0],
 							psg->env_table[chan][psg->vol_enabled[chan] ? psg->env_volume : 0]);
@@ -793,6 +796,8 @@ void ay8910_update_one(void *param, stream_sample_t **outputs, int samples)
 					*(buf[chan]++) = psg->vol_table[chan][psg->vol_enabled[chan] ? TONE_VOLUME(psg, chan) : 0];
 					
 					mix_chan_disp( /* from AO.H */
+							_AO_H_AY8910,
+							NUM_CHANNELS,
 							chan,
 							psg->vol_table[chan][psg->vol_enabled[chan] ? TONE_VOLUME(psg, chan) : 0],
 							psg->vol_table[chan][psg->vol_enabled[chan] ? TONE_VOLUME(psg, chan) : 0]);

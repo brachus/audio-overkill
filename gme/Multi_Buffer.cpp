@@ -13,6 +13,11 @@ details. You should have received a copy of the GNU Lesser General Public
 License along with this module; if not, write to the Free Software Foundation,
 Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA */
 
+extern "C"
+{
+	#include "../ao.h"
+}
+
 #include "blargg_source.h"
 
 #ifdef BLARGG_ENABLE_OPTIMIZER
@@ -156,6 +161,8 @@ void Stereo_Buffer::mix_stereo( blip_sample_t* out_, blargg_long count )
 	BLIP_READER_BEGIN( right, bufs [2] );
 	BLIP_READER_BEGIN( center, bufs [0] );
 	
+	int tmp_count = count;
+	
 	for ( ; count; --count )
 	{
 		int c = BLIP_READER_READ( center );
@@ -174,6 +181,8 @@ void Stereo_Buffer::mix_stereo( blip_sample_t* out_, blargg_long count )
 		out [0] = l;
 		out [1] = r;
 		out += 2;
+		
+		mix_chan_disp(666, tmp_count,count, l,r);
 	}
 	
 	BLIP_READER_END( center, bufs [0] );
@@ -187,6 +196,8 @@ void Stereo_Buffer::mix_stereo_no_center( blip_sample_t* out_, blargg_long count
 	int const bass = BLIP_READER_BASS( bufs [1] );
 	BLIP_READER_BEGIN( left, bufs [1] );
 	BLIP_READER_BEGIN( right, bufs [2] );
+	
+	int tmp_count = count;
 	
 	for ( ; count; --count )
 	{
@@ -204,6 +215,8 @@ void Stereo_Buffer::mix_stereo_no_center( blip_sample_t* out_, blargg_long count
 		out [0] = l;
 		out [1] = r;
 		out += 2;
+		
+		mix_chan_disp(666, tmp_count,count, l,r);
 	}
 	
 	BLIP_READER_END( right, bufs [2] );
@@ -216,6 +229,8 @@ void Stereo_Buffer::mix_mono( blip_sample_t* out_, blargg_long count )
 	int const bass = BLIP_READER_BASS( bufs [0] );
 	BLIP_READER_BEGIN( center, bufs [0] );
 	
+	int tmp_count = count;
+	
 	for ( ; count; --count )
 	{
 		blargg_long s = BLIP_READER_READ( center );
@@ -226,6 +241,8 @@ void Stereo_Buffer::mix_mono( blip_sample_t* out_, blargg_long count )
 		out [0] = s;
 		out [1] = s;
 		out += 2;
+		
+		mix_chan_disp(666, tmp_count,count, s,s);
 	}
 	
 	BLIP_READER_END( center, bufs [0] );

@@ -17,7 +17,7 @@ extern char song_name[32], song_author[32], song_copyright[32], subsong_disp[32]
 extern word *wave_buf;
 
 /* get rid of sid_subsong_sel */
-extern int ao_track_select;
+extern int ao_track_select, ao_track_max;
 
 
 void sid_fill_tags()
@@ -42,16 +42,15 @@ int sid_execute ( void (*update)(const void *, int ))
 {
 	int buf_len=1;
 	
-	
 	/* create a buffer consisting of u8 ints, and use it to satisfy update.*/
 	
 	cpuJSR(play_addr, 0);
 	
-	synth_render(wave_buf, SAMPLERATE);
+	synth_render(wave_buf, SID_SAMPLERATE);
 	
 	
 	if (buf_len) /* remember that arg 2 must be size in bytes */
-		update((u_int8_t * ) wave_buf, sizeof(word) * SAMPLERATE);
+		update((u_int8_t * ) wave_buf, sizeof(word) * SID_SAMPLERATE);
 	else
 		update(0, 0);
 		
@@ -88,23 +87,25 @@ int sid_open (char * fn)
 	
 	sid_fill_tags();
 	
-	/* get rid of sid_subsong_sel */	
-	ao_track_select = (ao_track_select > max_subsong) ?
-		max_subsong : ao_track_select;
-	ao_track_select = (ao_track_select<0)? 0: ao_track_select;
+	ao_track_max = max_subsong;
+	
+	/* get rid of sid_subsong_sel */
+	if (ao_track_select > ao_track_max)
+		ao_track_select = ao_track_max;
+	
+	if (ao_track_select < 0)
+		ao_track_select = 0;
 
-	/* watch this */
-	if (max_subsong>0)
-	{
-		sprintf(subsong_disp," (%d/%d)",ao_track_select+1,max_subsong+1);
-		strcat(tag_track, subsong_disp);
-	}
+	
+	if (ao_track_max == 0)
+		ao_track_max = -1;
+		
 	
 
 	cpuJSR(init_addr, ao_track_select);
 	
 	
-	wave_buf = (word *) malloc (sizeof(word) * SAMPLERATE);
+	wave_buf = (word *) malloc (sizeof(word) * SID_SAMPLERATE);
 	
 		
 	return 1;

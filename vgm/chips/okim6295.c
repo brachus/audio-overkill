@@ -28,6 +28,9 @@
 #include <stdlib.h>
 #include <string.h>	// for memset
 #include <math.h>
+
+#include "../../ao.h"
+
 #include "okim6295.h"
 
 #define FALSE	0
@@ -359,11 +362,32 @@ void okim6295_update(UINT8 ChipID, stream_sample_t **outputs, int samples)
 
 				generate_adpcm(chip, voice, sample_data, samples);
 				for (samp = 0; samp < samples; samp++)
+				{
 					*buffer++ += sample_data[samp];
+					
+					mix_chan_disp(_AO_H_OKIM6295,
+						OKIM6295_VOICES,
+						i,
+						sample_data[samp], sample_data[samp] );/* from AO.H */
+				}
+					
 
 				remaining -= samples;
 			}
 		}
+		else
+		{
+			/* from  AO.H */
+			int samp;
+			
+			for (samp=0;samp<samples;samp++)
+				mix_chan_disp(_AO_H_OKIM6295,
+						OKIM6295_VOICES,
+						i,
+						0,0 );/* from AO.H */
+		}
+		
+		
 	}
 	
 	memcpy(outputs[1], outputs[0], samples * sizeof(*outputs[0]));

@@ -153,6 +153,7 @@ int32_t psf_start(uint8_t *buffer, uint32_t length)
 		{
 			printf("Major error!  PSF was OK, but referenced library is not!\n");
 			free(lib);
+			lib=0;
 			return AO_FAIL;
 		}
 
@@ -204,6 +205,7 @@ int32_t psf_start(uint8_t *buffer, uint32_t length)
 
 		// Dispose the corlett structure for the lib - we don't use it
 		free(lib);
+		lib=0;
 		
 	}
 	
@@ -268,14 +270,15 @@ int32_t psf_start(uint8_t *buffer, uint32_t length)
 
 			// Dispose the corlett structure for the lib - we don't use it
 			free(lib);
+			lib=0;
 			
 			
 		}
 	}
 	
 	
-
 	free(file);
+	file=0;
 //	free(lib_decoded);
 
 	// Finally, set psfby tag
@@ -400,14 +403,22 @@ int32_t psf_execute(void (*update)(const void *, int))
 int32_t psf_stop(void)
 {
 	SPUclose();
-	free(c); c=0;
+	free(c);
+	c=0;
 
 	return AO_SUCCESS;
 }
 
 void set_libdir(char *s)
 {
-	free(libdir);
+	
+	if (libdir!=0)
+	{
+		free(libdir);
+		libdir=0;
+	}
+		
+		
 	libdir = s;
 }
 

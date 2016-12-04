@@ -294,8 +294,6 @@ void SN76496Update(void *chip, stream_sample_t **outputs, int samples)
 	INT32 vol[4];
 	UINT8 NGPMode;
 	INT32 ggst[2];
-	
-	ao_chan_disp_nchannels=24;
 
 	NGPMode = (R->NgpFlags >> 7) & 0x01;
 	R2 = R->NgpChip2;
@@ -421,7 +419,7 @@ void SN76496Update(void *chip, stream_sample_t **outputs, int samples)
 					out += vol[i] * R->Volume[i] * ggst[0];
 					out2 += vol[i] * R->Volume[i] * ggst[1];
 					
-					mix_chan_disp(i, vol[i] * R->Volume[i] * ggst[0], vol[i] * R->Volume[i] * ggst[1]); /* from AO.H */
+					mix_chan_disp(_AO_H_SN76496,8,i, vol[i] * R->Volume[i] * ggst[0], vol[i] * R->Volume[i] * ggst[1]); /* from AO.H */
 				}
 				else if (R->MuteMsk[i])
 				{
@@ -431,10 +429,10 @@ void SN76496Update(void *chip, stream_sample_t **outputs, int samples)
 					out += R->Volume[i] * ggst[0];
 					out2 += R->Volume[i] * ggst[1];
 					
-					mix_chan_disp(i, R->Volume[i] * ggst[0], R->Volume[i] * ggst[1]); /* from AO.H */
+					mix_chan_disp(_AO_H_SN76496,8,i, R->Volume[i] * ggst[0], R->Volume[i] * ggst[1]); /* from AO.H */
 				}
 				else
-					mix_chan_disp(i, 0,0); /* from AO.H */
+					mix_chan_disp(_AO_H_SN76496,8,i, 0,0); /* from AO.H */
 			}
 		}
 		else
@@ -467,7 +465,7 @@ void SN76496Update(void *chip, stream_sample_t **outputs, int samples)
 						out += vol[i] * R->Volume[i] * ggst[0];
 						out2 += vol[i] * R2->Volume[i] * ggst[1];
 						
-						mix_chan_disp(i+4, vol[i] * R->Volume[i] * ggst[0], vol[i] * R->Volume[i] * ggst[1]); /* from AO.H */
+						mix_chan_disp(_AO_H_SN76496,8,i+3, vol[i] * R->Volume[i] * ggst[0], vol[i] * R->Volume[i] * ggst[1]); /* from AO.H */
 					}
 					else if (R->MuteMsk[i])
 					{
@@ -475,10 +473,10 @@ void SN76496Update(void *chip, stream_sample_t **outputs, int samples)
 						out += R->Volume[i] * ggst[0];
 						out2 += R2->Volume[i] * ggst[1];
 						
-						mix_chan_disp(i+4, R->Volume[i] * ggst[0], R->Volume[i] * ggst[1]); /* from AO.H */
+						mix_chan_disp(_AO_H_SN76496,8,i+4, R->Volume[i] * ggst[0], R->Volume[i] * ggst[1]); /* from AO.H */
 					}
 					else
-						mix_chan_disp(i+4, 0,0); /* from AO.H */
+						mix_chan_disp(_AO_H_SN76496,8,i+4, 0,0); /* from AO.H */
 				}
 			}
 			else
@@ -506,6 +504,8 @@ void SN76496Update(void *chip, stream_sample_t **outputs, int samples)
 				//out2 += vol[3] * R->Volume[3];
 				out += vol[3] * R2->Volume[3] * ggst[0];
 				out2 += vol[3] * R->Volume[3] * ggst[1];
+				
+				mix_chan_disp(_AO_H_SN76496,8,7, vol[3] * R2->Volume[3] * ggst[0], vol[3] * R->Volume[3] * ggst[1]);
 			}
 		}
 		// --- CUSTOM CODE END --

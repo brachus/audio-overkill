@@ -419,14 +419,19 @@ void qsound_update(UINT8 ChipID, stream_sample_t **outputs, int samples)
 				*pOutL++ += ((sample * pC->lvol * pC->vol) >> 14);
 				*pOutR++ += ((sample * pC->rvol * pC->vol) >> 14);
 				
-				ao_chan_disp_nchannels = QSOUND_CHANNELS;
 				
 				mix_chan_disp(
+					_AO_H_QSOUND, QSOUND_CHANNELS,
 					i,
 					((sample * pC->lvol * pC->vol) >> 14),
 					((sample * pC->rvol * pC->vol) >> 14)); /* from AO.h */
 			}
 		}
+		else
+			for (j=samples-1; j>=0; j--)
+				mix_chan_disp(
+					_AO_H_QSOUND, QSOUND_CHANNELS,
+					i, 0, 0); /* from AO.h */
 	}
 
 	/*if (chip->fpRawDataL)

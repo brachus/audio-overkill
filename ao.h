@@ -140,10 +140,13 @@ int filebuf_free(struct filebuf *r);
 int filebuf_load(char *fn, struct filebuf *r);
 char * filename_build(const char *dir, char *fn);
 
-char *strip_dir(char *path);
+char *strip_dir(const char *path);
+char *strip_fn(const char *path);
 
 int ao_get_lib(struct filebuf *fbuf, char *libdir, char *filename);
 
+
+extern char *ao_chip_names[];
 
 
 enum
@@ -151,6 +154,29 @@ enum
 	_AO_H_PSF,
 	
 	_AO_H_PSF2,
+	
+	_AO_H_YM2612, /* must stay 2 */
+	
+	_AO_H_AY8910,
+	_AO_H_C6280,
+	_AO_H_EMU2149,
+	_AO_H_K051649,
+	_AO_H_YM2203,
+	_AO_H_YM2608,
+	_AO_H_NES_APU,
+	_AO_H_NP_NES,
+	_AO_H_OKIM6258,
+	_AO_H_OKIM6295,
+	_AO_H_OOTAKE_PSG,
+	_AO_H_SEGA_PCM,
+	_AO_H_FM_2612,
+	_AO_H_QSOUND,
+	_AO_H_SN76489,
+	_AO_H_SN76496,
+	_AO_H_YM2151,
+	
+	
+	
 	
 	
 	/* fill out chips supported in vgm format here */
@@ -165,23 +191,20 @@ enum
 	/* fill out chips supported in blargg's game music emulator here */
 	
 	
-}
+};
 
-extern int ao_channel_enable_chip[128];
-extern int ao_channel_mix[128*128*2]; /* up to 128 different chips with up to 128 channels each */
-extern int ao_channel_nchannels[128];
-extern int ao_channel_min[128*128];
-extern int ao_channel_max[128*128];
+extern int ao_channel_set_chip[4];
+extern int ao_channel_mix[4*128*2];
+extern int ao_channel_nchannels[4];
+extern int ao_channel_min[4*128];
+extern int ao_channel_max[4*128];
+extern int ao_chan_flag_disp[4*128];
 
+extern int ao_channel_mix_update_cnt1[4*128];
 
-extern int ao_channel_enable[24];
-extern int ao_chan_disp[25*2];
-extern int ao_chan_flag_disp[24];
+extern int ao_channel_mix_update_cnt[4*128];
+extern int ao_channel_mix_update_acc[4*128*2];
 
-extern int ao_chan_disp_min[25*2];
-extern int ao_chan_disp_max[25*2];
-
-extern int ao_chan_disp_nchannels;
 
 extern int ao_sample_idx[64];
 extern int ao_sample_do[64];
@@ -190,11 +213,8 @@ extern int ao_sample_limit[2];
 
 extern int ao_set_len;
 
-void set_channel_enable(int *set);
-
-void set_chan_disp(int ch, short l, short r);
-
-void mix_chan_disp(int ch, short l, short r);
+void mix_chan_disp_flush();
+void mix_chan_disp(int chip_id, int nchannels,int ch, short l, short r);
 
 void ao_add_sample(int sndtick, int sample);
 
@@ -223,8 +243,11 @@ extern int play_stat;
 
 /* get rid of sid_subsong_sel */
 extern int ao_track_select;
+extern int ao_track_max;
 
 extern int ao_sample_rate;
+
+extern int ao_set_spc_echo;
 
 enum
 {

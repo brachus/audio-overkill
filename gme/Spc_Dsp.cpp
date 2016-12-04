@@ -2,6 +2,12 @@
 
 // Based on Brad Martin's OpenSPC DSP emulator
 
+extern "C"
+{
+	#include "../ao.h"
+}
+
+
 #include "Spc_Dsp.h"
 
 #include "blargg_endian.h"
@@ -30,7 +36,7 @@ Spc_Dsp::Spc_Dsp( uint8_t* ram_ ) : ram( ram_ )
 	set_gain( 1.0 );
 	mute_voices( 0 );
 	disable_surround( false );
-	
+		
 	assert( offsetof (globals_t,unused9 [2]) == register_count );
 	assert( sizeof (voice) == register_count );
 	blargg_verify_byte_order();
@@ -310,6 +316,9 @@ void Spc_Dsp::run( long count, short* out_buf )
 	if ( g.flags & 0x80 )
 		reset();
 	
+	/* setting options here */
+	g.echo_ons = ao_set_spc_echo ? g.echo_ons : 0 ;
+	
 	struct src_dir {
 		char start [2];
 		char loop [2];
@@ -406,6 +415,9 @@ void Spc_Dsp::run( long count, short* out_buf )
 				raw_voice.envx = 0;
 				raw_voice.outx = 0;
 				prev_outx = 0;
+				
+				mix_chan_disp(_AO_H_GME_SPC,voice_count,vidx, 0,0); /* from ao.h */
+				
 				continue;
 			}
 			
@@ -539,6 +551,9 @@ void Spc_Dsp::run( long count, short* out_buf )
 				echol += l;
 				echor += r;
 			}
+			
+			mix_chan_disp(_AO_H_GME_SPC,voice_count,vidx, l,r); /* from ao.h */
+			
 			left  += l;
 			right += r;
 		}

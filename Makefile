@@ -50,7 +50,7 @@ CCPP = g++
 #endif
 
 
-CFLAGS :=  -O3 $(CFLAGS) 
+CFLAGS :=  -O3 $(CFLAGS) -g
 
 CFLAGS += -Wno-unused-variable -Wno-unused-value -Wno-unused-but-set-variable
 CFLAGS += -Wno-pointer-to-int-cast
@@ -62,7 +62,7 @@ LDFLAGS := -lm -lz -lglib-2.0 $(LDFLAGS)
 
 LDFLAGS += -I/usr/include/glib-2.0\
         -I/usr/lib/x86_64-linux-gnu/glib-2.0/include\
-        -I/usr/include/SDL2 -lSDL2 -lSDL2_ttf -lrt -lpthread -pthread -ggdb3
+        -I/usr/include/SDL2 -lSDL2 -lSDL2_ttf -lrt -lpthread -pthread
 
 # add Library Path, if defined
 ifdef LD_LIBRARY_PATH

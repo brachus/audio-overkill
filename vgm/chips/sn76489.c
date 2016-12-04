@@ -23,6 +23,9 @@
 #include <stdlib.h> // malloc/free
 #include <float.h> // for FLT_MIN
 #include <string.h> // for memcpy
+
+#include "../../ao.h"
+
 #include "mamedef.h"
 #include "sn76489.h"
 #include "panning.h"
@@ -260,11 +263,17 @@ void SN76489_Update(SN76489_Context* chip, INT32 **buffer, int length)
 					{
 						buffer[0][j] += chip->Channels[i]; // left
 						buffer[1][j] += chip->Channels[i]; // right
+						
+						mix_chan_disp(_AO_H_SN76489, 4, i, chip->Channels[i], chip->Channels[i]);
 					}
 					else
 					{
 						buffer[0][j] += (INT32)( chip->panning[i][0] * chip->Channels[i] ); // left
 						buffer[1][j] += (INT32)( chip->panning[i][1] * chip->Channels[i] ); // right
+						
+						mix_chan_disp(_AO_H_SN76489, 4, i,
+							(INT32)( chip->panning[i][0] * chip->Channels[i] ),
+							(INT32)( chip->panning[i][1] * chip->Channels[i] ));
 					}
 				}
 				else
@@ -272,6 +281,10 @@ void SN76489_Update(SN76489_Context* chip, INT32 **buffer, int length)
 					// GG stereo overrides panning
 					buffer[0][j] += ( chip->PSGStereo >> (i+4) & 0x1 ) * chip->Channels[i]; // left
 					buffer[1][j] += ( chip->PSGStereo >>  i    & 0x1 ) * chip->Channels[i]; // right
+					
+					mix_chan_disp(_AO_H_SN76489, 4, i,
+						( chip->PSGStereo >> (i+4) & 0x1 ) * chip->Channels[i],
+						( chip->PSGStereo >>  i    & 0x1 ) * chip->Channels[i]);
 				}
 			}
 		}
@@ -284,6 +297,10 @@ void SN76489_Update(SN76489_Context* chip, INT32 **buffer, int length)
 				{
 					buffer[0][j] += (chip->PSGStereo >> (i+4) & 0x1 ) * chip ->Channels[i]; // left
 					buffer[1][j] += (chip->PSGStereo >>  i    & 0x1 ) * chip2->Channels[i]; // right
+					
+					mix_chan_disp(_AO_H_SN76489, 4, i,
+						(chip->PSGStereo >> (i+4) & 0x1 ) * chip ->Channels[i],
+						(chip->PSGStereo >>  i    & 0x1 ) * chip2->Channels[i]);
 				}
 			}
 			else
@@ -292,6 +309,10 @@ void SN76489_Update(SN76489_Context* chip, INT32 **buffer, int length)
 				i = 3;
 				buffer[0][j] += (chip->PSGStereo >> (i+4) & 0x1 ) * chip2->Channels[i]; // left
 				buffer[1][j] += (chip->PSGStereo >>  i    & 0x1 ) * chip ->Channels[i]; // right
+				
+				mix_chan_disp(_AO_H_SN76489, 4, i,
+						(chip->PSGStereo >> (i+4) & 0x1 ) * chip2->Channels[i],
+						(chip->PSGStereo >>  i    & 0x1 ) * chip ->Channels[i]);
 			}
 		}
 

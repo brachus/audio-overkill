@@ -16,6 +16,7 @@ int load_psf_file(char *fn)
 	{
 		ctmp = strip_dir(fn);
 		
+		
 		set_libdir(ctmp);
 		
 	}

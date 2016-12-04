@@ -1,6 +1,7 @@
 
 
-#define SAMPLERATE 2048
+#define SAMPLERATE 768
+/*(44100/60) use to work... */
 
 
 #ifdef __cplusplus

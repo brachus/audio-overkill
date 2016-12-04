@@ -94,7 +94,7 @@ int corlett_decode(uint8_t *input, uint32_t input_len, uint8_t **output, uint64_
 {
 	uint32_t *buf;
 	uint32_t res_area, comp_crc,  actual_crc;
-	uint8_t *decomp_dat, *tag_dec;
+	uint8_t *decomp_dat, *tag_dec, *keep_decomp_dat;
 	uLongf decomp_length, comp_length;
 
 	// 32-bit pointer to data
@@ -133,7 +133,12 @@ int corlett_decode(uint8_t *input, uint32_t input_len, uint8_t **output, uint64_
 		
 
 		// Resize memory buffer to what we actually need
+		
+		keep_decomp_dat = decomp_dat;
 		decomp_dat = (uint8_t *) realloc(decomp_dat, (size_t)decomp_length + 1);
+		
+		if (!decomp_dat)
+			decomp_dat = keep_decomp_dat;
 	}
 	else
 	{

@@ -192,6 +192,7 @@ int main(int argc, char *argv[])
 		tick, rtmpy;
 	SDL_Event e;
 	char tmpstr[256];
+	char tmpstr1[64];
 	char chtrack, *ctmp;
 	struct flist_base *flist;	
 	
@@ -252,7 +253,10 @@ int main(int argc, char *argv[])
 	}
 	fcur = 0;
 	
-	ao_track_select=0; /* this needs to go. */
+	ao_track_select = 0; /* this needs to go. */
+	ao_track_max = -1;
+	
+	reset_chan_disp();
 	
 	win = SDL_CreateWindow(WIN_TITLE,
 		SDL_WINDOWPOS_UNDEFINED,
@@ -263,7 +267,6 @@ int main(int argc, char *argv[])
 		
 	screen = SDL_GetWindowSurface(win);
 	
-	set_channel_enable(channel_enable);
 	
 	clear_tags();
 	
@@ -333,10 +336,42 @@ int main(int argc, char *argv[])
 				
 				case SDLK_LEFT:
 				case SDLK_RIGHT:
-					if (e.key.keysym.sym==SDLK_LEFT && fcur>0)
-						fcur--;
-					else if (fcur<(fcnt-1)) 
-						fcur++;
+				
+					if (ao_track_max == -1)
+					{
+						if (e.key.keysym.sym==SDLK_LEFT && fcur>0)
+							fcur--;
+						else if (e.key.keysym.sym==SDLK_RIGHT && fcur<(fcnt-1)) 
+							fcur++;
+					}
+					else
+					{
+						if (e.key.keysym.sym==SDLK_LEFT)
+						{
+							if (ao_track_select > 0)
+								ao_track_select--;
+							else if (fcur>0)
+							{
+								fcur--;
+								ao_track_select=0xffff;
+								/* so last track of previous
+								 * file will be selected
+								 */
+							}
+								
+						}
+						else if (e.key.keysym.sym==SDLK_RIGHT) 
+						{
+							if (ao_track_select < ao_track_max)
+								ao_track_select++;
+							else if (fcur<(fcnt-1))
+							{
+								fcur++;
+								ao_track_select = 0;
+							}
+						}
+					}
+					
 					
 					if (play_stat == M_PLAY)
 						play_stat = M_RELOAD;
@@ -504,6 +539,8 @@ int main(int argc, char *argv[])
 			
 			reset_chan_disp();
 			
+			ao_track_max = -1;
+			
 			if (get_file_type(get_flist_idx(flist,fcur)) == F_PSF)
 			{
 				file_close = &close_psf_file;
@@ -565,6 +602,12 @@ int main(int argc, char *argv[])
 		
 		sprintf(tmpstr,"(%d/%d)",fcur+1,fcnt);
 		
+		if (ao_track_max != -1 || ao_track_max == 0)
+		{
+			sprintf(tmpstr1,"  track: (%d/%d)",ao_track_select+1,ao_track_max+1);
+			strcat(tmpstr,tmpstr1);
+		}
+		
 		render_text(
 			screen,
 			tmpstr,
@@ -572,12 +615,11 @@ int main(int argc, char *argv[])
 			&tcol_b,
 			font,
 			10, rtmpy,
-			1,SCREENWIDTH/2,tick);
+			1,SCREENWIDTH,tick);
 		
 		
 		
 		
-		set_channel_enable(channel_enable);
 		
 		SDL_UpdateWindowSurface(win);
 		
@@ -969,6 +1011,7 @@ void fill_audio(void *udata, Uint8 *stream, int len)
 	
 	if (play_stat==M_PLAY)
 	{
+		
 		while (u_buf_fill < len && play_stat == M_PLAY)
 		{
 			if (file_execute( (void (*)(const void *, int)) update) == AO_FAIL)
@@ -1091,54 +1134,80 @@ void update_scope(SDL_Surface *in)
 void update_ao_chdisp(SDL_Surface *in)
 {
 	
-	int i, x, y, to_y, minmax;
+	int i, curchp, curchp_x, x, y, to_y, minmax, chpcnt;
 	
 	float fy;
 	
 	
 	if (pw_init(in))
-	{		
+	{	
+		
+		mix_chan_disp_flush();
+		
 		pw_set_rgb(SCOPE_COLOR);
 		
-		for (i=0;i<(ao_chan_disp_nchannels*2);i++)
-		{
-			fy = 0.0;
-			
-			if (ao_chan_disp_max[i] > ao_chan_disp_min[i])
-			{
-				/*fy=(float) ( ao_chan_disp[i] ) / (0xfff);*/
-				minmax = ao_chan_disp_max[i]-ao_chan_disp_min[i];
-				
-				fy=(float) ( ao_chan_disp[i] ) / (minmax);
-			}
-			
-			
-			
-			fy=fy>1.0?1.0:fy;
-			fy=fy<0.0?0.0:fy;
-			
-			
-			x = SCREENWIDTH - 10 - (ao_chan_disp_nchannels*2*2) +  ((i) + (i/2 * 2)  );
-			y = SCREENHEIGHT - 10;
-			to_y = y - (int) (fy*16);
-			
-			y+=1;
-			
-			if (ao_channel_enable[i/2] == 0)
-				to_y = y + 3;
-							
-			while (y > to_y)
-			{
-				pw_set(in, x, y);
-				y--;
-			}
+		chpcnt=0;
 		
-			while (y < to_y)
+		for (i=0;i<4;i++)
+			if (ao_channel_set_chip[i] != -1)
+				chpcnt++;
+
+		curchp_x = 0;
+		
+
+		for (curchp = 0; curchp < chpcnt;curchp++)
+		{
+			for (i=0;i<(ao_channel_nchannels[curchp]*2);i++)
 			{
-				pw_set(in, x, y);
-				y++;
+				fy = 0.0;
+				
+				
+				if (ao_channel_max[(curchp * 128) + (i/2)] > ao_channel_min[(curchp * 128) + (i/2)])
+				{
+					minmax = ao_channel_max[(curchp * 128) + (i/2)]-ao_channel_min[(curchp * 128) + (i/2)];
+					
+					fy=(float) ( ao_channel_mix[curchp * 128 * 2 + i] ) / (minmax);
+					
+				}
+				
+				
+				
+				fy=fy>1.0?1.0:fy;
+				fy=fy<0.0?0.0:fy;
+				
+				
+				x = SCREENWIDTH - 10 - (ao_channel_nchannels[curchp] * 2 * 2 ) +  ((i) + (i/2 * 2)  ) -  curchp_x;
+				
+				y = SCREENHEIGHT - 10;
+				to_y = y - (int) (fy*16);
+				
+				y+=1;
+				
+				/*if (ao_channel_enable[i/2] == 0)
+					to_y = y + 3;*/
+								
+				while (y > to_y)
+				{
+					pw_set(in, x, y);
+					y--;
+				}
+			
+				while (y < to_y)
+				{
+					pw_set(in, x, y);
+					y++;
+				}
+				
+				
 			}
+			
+			curchp_x += (ao_channel_nchannels[curchp] * 2 * 2 ) +
+					((ao_channel_nchannels[curchp]-1) +
+						((ao_channel_nchannels[curchp]-1)/2) * 2) + 16;
+			
 		}
+		
+		
 	}
 	
 }
@@ -1150,13 +1219,14 @@ void update_ao_ch_flag_disp(SDL_Surface *in, int md)
 	
 	float fy;
 	
-	static char tmpstr[32];
+	static char tmpstr[64];
+	
 	
 	SDL_Color tcol_a;
 	
 	sdl_set_col(&tcol_a, SCOPE_COLOR, 0);
 	
-	
+	/*
 	if (pw_init(in))
 	{		
 		pw_set_rgb(SCOPE_COLOR);
@@ -1193,7 +1263,7 @@ void update_ao_ch_flag_disp(SDL_Surface *in, int md)
 			
 			pw_set_rgb(SCOPE_COLOR);
 		}
-	}
+	}*/
 }
 
 void render_text(

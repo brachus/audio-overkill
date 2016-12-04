@@ -27,6 +27,9 @@
 #include <string.h>	// for memset
 //#include "emu.h"
 //#include "streams.h"
+
+#include "../../ao.h"
+
 #include "k051649.h"
 
 #define FREQ_BITS	16
@@ -132,11 +135,15 @@ void k051649_update(UINT8 ChipID, stream_sample_t **outputs, int samples)
 				c += step;
 				offs = (c >> FREQ_BITS) & 0x1f;
 				*mix++ += (w[offs] * v)>>3;
+				
+				mix_chan_disp(_AO_H_K051649, 5, j, (w[offs] * v)>>3, (w[offs] * v)>>3);
 			}
 
 			// update the counter for this voice
 			voice[j].counter = c;
 		}
+		else
+			mix_chan_disp(_AO_H_K051649, 5, j, 0, 0);
 	}
 
 	// mix it down

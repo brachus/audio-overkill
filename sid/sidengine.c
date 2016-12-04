@@ -397,13 +397,12 @@ void synth_render (word *buffer, dword len)
 #endif
 
 	/* for channel visualization */
-	ao_chan_disp_nchannels = 6;
+		
+	/*ao_chan_flag_disp[v*2] = (0xff << (8*v)) | 0x888888;
+	ao_chan_flag_disp[v*2+1] = (0xff << (8*v)) | 0x888888;*/
 	
-	ao_chan_flag_disp[v*2] = (0xff << (8*v)) | 0x888888;
-	ao_chan_flag_disp[v*2+1] = (0xff << (8*v)) | 0x888888;
-	
-	mix_chan_disp(v*2, osc[v].envval, osc[v].envval);
-	mix_chan_disp(v*2+1, outv, outv);
+	mix_chan_disp(_AO_H_SID,6,v*2, osc[v].envval, osc[v].envval);
+	mix_chan_disp(_AO_H_SID,6,v*2+1, outv, outv);
 	
     }		
     // step 3

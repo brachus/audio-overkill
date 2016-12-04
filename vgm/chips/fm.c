@@ -2198,9 +2198,9 @@ void ym2203_update_one(void *chip, FMSAMPLE **buffer, int length)
 			#endif
 			
 			
-			mix_chan_disp(0, OPN->out_fm[0], OPN->out_fm[0]); /* from AO.H */
-			mix_chan_disp(1, OPN->out_fm[1], OPN->out_fm[1]);
-			mix_chan_disp(2, OPN->out_fm[2], OPN->out_fm[2]);
+			mix_chan_disp(_AO_H_YM2203,6,0, OPN->out_fm[0], OPN->out_fm[0]); /* from AO.H */
+			mix_chan_disp(_AO_H_YM2203,6,1, OPN->out_fm[1], OPN->out_fm[1]);
+			mix_chan_disp(_AO_H_YM2203,6,2, OPN->out_fm[2], OPN->out_fm[2]);
 
 			/* buffering */
 			bufL[i] = lt;
@@ -3460,32 +3460,31 @@ void ym2608_update_one(void *chip, FMSAMPLE **buffer, int length)
 			lt += (out_fm[5] & OPN->pan[10]);
 			rt += (out_fm[5] & OPN->pan[11]);
 			
-			ao_chan_disp_nchannels = 24;
       
-			mix_chan_disp(9, (OPN->out_adpcm[OUTD_LEFT]  +
+			mix_chan_disp(_AO_H_YM2608,8,0, (OPN->out_adpcm[OUTD_LEFT]  +
 				OPN->out_adpcm[OUTD_CENTER]) << 1,
 					(OPN->out_adpcm[OUTD_RIGHT] +
 						OPN->out_adpcm[OUTD_CENTER]) << 1); /* from AO.h */
-			mix_chan_disp(10, (OPN->out_delta[OUTD_LEFT]  +
+			mix_chan_disp(_AO_H_YM2608,8,1, (OPN->out_delta[OUTD_LEFT]  +
 				OPN->out_delta[OUTD_CENTER])>>8,
 				(OPN->out_delta[OUTD_RIGHT] +
 					OPN->out_delta[OUTD_CENTER])>>8);
-			mix_chan_disp(11,
+			mix_chan_disp(_AO_H_YM2608,8,2,
 				(out_fm[0] & OPN->pan[0]),
 				(out_fm[0] & OPN->pan[1]));
-			mix_chan_disp(12,
+			mix_chan_disp(_AO_H_YM2608,8,3,
 				(out_fm[1] & OPN->pan[2]),
 				(out_fm[1] & OPN->pan[3]));
-			mix_chan_disp(13,
+			mix_chan_disp(_AO_H_YM2608,8,4,
 				(out_fm[2] & OPN->pan[4]),
 				(out_fm[2] & OPN->pan[5]));
-			mix_chan_disp(14,
+			mix_chan_disp(_AO_H_YM2608,8,5,
 				(out_fm[3] & OPN->pan[6]),
 				(out_fm[3] & OPN->pan[7]));
-			mix_chan_disp(15,
+			mix_chan_disp(_AO_H_YM2608,8,6,
 				(out_fm[4] & OPN->pan[8]),
 				(out_fm[4] & OPN->pan[9]));
-			mix_chan_disp(16,
+			mix_chan_disp(_AO_H_YM2608,8,7,
 				(out_fm[5] & OPN->pan[10]),
 				(out_fm[5] & OPN->pan[11]));
 

@@ -11,6 +11,9 @@
 
 //#include "emu.h"
 #include <stddef.h>	// for NULL
+
+#include "../../ao.h"
+
 #include "mamedef.h"
 #ifdef _DEBUG
 #include <stdio.h>
@@ -142,10 +145,17 @@ static INT16 clock_adpcm(okim6258_state *chip, UINT8 nibble)
 
 	/* clamp to the maximum */
 	if (chip->signal > max)
+	{
 		chip->signal = max;
+		/*printf("OKIM6258: max clipped!\n");*/
+	}
+		
 	else if (chip->signal < min)
+	{
 		chip->signal = min;
-
+		/*printf("OKIM6258: min clipped!\n");*/
+	}
+		
 	/* adjust the step size and clamp */
 	chip->step += index_shift[nibble & 7];
 	if (chip->step > 48)
@@ -233,6 +243,10 @@ void okim6258_update(UINT8 ChipID, stream_sample_t **outputs, int samples)
 			//*buffer++ = sample;
 			*bufL++ = (chip->pan & 0x02) ? 0x00 : sample;
 			*bufR++ = (chip->pan & 0x01) ? 0x00 : sample;
+			
+			/* from AO.H */
+			mix_chan_disp(_AO_H_OKIM6258, 1, 0, (chip->pan & 0x02) ? 0x00 : sample, (chip->pan & 0x01) ? 0x00 : sample );
+			
 			samples--;
 		}
 
@@ -247,6 +261,8 @@ void okim6258_update(UINT8 ChipID, stream_sample_t **outputs, int samples)
 			//*buffer++ = 0;
 			*bufL++ = 0;
 			*bufR++ = 0;
+			
+			mix_chan_disp(_AO_H_OKIM6258, 1, 0, 0,0 );
 		}
 	}
 }

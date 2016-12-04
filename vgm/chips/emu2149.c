@@ -307,9 +307,8 @@ calc (PSG * psg)
 
       mix += psg->cout[i];
       
-      ao_chan_disp_nchannels = 24;
       
-      mix_chan_disp(9+i, psg->cout[i], psg->cout[i]); /* from AO.h */
+      mix_chan_disp(_AO_H_EMU2149,3,i, psg->cout[i], psg->cout[i]); /* from AO.h */
     }
   }
 
@@ -420,11 +419,11 @@ calc_stereo (PSG * psg, e_int32 out[2])
         l += psg->cout[i];
       if (psg->stereo_mask[i] & 0x02)
         r += psg->cout[i];
-      
-      ao_chan_disp_nchannels = 24;
-      
-      mix_chan_disp(9+i, psg->cout[i], psg->cout[i]); /* from AO.h */
+            
+      mix_chan_disp(_AO_H_EMU2149,3,i, psg->cout[i] << 5, psg->cout[i] << 5); /* from AO.h */
     }
+    else
+	  mix_chan_disp(_AO_H_EMU2149,3,i, 0,0); /* from AO.h */
   }
 
   out[0] = l << 5;

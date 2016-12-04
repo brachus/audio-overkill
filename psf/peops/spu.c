@@ -250,7 +250,7 @@ int SPUasync(u32 cycles, void (*update)(const void *, int))
        if(s_chan[ch].bNew) StartSound(ch);             // start new sound
        if(!s_chan[ch].bOn)
 	   {
-		mix_chan_disp(ch,0,0);
+		mix_chan_disp(_AO_H_PSF, 24, ch, 0, 0);
         continue;                                      // channel not playing? next
 	   }
 
@@ -464,7 +464,7 @@ int SPUasync(u32 cycles, void (*update)(const void *, int))
 	   
 	    ao_add_sample(temp, (int) s_chan[ch].pStart);
 
-		if (ao_channel_enable[ch] && (int) ao_sample_limit_ok((int) s_chan[ch].pStart) ) {
+		if ( 1 && (int) ao_sample_limit_ok((int) s_chan[ch].pStart) ) {
 		
 			tmpl=(s_chan[ch].sval*s_chan[ch].iLeftVolume)>>14;
 			tmpr=(s_chan[ch].sval*s_chan[ch].iRightVolume)>>14;
@@ -479,10 +479,8 @@ int SPUasync(u32 cycles, void (*update)(const void *, int))
 	    * create an average of all samples played per channel, and
 	    * use it for channel indicator usage.
 	    */
-	   
-	   ao_chan_disp_nchannels = 24;
-	   
-	   mix_chan_disp(ch, tmpl, tmpr);
+	   	   
+	   mix_chan_disp(_AO_H_PSF, 24, ch, tmpl, tmpr);
 	   
 
 	   if(((rvb.Enabled>>ch)&1) && (spuCtrl&0x80))
@@ -548,7 +546,6 @@ int SPUasync(u32 cycles, void (*update)(const void *, int))
    */
    
   
-   mix_chan_disp(24, sl, sr);
 
   *pS++=sl;
   *pS++=sr;

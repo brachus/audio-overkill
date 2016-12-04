@@ -8,6 +8,9 @@
 #include <stdio.h>
 //#include "sndintrf.h"
 //#include "streams.h"
+
+#include "../../ao.h"
+
 #include "segapcm.h"
 
 
@@ -189,6 +192,9 @@ void SEGAPCM_update(UINT8 ChipID, stream_sample_t **outputs, int samples)
 				// fixed Bitmask for volume multiplication, thanks to ctr -Valley Bell
 				outputs[0][i] += v * (regs[2] & 0x7F);
 				outputs[1][i] += v * (regs[3] & 0x7F);
+				
+				mix_chan_disp(_AO_H_SEGA_PCM, 16, ch, (regs[2] & 0x7F), (regs[3] & 0x7F)); /* from AO.H */
+				
 				addr = (addr + regs[7]) & 0xffffff;
 			}
 
@@ -196,7 +202,11 @@ void SEGAPCM_update(UINT8 ChipID, stream_sample_t **outputs, int samples)
 			regs[0x84] = addr >> 8;
 			regs[0x85] = addr >> 16;
 			spcm->low[ch] = regs[0x86] & 1 ? 0 : addr;
+			
+			
 		}
+		else
+			mix_chan_disp(_AO_H_SEGA_PCM, 16, ch, 0,0); /* from AO.H */
 //}
 #endif
 	}

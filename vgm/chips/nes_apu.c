@@ -678,9 +678,7 @@ INLINE void apu_update(nesapu_state *info, stream_sample_t **buffer16, int sampl
 
 		*(bufL++)=accum<<8;
 		*(bufR++)=accum<<8;*/
-		
-		ao_chan_disp_nchannels = 5;
-		
+				
 
 		// These volumes should match NSFPlay's NES core better
 		accum = apu_square(info, &info->APU.squ[0]) << 8;	// << 8 * 1.0
@@ -689,15 +687,15 @@ INLINE void apu_update(nesapu_state *info, stream_sample_t **buffer16, int sampl
 		accum += apu_noise(info, &info->APU.noi) * 0xC0;	// << 8 * 0.75
 		accum += apu_dpcm(info, &info->APU.dpcm) * 0xC0;	// << 8 * 0.75
 		
-		mix_chan_disp(0, apu_square(info, &info->APU.squ[0]) << 8,
+		mix_chan_disp(_AO_H_NES_APU,5,0, apu_square(info, &info->APU.squ[0]) << 8,
 			apu_square(info, &info->APU.squ[0]) << 8);
-		mix_chan_disp(1, apu_square(info, &info->APU.squ[1]) << 8,
+		mix_chan_disp(_AO_H_NES_APU,5,1, apu_square(info, &info->APU.squ[1]) << 8,
 			apu_square(info, &info->APU.squ[1]) << 8);
-		mix_chan_disp(2, apu_triangle(info, &info->APU.tri) * 0xC0,
+		mix_chan_disp(_AO_H_NES_APU,5,2, apu_triangle(info, &info->APU.tri) * 0xC0,
 			apu_triangle(info, &info->APU.tri) * 0xC0);
-		mix_chan_disp(3, apu_noise(info, &info->APU.noi) * 0xC0,
+		mix_chan_disp(_AO_H_NES_APU,5,3, apu_noise(info, &info->APU.noi) * 0xC0,
 			apu_noise(info, &info->APU.noi) * 0xC0);
-		mix_chan_disp(4, apu_dpcm(info, &info->APU.dpcm) * 0xC0,
+		mix_chan_disp(_AO_H_NES_APU,5,4, apu_dpcm(info, &info->APU.dpcm) * 0xC0,
 			apu_dpcm(info, &info->APU.dpcm) * 0xC0);
 
 		*(bufL++)=accum;
