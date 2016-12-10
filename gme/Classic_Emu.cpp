@@ -5,6 +5,7 @@
 #include "Multi_Buffer.h"
 #include <string.h>
 
+
 /* Copyright (C) 2003-2006 Shay Green. This module is free software; you
 can redistribute it and/or modify it under the terms of the GNU Lesser
 General Public License as published by the Free Software Foundation; either
@@ -110,7 +111,7 @@ blargg_err_t Classic_Emu::play_( long count, sample_t* out )
 			}
 			int msec = buf->length();
 			blip_time_t clocks_emulated = (blargg_long) msec * clock_rate_ / 1000;
-			RETURN_ERR( run_clocks( clocks_emulated, msec ) );
+			RETURN_ERR( run_clocks( clocks_emulated, msec ) );/* culprit */
 			assert( clocks_emulated );
 			buf->end_frame( clocks_emulated );
 		}

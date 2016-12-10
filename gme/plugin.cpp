@@ -67,12 +67,17 @@ int gme_execute ( void (*update)(const void *, int ))
 	else
 		update((u_int8_t * ) wave_buf, sizeof(short) * SAMPLERATE);
 	
+	
 	return 1;
 		
 }
 
 int gme_open ( char * fn)
 {
+	
+	if (ao_file_open == 1)
+		return 0;
+	
 	struct track_info_t track_info;
 	int tmp;
 	
@@ -93,13 +98,11 @@ int gme_open ( char * fn)
 	}
 	
 	ao_track_max = track_info.track_count - 1;
-		
 	if (ao_track_select > ao_track_max)
 		ao_track_select = ao_track_max;
 	
 	if (ao_track_select < 0)
 		ao_track_select = 0;
-	
 	
 	if (gme_track_info( emu, &track_info, ao_track_select ) != 0)
 	{
@@ -109,10 +112,10 @@ int gme_open ( char * fn)
 	
 	gme_fill_tags(&track_info, fn);
 	
-	
 	if (ao_track_max == 0)
 		ao_track_max = -1;
 	
+		
 	if ( gme_start_track( emu, ao_track_select ) != 0)
 	{
 		gme_delete( emu );
@@ -120,17 +123,27 @@ int gme_open ( char * fn)
 	}
 	
 	
+	
 	wave_buf = (short *) malloc (sizeof(short) * SAMPLERATE);
 	
+	if ( wave_buf == 0)
+		return 0;
+	
+	ao_file_open = 1;
 	
 	return 1;
 }
 
 void gme_close ( void )
 {
+	if (ao_file_open == 0)
+		return;
+	
 	gme_delete( emu );
 	
 	free(wave_buf);
+	
+	ao_file_open = 0;
 }
 
 

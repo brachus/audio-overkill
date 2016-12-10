@@ -271,6 +271,12 @@ int vgm_execute ( void (*update)(const void *, int ))
 {
 	/* create a buffer consisting of u8 ints, and use it to satisfy update.*/
 	
+	if (ao_file_open == 0)
+	{
+		update(0, 0);
+		return 0;
+	}
+		
 	
 	buffered_len = FillBuffer(wave_16bs_buf, SAMPLERATE);
 	
@@ -286,7 +292,8 @@ int vgm_execute ( void (*update)(const void *, int ))
 
 int vgm_open ( char * fn)
 {
-	
+	if (ao_file_open == 1)
+		return;
 	
 	
 	VGMPlay_Init();
@@ -324,18 +331,26 @@ int vgm_open ( char * fn)
 	
 	
 	wave_16bs_buf = (WAVE_16BS *) malloc (SAMPLESIZE * SAMPLERATE);
-		
+	
+	ao_file_open = 1;
 	
 	return 1;
 }
 
 void vgm_close ( void )
 {
+	if (ao_file_open == 0)
+		return;
+	
+	
 	free(wave_16bs_buf);
 	
 	StopVGM();
-    CloseVGMFile();
-    VGMPlay_Deinit();
+	CloseVGMFile();
+	VGMPlay_Deinit();
+	
+	ao_file_open = 0;
+	
 }
 
 

@@ -13,5 +13,8 @@
 int load_psf_file(char *fn);
 void close_psf_file();
 
+int load_psf2_file(char *fn);
+void close_psf2_file();
+
 
 #endif

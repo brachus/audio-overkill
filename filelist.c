@@ -83,3 +83,54 @@ char * get_flist_idx(struct flist_base *n,int idx)
 	return 0;
 };
 
+int del_flist_idx(struct flist_base *n, int idx)
+{
+	struct flist_item *tmp, *prev;
+	int i;
+	
+	if (!n)
+		return 0;
+	
+	if (n->len==0)
+		return 0;
+	
+	tmp = n->dat;
+	
+	if (idx==0)
+	{
+		if (tmp==0)
+			return 0;
+		
+		n->dat = tmp->next;
+		
+		free(tmp);
+		
+		n->len--;
+		
+		return 1;
+	}
+	
+	i=0;
+	prev=0;
+	
+	while (tmp!=0 && i < n->len)
+	{
+		
+		if (idx == i && prev != 0)
+		{
+			prev->next = tmp->next;
+			free(tmp);
+			
+			n->len--;
+			
+			return 1;
+		}
+			
+		prev=tmp;
+		tmp = tmp->next;
+		i++;
+	}
+	
+	return 0;
+};
+

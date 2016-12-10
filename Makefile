@@ -58,11 +58,12 @@ CFLAGS += -Wno-pointer-to-int-cast
 CPPFLAGS := -O3 -fpermissive -Wno-unused-variable -Wno-unused-value
 CPPFLAGS += -Wno-unused-but-set-variable -Wno-overflow -Wno-deprecated
 
-LDFLAGS := -lm -lz -lglib-2.0 $(LDFLAGS)
+LDFLAGS := -lm -lz -lglib-2.0 `pkg-config --cflags --libs gtk+-3.0` $(LDFLAGS) 
 
 LDFLAGS += -I/usr/include/glib-2.0\
         -I/usr/lib/x86_64-linux-gnu/glib-2.0/include\
-        -I/usr/include/SDL2 -lSDL2 -lSDL2_ttf -lrt -lpthread -pthread
+        -I/usr/include/SDL2 -lSDL2 -lSDL2_ttf -lrt -lpthread -pthread\
+        
 
 # add Library Path, if defined
 ifdef LD_LIBRARY_PATH

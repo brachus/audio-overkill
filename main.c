@@ -9,9 +9,14 @@
 #include <stdint.h>
 #include <string.h>
 
+#include <pthread.h>
+#include <glib.h>
+
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_keycode.h>
 #include <SDL2/SDL_ttf.h>
+
+#include <gtk/gtk.h>
 
 
 
@@ -77,6 +82,12 @@ static int c_buf_size = (44100/30);
 
 static int f_borderless = 0;
 
+static int f_play_file_choose = 0;
+
+static int f_filter_surround = 0;
+
+char default_folder[256];
+
 static int16_t * scope;
 static int16_t scope_buf[1024];
 static int scope_bufsiz = -1;
@@ -112,6 +123,7 @@ static int f_render_font = 1;
 
 
 static int k_shift=0;
+static int k_ctrl=0;
 
 char tag_track[256];
 char tag_author[256];
@@ -148,9 +160,45 @@ enum
 
 int play_stat = M_STOPPED;
 
-static void (*file_close)(void);
-static int (*file_execute)(void (*update )(const void *, int));
-static int (*file_open)(char *);
+
+struct flist_base *flist;
+
+
+GtkWidget *
+create_filechooser_dialog(char *init_path, GtkFileChooserAction action)
+{
+  GtkWidget *wdg = NULL;
+
+  switch (action) {
+    case GTK_FILE_CHOOSER_ACTION_SAVE:
+      wdg = gtk_file_chooser_dialog_new("Save file", NULL, action,
+        "Cancel", GTK_RESPONSE_CANCEL,
+        "Save", GTK_RESPONSE_OK,
+        NULL);
+      break;
+
+    case GTK_FILE_CHOOSER_ACTION_OPEN:
+      wdg = gtk_file_chooser_dialog_new("Open file", NULL, action,
+        "Cancel", GTK_RESPONSE_CANCEL,
+        "Open", GTK_RESPONSE_OK,
+        NULL);
+      break;
+
+    case GTK_FILE_CHOOSER_ACTION_SELECT_FOLDER:
+    case GTK_FILE_CHOOSER_ACTION_CREATE_FOLDER:
+      break;
+  }
+  
+  gtk_file_chooser_set_select_multiple((GtkFileChooser *)wdg, TRUE);
+  
+  gtk_file_chooser_set_current_folder ((GtkFileChooser *)wdg, init_path);
+
+  return wdg;
+}
+
+static void (*file_close)(void) = 0;
+static int (*file_execute)(void (*update )(const void *, int)) = 0;
+static int (*file_open)(char *) = 0;
 
 int limint(int in, int from, int to);
 char *str_prepend(char *s, char *pre);
@@ -184,17 +232,128 @@ void experimental_sample_filter(int key);
 int recon_file(char* fn);
 void listdir_flist(struct flist_base *b, const char *name, int level);
 
+
+/* this is so wrong */
+enum
+{
+	GTK_SLAVE_OFF,
+	GTK_SLAVE_STANDBY,
+	GTK_SLAVE_KILL
+};
+
+int gtk_slave_state = GTK_SLAVE_OFF;
+GtkWidget *wdg_slave;
+char gtk_choose_fn[1024] = "./";
+pthread_t gtk_slave_thread;
+int gtk_slave_set_file = -1;
+
+
+
+
+void *do_gtk_dialog_slave(void* thread_id)
+{
+	int i;
+	GSList *tmp_list;
+	
+	gtk_slave_set_file = -1;
+	
+	gtk_slave_state = GTK_SLAVE_STANDBY;
+
+	gtk_init(0, 0);
+	
+	wdg_slave = create_filechooser_dialog(gtk_choose_fn, GTK_FILE_CHOOSER_ACTION_OPEN);
+	
+	
+	
+	gtk_widget_map(wdg_slave);
+	
+	if (gtk_dialog_run(GTK_DIALOG(wdg_slave)) == GTK_RESPONSE_OK)
+	{
+		tmp_list = gtk_file_chooser_get_filenames(GTK_FILE_CHOOSER(wdg_slave));
+		
+		if (tmp_list != 0)
+		{
+			for (i=0;i<g_slist_length(tmp_list);i++)
+			{
+				if (i==0 && f_play_file_choose)
+					gtk_slave_set_file = flist->len;
+				
+				add_flist_item(
+					flist,
+					(char *) g_slist_nth_data(tmp_list, i) );
+			}
+			
+			g_slist_free(tmp_list);
+		}
+		
+		tmp_list = 0;
+		
+	}
+	
+	gtk_choose_fn[0] = '\0'; /* watch this. */
+	strcpy(
+		gtk_choose_fn,
+		gtk_file_chooser_get_current_folder(GTK_FILE_CHOOSER(wdg_slave))
+			);
+			
+	gtk_widget_unmap(wdg_slave);
+	
+	gtk_slave_state = GTK_SLAVE_KILL;
+	
+	gtk_dialog_run(GTK_DIALOG(wdg_slave));
+	
+	gtk_slave_state = GTK_SLAVE_OFF;
+	
+	gtk_widget_destroy(wdg_slave);
+	
+	pthread_exit(0);
+	
+	
+}
+
+void gtk_slave_file_chooser_open()
+{
+	if (gtk_slave_state==GTK_SLAVE_OFF)
+		pthread_create(&gtk_slave_thread, 0, do_gtk_dialog_slave, (void *) 0 );
+}
+
+
+void gtk_slave_file_check_kill()
+{
+	static int i = 16;
+	
+	if (gtk_slave_state == GTK_SLAVE_KILL)
+	{
+		i--;
+		
+		if (!i)
+		{
+			/* file chooser meets its demise here */
+			
+			
+			gtk_dialog_response(GTK_DIALOG(wdg_slave), 0);
+		}
+			
+	}
+	else
+		i=16;
+	
+		
+		
+		
+}			
+					
+
 	
 int main(int argc, char *argv[])
 {
-	int run, i, fcnt, fcur,
+	int run, i, fcur,
 		key, tickdelay,
 		tick, rtmpy;
 	SDL_Event e;
 	char tmpstr[256];
 	char tmpstr1[64];
-	char chtrack, *ctmp;
-	struct flist_base *flist;	
+	char chtrack, *ctmp;	
 	
 	load_conf(CONFIG_FNAME);
 	
@@ -207,6 +366,9 @@ int main(int argc, char *argv[])
 	SDL_Rect tr;
 	
 	FILE *fp;
+	
+	
+	
 	
 	sdl_set_col(&tcol_a, TEXT_COLOR, 0);
 	sdl_set_col(&tcol_b, TEXT_BG_COLOR, 0);
@@ -232,6 +394,8 @@ int main(int argc, char *argv[])
 	}
 	
 	flist = flist_init();
+	
+	
 		
 	for (i=1;i<argc;i++)
 	{
@@ -243,12 +407,15 @@ int main(int argc, char *argv[])
 			
 	}
 	
-	fcnt = flist->len;
 	
-	if (fcnt == 0)
+	strcpy(gtk_choose_fn, default_folder);
+	
+	
+	if (flist->len == 0)
 	{
-		printf("no files.\n");
-		return 0;
+		play_stat = M_NOFILE;
+		
+		gtk_slave_file_chooser_open();
 		
 	}
 	fcur = 0;
@@ -290,7 +457,9 @@ int main(int argc, char *argv[])
     
     SDL_PauseAudio(1);
     
-    play_stat = M_LOAD;
+    
+    if (play_stat != M_NOFILE)
+		play_stat = M_LOAD;
     
     
     chtrack=0;
@@ -303,16 +472,19 @@ int main(int argc, char *argv[])
 	
 	while (run)
 	{
+		
 		while ( SDL_PollEvent( &e ) )
 		{
 			switch ( e.type )
 			{
 			case SDL_QUIT:
 				run = 0;
+				
 				break;
 			case SDL_KEYDOWN:
 				
 				k_shift = e.key.keysym.mod & (KMOD_LSHIFT | KMOD_RSHIFT);
+				k_ctrl = e.key.keysym.mod & (KMOD_LCTRL | KMOD_RCTRL);
 				
 				switch ( e.key.keysym.sym )
 				{
@@ -339,9 +511,9 @@ int main(int argc, char *argv[])
 				
 					if (ao_track_max == -1)
 					{
-						if (e.key.keysym.sym==SDLK_LEFT && fcur>0)
+						if (e.key.keysym.sym==SDLK_LEFT && fcur > 0)
 							fcur--;
-						else if (e.key.keysym.sym==SDLK_RIGHT && fcur<(fcnt-1)) 
+						else if (e.key.keysym.sym==SDLK_RIGHT && fcur<(flist->len-1)) 
 							fcur++;
 					}
 					else
@@ -364,7 +536,7 @@ int main(int argc, char *argv[])
 						{
 							if (ao_track_select < ao_track_max)
 								ao_track_select++;
-							else if (fcur<(fcnt-1))
+							else if (fcur<(flist->len-1))
 							{
 								fcur++;
 								ao_track_select = 0;
@@ -426,12 +598,66 @@ int main(int argc, char *argv[])
 					screen = SDL_GetWindowSurface(win);
 					break;
 				
+				case SDLK_f:
+					gtk_slave_file_chooser_open();
+					break;
+				
+				case SDLK_x:
+					
+					if (k_ctrl && k_shift) /* SHIFT + CTRL + X = remove all */
+					{
+						while (flist->len > 0)
+							del_flist_idx(flist, 0);
+					}
+					else
+						del_flist_idx(flist, fcur);
+					
+					play_stat = M_RELOAD;
+					
+					ao_track_select = 0;
+					ao_track_max = -1;
+
+					if (flist->len == 0)
+					{
+						clear_tags();
+						SDL_PauseAudio(1);
+						
+						reset_u_buf();
+						reset_chan_disp();
+						
+						clear_scope();
+						
+						if (file_close != 0)
+							file_close();
+						
+						fcur=0;
+						
+						play_stat = M_NOFILE;
+					}
+					
+					else if (fcur >= flist->len)
+						fcur = flist->len - 1;
+					break;
+				
 				default:break;
 				}
 				break;
 			default:break;
 			}
 		}
+		
+		gtk_slave_file_check_kill();
+		
+		if (gtk_slave_set_file != -1)
+		{
+			fcur = gtk_slave_set_file;
+			play_stat = M_RELOAD;
+			
+			ao_track_select = -1;
+			
+			gtk_slave_set_file = -1;
+		}
+			
 		
 		
 		SDL_FillRect(screen, 0, SDL_MapRGB(screen->format, BG_COLOR));
@@ -441,6 +667,8 @@ int main(int argc, char *argv[])
 			dump_scope_buf();
 			
 		update_scope(screen);
+		
+		mix_chan_disp_flush();
 		
 		update_ao_chdisp(screen);
 		update_ao_ch_flag_disp(screen, 2);
@@ -454,7 +682,7 @@ int main(int argc, char *argv[])
 				switch (i)
 				{
 				case D_TRACK:
-					ctmp = (play_stat == M_ERR) ?
+					ctmp = (play_stat == M_ERR && flist->len!=0) ?
 						get_flist_idx(flist,fcur) :
 						tag_track;
 					break;
@@ -478,7 +706,6 @@ int main(int argc, char *argv[])
 				rtmpy += 12;
 			}
 		}
-		
 		
 		
 		switch (play_stat)
@@ -518,7 +745,18 @@ int main(int argc, char *argv[])
 		case M_DO_ERR_STOP:
 			clear_tags();
 			SDL_PauseAudio(1);
-			close_psf_file();
+			
+			reset_u_buf();
+			reset_chan_disp();
+			dump_scope_buf();
+			
+			if (file_close != 0)
+				file_close();
+			
+			if (play_stat==M_DO_ERR_STOP)
+				play_stat = M_ERR;
+			else
+				play_stat = M_STOPPED;
 			break;
 		
 		case M_RELOAD_IDLE:
@@ -529,7 +767,8 @@ int main(int argc, char *argv[])
 			
 			reset_u_buf();
 		
-			file_close(); /* segues into M_LOAD on purpose. */
+			if (file_close != 0)
+				file_close(); /* segues into M_LOAD on purpose. */
 			
 		case M_LOAD:
 		
@@ -546,6 +785,13 @@ int main(int argc, char *argv[])
 				file_close = &close_psf_file;
 				file_execute = &psf_execute;
 				file_open = &load_psf_file;
+				
+			}
+			else if (get_file_type(get_flist_idx(flist,fcur)) == F_PSF2)
+			{
+				file_close = &close_psf2_file;
+				file_execute = &psf2_execute;
+				file_open = &load_psf2_file;
 			}
 			else if (get_file_type(get_flist_idx(flist,fcur)) == F_VGM)
 			{
@@ -568,12 +814,24 @@ int main(int argc, char *argv[])
 			else
 			{
 				play_stat = M_ERR;
+				
+				file_close = 0;file_execute = 0;file_open = 0;
+				
 				break;
 			}
 			
-			
-			
-			file_open(get_flist_idx(flist,fcur));
+			if (!file_open(get_flist_idx(flist,fcur)))
+			{
+				play_stat = M_ERR;
+				clear_tags();
+				SDL_PauseAudio(1);
+				if (file_close!=0)
+					file_close();
+				
+				file_close = 0;file_execute = 0;file_open = 0;
+				
+				break;
+			}
 			
 			
 			clear_scope();
@@ -598,9 +856,22 @@ int main(int argc, char *argv[])
 		case M_PAUSE:
 			SDL_PauseAudio(1);
 			break;
+		case M_NOFILE:
+			if (flist->len != 0)
+				play_stat = M_LOAD;
+			break;
 		}
 		
-		sprintf(tmpstr,"(%d/%d)",fcur+1,fcnt);
+		if (play_stat != M_NOFILE && flist->len != 0)
+			sprintf(tmpstr,"(%d/%d)",fcur+1,flist->len);
+		else
+		{
+			sprintf(tmpstr,"no files");
+			
+			/* also do this: */
+			ao_track_max = -1;
+		}
+			
 		
 		if (ao_track_max != -1 || ao_track_max == 0)
 		{
@@ -632,10 +903,11 @@ int main(int argc, char *argv[])
 			tickdelay--;
 	
 	}
-	
 	SDL_CloseAudio();
-	close_psf_file();
+	if (file_close != 0)
+		file_close();
 	free_scope();
+	
 	
 }
 
@@ -795,6 +1067,17 @@ void load_conf(char * fn)
 				
 			else if (ENTRY_NAME("show_chips") && CONF_IS_BOOL)
 				info_disp[6] = (tmp->dat[0].i) ? 1:0;
+				
+			else if (ENTRY_NAME("play_file_choose") && CONF_IS_BOOL)
+				f_play_file_choose = (tmp->dat[0].i) ? 1:0; 
+			
+			else if (ENTRY_NAME("default_folder") && tmp->type==E_STR  )
+				strcpy(default_folder, tmp->dat[0].s);
+			
+			else if (ENTRY_NAME("surround") && CONF_IS_BOOL)
+				f_filter_surround = (tmp->dat[0].i) ? 1:0; 
+				
+				
 			
 		}
 		
@@ -902,6 +1185,7 @@ void update(const Uint8 * buf, int size)
 	/* as the buffer execute_psf fills update with is always
 	 * fixed, we have another buffer to allow different buffer sizes.
 	 */
+		
 	int i,j, tmp, tmp1, goal, over,newsz,got;
 	signed short stmp, stmp1;
 	Uint8 *ctmp;
@@ -959,7 +1243,7 @@ void update(const Uint8 * buf, int size)
 	j%=u_size;
 		
 	
-	if (mono==0) /* STREREO */
+	/*if (mono==0)  STEREO ONLY */
 		while (i < size)
 		{
 			u_buf[j] = buf[i];
@@ -972,7 +1256,7 @@ void update(const Uint8 * buf, int size)
 			
 			i++;
 		}
-	else /* MONO  (assuming 4-byte 2ch signed short le )*/
+	/*else  MONO  (assuming 4-byte 2ch signed short le )
 		while (i < size)
 		{
 			if (i%4==0)
@@ -998,7 +1282,7 @@ void update(const Uint8 * buf, int size)
 			}
 			
 			i++;
-		}
+		}*/
 		
 		
 	
@@ -1008,6 +1292,8 @@ void update(const Uint8 * buf, int size)
 void fill_audio(void *udata, Uint8 *stream, int len)
 {
 	int i, j;
+	int16_t tmpl, tmpr, tmpm;
+	
 	
 	if (play_stat==M_PLAY)
 	{
@@ -1027,24 +1313,78 @@ void fill_audio(void *udata, Uint8 *stream, int len)
 		i=0;
 		j=u_buf_fill_start;
 		
-		while (i < len)
-		{
-			stream[i] = u_buf[j]; /* fill stream */
-			
-			
-			i++;
-			
-			if (j%4==0 && j+1 < u_size && scope_bufsiz < 1024)
+		
+		if (len % 4 == 0) /* must be two-channel signed shorts (4 bytes) */
+		
+			while (i < len) 
 			{
-				scope_buf[scope_bufsiz] = (u_buf[j+1]<<8) + (u_buf[j]);
-				scope_bufsiz++;
+				/* copy data from u_buf */
+				tmpl = (u_buf[j+1] << 8) + u_buf[j];
+				u_buf_fill-=2;  j+=2;  j%=u_size;
+				
+				tmpr = (u_buf[j+1] << 8) + u_buf[j];
+				u_buf_fill-=2;  j+=2;  j%=u_size;
+				
+				/* filter it depending of set flags */
+				
+				if (tmpl < (-0xffff/2 + 16)) /*prep for filtering ?*/
+					tmpl = (-0xffff/2 + 16);
+				if (tmpr < (-0xffff/2 + 16))
+					tmpr = (-0xffff/2 + 16);
+				if (tmpl > (0xffff/2 - 16))
+					tmpl = (0xffff/2 - 16);
+				if (tmpr > (0xffff/2 - 16))
+					tmpr = (0xffff/2 - 16);
+				
+				if (mono)
+				{
+					tmpl = (tmpl+tmpr)/2;
+					tmpr = tmpl;
+				}
+				
+				if (f_filter_surround)
+				{
+					tmpr = -tmpr;
+				}
+					
+				
+				
+				/* copy to stream */
+				stream[i++] = tmpl & 0xff;
+				stream[i++] = (tmpl>>8) & 0xff;
+				
+				stream[i++] = tmpr & 0xff;
+				stream[i++] = (tmpr>>8) & 0xff;
+				
+				if (scope_bufsiz < 1024)
+				{
+					if (!f_filter_surround)
+						scope_buf[scope_bufsiz] = (tmpl + tmpr) / 2;
+					else
+						scope_buf[scope_bufsiz] = (tmpl + (-tmpr)) / 2;
+					scope_bufsiz++;
+				}
+				
 			}
-			
-			j++;
-			j%=u_size;
-			
-			u_buf_fill--;
-		}
+		else
+			while (i < len)
+			{
+				stream[i] = u_buf[j]; /* fill stream */
+				
+				
+				i++;
+				
+				if (j%4==0 && j+1 < u_size && scope_bufsiz < 1024)
+				{
+					scope_buf[scope_bufsiz] = (u_buf[j+1]<<8) + (u_buf[j]);
+					scope_bufsiz++;
+				}
+				
+				j++;
+				j%=u_size;
+				
+				u_buf_fill--;
+			}
 		
 		u_buf_fill_start += len;
 		u_buf_fill_start %= u_size;
@@ -1141,9 +1481,7 @@ void update_ao_chdisp(SDL_Surface *in)
 	
 	if (pw_init(in))
 	{	
-		
-		mix_chan_disp_flush();
-		
+				
 		pw_set_rgb(SCOPE_COLOR);
 		
 		chpcnt=0;
@@ -1176,7 +1514,7 @@ void update_ao_chdisp(SDL_Surface *in)
 				fy=fy<0.0?0.0:fy;
 				
 				
-				x = SCREENWIDTH - 10 - (ao_channel_nchannels[curchp] * 2 * 2 ) +  ((i) + (i/2 * 2)  ) -  curchp_x;
+				x = SCREENWIDTH - 10 - (ao_channel_nchannels[curchp] * 2 * 2 ) +  (i + (i/2 * 2)  ) -  curchp_x;
 				
 				y = SCREENHEIGHT - 10;
 				to_y = y - (int) (fy*16);
@@ -1215,55 +1553,57 @@ void update_ao_chdisp(SDL_Surface *in)
 void update_ao_ch_flag_disp(SDL_Surface *in, int md)
 {
 	
-	int i, j, x, y, tmp;
+	int i, j, x, y, tmp, curchp, curchp_x, chpcnt;
 	
 	float fy;
 	
 	static char tmpstr[64];
 	
-	
 	SDL_Color tcol_a;
 	
 	sdl_set_col(&tcol_a, SCOPE_COLOR, 0);
 	
-	/*
+	
 	if (pw_init(in))
 	{		
 		pw_set_rgb(SCOPE_COLOR);
 		
-		for (i=0;i<(ao_chan_disp_nchannels);i++)
+		chpcnt=0;
+		
+		for (i=0;i<4;i++)
+			if (ao_channel_set_chip[i] != -1)
+				chpcnt++;
+
+		curchp_x = 0;
+		
+		for (curchp = 0; curchp < chpcnt;curchp++)
 		{
-			tmp = ao_chan_flag_disp[i];
-			y=SCREENHEIGHT - (ao_chan_disp_nchannels*2) - 4 + (i*2);
-			
-			
-			y = SCREENHEIGHT - 10;
-			x = SCREENWIDTH - 10 - (ao_chan_disp_nchannels*2*2) +  (i + (i * 3))  ;
-			
-			
-			if (md==1)
+			for (i=0;i<(ao_channel_nchannels[curchp]);i++)
 			{
-				if (tmp & (1))
-					pw_set(in, x, y+4);
-				if (tmp & (2))
-					pw_set(in, x, y+5);
-				if (tmp & (4))
-					pw_set(in, x, y+6);
-			}
-			
-			
-			if (md==2)
-			{
+		
+				tmp = ao_chan_flag_disp[i];
+				
+				
+				y = SCREENHEIGHT - 10;
+				x = SCREENWIDTH - 10 - (ao_channel_nchannels[curchp]*2*2) +  (i + (i * 3)) - curchp_x  ;
+				
+				
 				pw_set_rgb(tmp&0xff,tmp>>8&0xff,tmp>>16&0xff);
 				pw_set(in, x, y+4);
 				pw_set(in, x+1, y+4);
 				pw_set(in, x, y+5);
 				pw_set(in, x+1, y+5);
+				
+				
+				pw_set_rgb(SCOPE_COLOR);
+				
 			}
 			
-			pw_set_rgb(SCOPE_COLOR);
+			curchp_x += (ao_channel_nchannels[curchp]*2*2) +  ((ao_channel_nchannels[curchp]-1) +
+						((ao_channel_nchannels[curchp]-1)/2) * 2) + 16;
 		}
-	}*/
+		
+	}
 }
 
 void render_text(
@@ -1405,7 +1745,7 @@ int get_file_type(char * fn)
 		
 	fclose(fp);
 		
-	if (!strcmp_nocase(ext,"psf",-1))
+	if (!strcmp_nocase(ext,"psf",-1) || !strcmp_nocase(ext,"minipsf",-1) )
 		return F_PSF;
 		
 	if (!strcmp_nocase(ext,"psf2",-1))

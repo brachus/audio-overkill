@@ -19,3 +19,4 @@ struct flist_base *flist_init();
 struct flist_item *flist_item_init(char *s);
 void add_flist_item(struct flist_base *n, char *s);
 char * get_flist_idx(struct flist_base *n,int idx);
+int del_flist_idx(struct flist_base *n, int idx);

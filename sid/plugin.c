@@ -62,6 +62,9 @@ int sid_execute ( void (*update)(const void *, int ))
 
 int sid_open (char * fn)
 {
+	if (ao_file_open == 1)
+		return;
+	
     clear_tags();
         
     c64Init();
@@ -107,11 +110,17 @@ int sid_open (char * fn)
 	
 	wave_buf = (word *) malloc (sizeof(word) * SID_SAMPLERATE);
 	
+	ao_file_open = 1;
 		
 	return 1;
 }
 
 void sid_close ( void )
 {
+	if (ao_file_open == 0)
+		return;
+	
 	free(wave_buf);
+	
+	ao_file_open = 0;
 }

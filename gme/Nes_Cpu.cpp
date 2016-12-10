@@ -5,6 +5,9 @@
 #include "blargg_endian.h"
 #include <limits.h>
 
+
+#include <stdio.h>
+
 #define BLARGG_CPU_X86 1
 
 /* Copyright (C) 2003-2006 Shay Green. This module is free software; you
@@ -28,6 +31,8 @@ Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA */
 #include "nes_cpu_io.h"
 
 #include "blargg_source.h"
+
+
 
 #ifndef CPU_DONE
 	#define CPU_DONE( cpu, time, result_out )   { result_out = -1; }
@@ -119,8 +124,11 @@ typedef int         fint16;
 typedef unsigned    fuint16;
 typedef unsigned    fuint8;
 
+
+
 bool Nes_Cpu::run( nes_time_t end_time )
 {
+	
 	set_end_time( end_time );
 	state_t s = this->state_;
 	this->state = &s;
@@ -134,6 +142,8 @@ bool Nes_Cpu::run( nes_time_t end_time )
 	fuint8 y = r.y;
 	fuint16 sp;
 	SET_SP( r.sp );
+	
+	//("pc %d state.time %d\n",pc,s_time);
 	
 	// status flags
 	#define IS_NEG (nz & 0x8080)
@@ -163,7 +173,7 @@ bool Nes_Cpu::run( nes_time_t end_time )
 	goto loop;
 dec_clock_loop:
 	s_time--;
-loop:
+loop://printf("loop:　pc %d state.time %d\n",pc,s_time);
 	
 	check( (unsigned) GET_SP() < 0x100 );
 	check( (unsigned) pc < 0x10000 );
@@ -185,6 +195,7 @@ loop:
 		opcode = *instr++;
 		pc++;
 	#endif
+	
 	
 	static uint8_t const clock_table [256] =
 	{// 0 1 2 3 4 5 6 7 8 9 A B C D E F
@@ -215,26 +226,29 @@ loop:
 	
 	data = *instr;
 	
+	
 	switch ( opcode )
 	{
 #else
 
+
 	data = clock_table [opcode];
 	if ( (s_time += data) >= 0 )
 		goto possibly_out_of_time;
-almost_out_of_time:
+almost_out_of_time://printf("almost out:　pc %d state.time %d\n",pc,s_time);
 	
 	data = *instr;
 	
+	
+	
 	switch ( opcode )
 	{
-possibly_out_of_time:
+possibly_out_of_time://printf("possibly out  out:　pc %d state.time %d\n",pc,s_time);
 		if ( s_time < (int) data )
 			goto almost_out_of_time;
 		s_time -= data;
 		goto out_of_time;
 #endif
-
 // Macros
 
 #define GET_MSB()   (instr [1])
@@ -408,7 +422,7 @@ imm##op:
 			WRITE_LOW( addr, a );
 			goto loop;
 		}
-	sta_ptr:
+	sta_ptr://printf("sta ptr:　pc %d state.time %d\n",pc,s_time);
 		FLUSH_TIME();
 		WRITE( addr, a );
 		CACHE_TIME();
@@ -467,7 +481,7 @@ imm##op:
 		a = nz = READ_PROG( addr );
 		if ( (addr ^ 0x8000) <= 0x9FFF )
 			goto loop;
-	a_nz_read_addr:
+	a_nz_read_addr://printf("a nz read addr:　pc %d state.time %d\n",pc,s_time);
 		FLUSH_TIME();
 		a = nz = READ( addr );
 		CACHE_TIME();
@@ -557,7 +571,7 @@ imm##op:
 	
 	case 0x8E: // STX abs
 		temp = x;
-	store_abs:
+	store_abs://("store abs:　pc %d state.time %d\n",pc,s_time);
 		unsigned addr = GET_ADDR();
 		pc += 2;
 		if ( addr <= 0x7FF )
@@ -585,7 +599,7 @@ imm##op:
 	case 0xE4: // CPX zp
 		data = READ_LOW( data );
 	case 0xE0: // CPX #imm
-	cpx_data:
+	cpx_data://printf("cpx dat:　pc %d state.time %d\n",pc,s_time);
 		nz = x - data;
 		pc++;
 		c = ~nz;
@@ -604,7 +618,7 @@ imm##op:
 	case 0xC4: // CPY zp
 		data = READ_LOW( data );
 	case 0xC0: // CPY #imm
-	cpy_data:
+	cpy_data://printf("cpy dat:　pc %d state.time %d\n",pc,s_time);
 		nz = y - data;
 		pc++;
 		c = ~nz;
@@ -658,7 +672,7 @@ imm##op:
 		goto adc_imm;
 	
 	ARITH_ADDR_MODES( 0x65 ) // ADC
-	adc_imm: {
+	adc_imm: {//printf("adc:　pc %d state.time %d\n",pc,s_time);
 		fint16 carry = c >> 8 & 1;
 		fint16 ov = (a ^ 0x80) + carry + (BOOST::int8_t) data; // sign-extend
 		status &= ~st_v;
@@ -700,7 +714,7 @@ imm##op:
 	case 0x4E: // LSR abs
 		c = 0;
 	case 0x6E: // ROR abs
-	ror_abs: {
+	ror_abs: {//printf("ror abs:　pc %d state.time %d\n",pc,s_time);
 		ADD_PAGE();
 		FLUSH_TIME();
 		int temp = READ( data );
@@ -718,12 +732,12 @@ imm##op:
 	case 0x0E: // ASL abs
 		c = 0;
 	case 0x2E: // ROL abs
-	rol_abs:
+	rol_abs://printf("rol abs:　pc %d state.time %d\n",pc,s_time);
 		ADD_PAGE();
 		nz = c >> 8 & 1;
 		FLUSH_TIME();
 		nz |= (c = READ( data ) << 1);
-	rotate_common:
+	rotate_common://printf("rotate common:　pc %d state.time %d\n",pc,s_time);
 		pc++;
 		WRITE( data, (uint8_t) nz );
 		CACHE_TIME();
@@ -742,7 +756,7 @@ imm##op:
 	case 0x46: // LSR zp
 		c = 0;
 	case 0x66: // ROR zp
-	ror_zp: {
+	ror_zp: {//printf("ror zp:　pc %d state.time %d\n",pc,s_time);
 		int temp = READ_LOW( data );
 		nz = (c >> 1 & 0x80) | (temp >> 1);
 		c = temp << 8;
@@ -758,7 +772,7 @@ imm##op:
 	case 0x06: // ASL zp
 		c = 0;
 	case 0x26: // ROL zp
-	rol_zp:
+	rol_zp://printf("rol zp:　pc %d state.time %d\n",pc,s_time);
 		nz = c >> 8 & 1;
 		nz |= (c = READ_LOW( data ) << 1);
 		goto write_nz_zp;
@@ -781,9 +795,9 @@ imm##op:
 		data = uint8_t (data + x);
 	case 0xC6: // DEC zp
 		nz = (unsigned) -1;
-	add_nz_zp:
+	add_nz_zp://printf("addnzzp:　pc %d state.time %d\n",pc,s_time);
 		nz += READ_LOW( data );
-	write_nz_zp:
+	write_nz_zp://printf("write nz zp:　pc %d state.time %d\n",pc,s_time);
 		pc++;
 		WRITE_LOW( data, nz );
 		goto loop;
@@ -794,7 +808,7 @@ imm##op:
 	
 	case 0xEE: // INC abs
 		data = GET_ADDR();
-	inc_ptr:
+	inc_ptr://printf("inc ptr:　pc %d state.time %d\n",pc,s_time);
 		nz = 1;
 		goto inc_common;
 	
@@ -804,9 +818,9 @@ imm##op:
 	
 	case 0xCE: // DEC abs
 		data = GET_ADDR();
-	dec_ptr:
+	dec_ptr://printf("dec ptr:　pc %d state.time %d\n",pc,s_time);
 		nz = (unsigned) -1;
-	inc_common:
+	inc_common://printf("inc common:　pc %d state.time %d\n",pc,s_time);
 		FLUSH_TIME();
 		nz += READ( data );
 		pc += 2;
@@ -920,7 +934,7 @@ imm##op:
 		if ( !(status & st_i) )
 			goto loop;
 		status &= ~st_i;
-	handle_cli: {
+	handle_cli: {//printf("handle cli:　pc %d state.time %d\n",pc,s_time);
 		//dprintf( "CLI at %d\n", TIME );
 		this->r.status = status; // update externally-visible I flag
 		blargg_long delta = s.base - irq_time_;
@@ -943,7 +957,7 @@ imm##op:
 		}
 		
 		// TODO: implement
-	delayed_cli:
+	delayed_cli://printf("delayed cli:　pc %d state.time %d\n",pc,s_time);
 		dprintf( "Delayed CLI not emulated\n" );
 		goto loop;
 	}
@@ -952,7 +966,7 @@ imm##op:
 		if ( status & st_i )
 			goto loop;
 		status |= st_i;
-	handle_sei: {
+	handle_sei: {//printf("handel sei:　pc %d state.time %d\n",pc,s_time);
 		this->r.status = status; // update externally-visible I flag
 		blargg_long delta = s.base - end_time_;
 		s.base = end_time_;
@@ -1022,11 +1036,11 @@ imm##op:
 	assert( false );
 	
 	int result_;
-handle_brk:
+handle_brk://printf("handle brk:　pc %d state.time %d\n",pc,s_time);
 	pc++;
 	result_ = 4;
 	
-interrupt:
+interrupt://printf("interrupt:　pc %d state.time %d\n",pc,s_time);
 	{
 		s_time += 7;
 		
@@ -1050,8 +1064,9 @@ interrupt:
 		goto loop;
 	}
 	
-out_of_time:
+out_of_time://printf("out of time:　pc %d state.time %d\n",pc,s_time);
 	pc--;
+	
 	FLUSH_TIME();
 	CPU_DONE( this, TIME, result_ );
 	CACHE_TIME();
@@ -1060,7 +1075,7 @@ out_of_time:
 	if ( s_time < 0 )
 		goto loop;
 	
-stop:
+stop://printf("stop:　pc %d state.time %d\n",pc,s_time);
 	
 	s.time = s_time;
 	
@@ -1078,6 +1093,7 @@ stop:
 	
 	this->state_ = s;
 	this->state = &this->state_;
+	
 	
 	return s_time < 0;
 }

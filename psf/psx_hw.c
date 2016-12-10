@@ -1008,10 +1008,9 @@ static void call_irq_routine(uint32_t routine, uint32_t parameter)
 
 	// make sure we're set
 	psx_ram[0x1000/4] = LE32(FUNCT_HLECALL);
-
 	softcall_target = 0;
 	oldICount = mips_get_icount();
-	while (!softcall_target)
+	while (!softcall_target && play_stat != M_DO_ERR_STOP) /* if hang at hle bios w/ pc @ 0, allow for play_stat to break*/
 	{
 		mips_execute(10);
 	}
@@ -1044,7 +1043,7 @@ void psx_bios_exception(uint32_t pc)
 	union cpuinfo mipsinfo;
 	int i, oldICount;
 
-//	printf("bios_exception: cause %x\n", mips_get_cause() & 0x3c);
+	/*printf("bios_exception: cause %x\n", mips_get_cause() & 0x3c);*/
 
 	// get a0
 	mips_get_info(CPUINFO_INT_REGISTER + MIPS_R4, &mipsinfo);
@@ -1347,12 +1346,14 @@ void psx_bios_hle(uint32_t pc)
 	union cpuinfo mipsinfo;
 	uint32_t a0, a1, a2, a3;
 	int i;
+	
 
 	if ((pc == 0) || (pc == 0x80000000))  	 	// IOP "null" state
 	{
 		#if DEBUG_HLE_IOP
 		printf("IOP 'null' state\n");
 		#endif
+		play_stat = M_DO_ERR_STOP; /* AO.H hack to get us out of trouble if this hangs. */
 //		ao_song_done = 1;
 		return;
 	}
@@ -1900,6 +1901,7 @@ void psx_hw_runcounters(void)
 			}
 		}
 
+		
 		for (i = 0; i < iNumThreads; i++)
 		{
 			if (threads[i].iState == TS_WAITDELAY)

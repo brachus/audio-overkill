@@ -421,7 +421,12 @@ static void *MAINThread(void (*update)(const void *, int))
      for(ch=0;ch<MAXCHAN;ch++)                         // loop em all... we will collect 1 ms of sound of each playing channel
       {
        if(s_chan[ch].bNew) StartSound(ch);             // start new sound
-       if(!s_chan[ch].bOn) continue;                   // channel not playing? next
+       if(!s_chan[ch].bOn)
+       {
+		mix_chan_disp(_AO_H_PSF2, MAXCHAN, ch, 0, 0);
+		continue;                   // channel not playing? next
+	   }
+		
 
        if(s_chan[ch].iActFreq!=s_chan[ch].iUsedFreq)   // new psx frequency?
         {
@@ -444,6 +449,7 @@ static void *MAINThread(void (*update)(const void *, int))
                s_chan[ch].bOn=0;                       // -> turn everything off
                s_chan[ch].ADSRX.lVolume=0;
                s_chan[ch].ADSRX.EnvelopeVol=0;
+               mix_chan_disp(_AO_H_PSF2, MAXCHAN, ch, 0, 0);
                goto ENDX;                              // -> and done for this channel
               }
 
@@ -694,13 +700,18 @@ GOON: ;
            // ok, left/right sound volume (psx volume goes from 0 ... 0x3fff)
 
            if(s_chan[ch].iMute)
-            s_chan[ch].sval=0;                         // debug mute
+           {
+		     s_chan[ch].sval=0;                         // debug mute
+		     mix_chan_disp(_AO_H_PSF2, MAXCHAN, ch, 0, 0);
+		   }
+           
            else
             {
              if(s_chan[ch].bVolumeL)
               SSumL[0]+=(s_chan[ch].sval*s_chan[ch].iLeftVolume)/0x4000L;
              if(s_chan[ch].bVolumeR)
               SSumR[0]+=(s_chan[ch].sval*s_chan[ch].iRightVolume)/0x4000L;
+             mix_chan_disp(_AO_H_PSF2, MAXCHAN, ch, (s_chan[ch].sval*s_chan[ch].iLeftVolume)/0x4000L, (s_chan[ch].sval*s_chan[ch].iRightVolume)/0x4000L);
             }
 
            //////////////////////////////////////////////

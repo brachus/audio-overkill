@@ -442,7 +442,7 @@ int mips_execute( int cycles )
 			switch( INS_FUNCT( mipscpu.op ) )
 			{
 			case FUNCT_HLECALL:
-//				printf("HLECALL, PC = %08x\n", mipscpu.pc);
+				/*printf("HLECALL, PC = %08x\n", mipscpu.pc);*/
 				psx_bios_hle(mipscpu.pc);
 				break;
 			case FUNCT_SLL:

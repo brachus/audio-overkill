@@ -5,6 +5,8 @@
 #include "Multi_Buffer.h"
 #include <string.h>
 
+#include <stdio.h>
+
 /* Copyright (C) 2003-2006 Shay Green. This module is free software; you
 can redistribute it and/or modify it under the terms of the GNU Lesser
 General Public License as published by the Free Software Foundation; either
@@ -140,6 +142,7 @@ blargg_err_t Music_Emu::start_track( int track )
 	
 	emu_track_ended_ = false;
 	track_ended_     = false;
+	
 	
 	if ( !ignore_silence_ )
 	{
@@ -292,7 +295,10 @@ void Music_Emu::emu_play( long count, sample_t* out )
 	check( current_track_ >= 0 );
 	emu_time += count;
 	if ( current_track_ >= 0 && !emu_track_ended_ )
+	{
 		end_track_if_error( play_( count, out ) );
+	}
+		
 	else
 		memset( out, 0, count * sizeof *out );
 }

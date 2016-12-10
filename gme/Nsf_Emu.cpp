@@ -6,6 +6,8 @@
 #include <string.h>
 #include <stdio.h>
 
+#include "../ao.h"
+
 #if !NSF_EMU_APU_ONLY
 	#include "Nes_Namco_Apu.h"
 	#include "Nes_Vrc6_Apu.h"
@@ -483,13 +485,30 @@ blargg_err_t Nsf_Emu::start_track_( int track )
 	return 0;
 }
 
+/* hanging point for some nsfs!! pc hangs　*/
 blargg_err_t Nsf_Emu::run_clocks( blip_time_t& duration, int )
 {
+	int panic_cnt = 0, pc_test = 0;
+	
 	set_time( 0 );
 	while ( time() < duration )
 	{
+		
 		nes_time_t end = min( next_play, duration );
 		end = min( end, time() + 32767 ); // allows CPU to use 16-bit time delta
+		
+		if (r.pc != pc_test) /* HACK: break out if pc hangs.  future: fix actual problem.*/
+			panic_cnt=0;
+		pc_test = r.pc;
+		if (panic_cnt++ > 256)
+		{
+			play_stat = M_DO_STOP;
+			return "PC hang.";
+		}
+		
+		
+		//printf("pc %d\n",r.pc);
+		
 		if ( cpu::run( end ) )
 		{
 			if ( r.pc != badop_addr )

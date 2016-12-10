@@ -50,7 +50,6 @@ static corlett_t	*c = 0;
 static char 		psfby[256];
 int			psf_refresh  = -1;
 
-static char *libdir = 0;
 
 
 // main RAM
@@ -139,7 +138,7 @@ int32_t psf_start(uint8_t *buffer, uint32_t length)
 		printf("Loading library: %s\n", c->lib);
 		#endif
 
-		ao_get_lib(buf, libdir, c->lib);
+		ao_get_lib(buf, ao_lib_dir, c->lib);
 
 		if (!buf->len)
 			return AO_FAIL;
@@ -232,7 +231,7 @@ int32_t psf_start(uint8_t *buffer, uint32_t length)
 			#endif
 			
 
-			ao_get_lib(buf, libdir, c->libaux[i]);
+			ao_get_lib(buf, ao_lib_dir, c->libaux[i]);
 
 			if (!buf->len)
 				return AO_FAIL;
@@ -409,18 +408,7 @@ int32_t psf_stop(void)
 	return AO_SUCCESS;
 }
 
-void set_libdir(char *s)
-{
-	
-	if (libdir!=0)
-	{
-		free(libdir);
-		libdir=0;
-	}
-		
-		
-	libdir = s;
-}
+
 
 char *get_corlett_title(void)
 {

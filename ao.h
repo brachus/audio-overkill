@@ -241,6 +241,8 @@ extern char tag_chips[1024];
 
 extern int play_stat;
 
+extern int ao_file_open;
+
 /* get rid of sid_subsong_sel */
 extern int ao_track_select;
 extern int ao_track_max;
@@ -248,6 +250,12 @@ extern int ao_track_max;
 extern int ao_sample_rate;
 
 extern int ao_set_spc_echo;
+
+extern char ao_lib_dir[256];
+
+void ao_set_lib_dir(char *s);
+
+
 
 enum
 {
@@ -259,7 +267,8 @@ enum
 	M_STOPPED,
 	M_LOAD,
 	M_RELOAD,
-	M_RELOAD_IDLE
+	M_RELOAD_IDLE,
+	M_NOFILE
 };
 
 

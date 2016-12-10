@@ -21,7 +21,6 @@ int32_t spx_stop(void);
 
 extern int stop_flag;
 
-void set_libdir(char *s);
 
 char *get_corlett_title(void);
 char *get_corlett_artist(void);

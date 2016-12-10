@@ -293,12 +293,16 @@ static uint32_t load_file_ex(uint8_t *top, uint8_t *start, uint32_t len, const c
 	cptr = start + 4;
 
 	numfiles = start[0] | start[1]<<8 | start[2]<<16 | start[3]<<24;
+	
+	/*printf("  filesys: %d\n    %d %d %d %d\n    %d\n", top, start[0],start[1],start[2],start[3], len);
+	printf("load_file_ex searching for %s out of %d files.\n",matchname, numfiles);*/
 
 	for (i = 0; i < numfiles; i++)
 	{
 		offs = cptr[36] | cptr[37]<<8 | cptr[38]<<16 | cptr[39]<<24;
 		uncomp = cptr[40] | cptr[41]<<8 | cptr[42]<<16 | cptr[43]<<24;
 		bsize = cptr[44] | cptr[45]<<8 | cptr[46]<<16 | cptr[47]<<24;
+		
 
 		#if DEBUG_LOADER
 		printf("[%s vs %s]: ofs %08x uncomp %08x bsize %08x\n", cptr, matchname, offs, uncomp, bsize);
@@ -336,7 +340,7 @@ static uint32_t load_file_ex(uint8_t *top, uint8_t *start, uint32_t len, const c
 				cofs += usize;
 				uofs += dlength;
 			}
-
+			/*printf("load_file_ex win.\n");*/
 			return uncomp;
 		}
 		else
@@ -344,7 +348,9 @@ static uint32_t load_file_ex(uint8_t *top, uint8_t *start, uint32_t len, const c
 			cptr += 48;
 		}
 	}
-
+	
+	/*printf("load_file_ex fail\n");*/
+	
 	return 0xffffffff;
 }
 
@@ -475,7 +481,10 @@ int32_t psf2_start(uint8_t *buffer, uint32_t length)
 	#endif
 
 	num_fs = 1;
-	filesys[0] = (uint8_t *)c->res_section;
+	// TEMPORARY
+	//filesys[0] = (uint8_t *)c->res_section;  // keep this
+	filesys[0] = malloc(c->res_size * 4);
+	memcpy(filesys[0], (uint8_t *)c->res_section, c->res_size * 4);
 	fssize[0] = c->res_size;
 
 	// Get the library file, if any
@@ -485,7 +494,7 @@ int32_t psf2_start(uint8_t *buffer, uint32_t length)
 		printf("Loading library: %s\n", c->lib);
 		#endif
 
-		ao_get_lib(lib_raw_file, 0, c->lib);
+		ao_get_lib(lib_raw_file, ao_lib_dir, c->lib);
 
 		if (!lib_raw_file->len)
 			return AO_FAIL;
@@ -499,7 +508,10 @@ int32_t psf2_start(uint8_t *buffer, uint32_t length)
 		#endif
 
 		num_fs++;
-		filesys[1] = (uint8_t *)lib->res_section;
+		// TEMP
+		// filesys[1] = (uint8_t *)lib->res_section;
+		filesys[1] = malloc(lib->res_size * 4);
+		memcpy(filesys[1], (uint8_t *)lib->res_section, lib->res_size * 4);
  		fssize[1] = lib->res_size;
 	}
 
@@ -515,7 +527,7 @@ int32_t psf2_start(uint8_t *buffer, uint32_t length)
 	// load psf2.irx, which kicks everything off
 	buf = (uint8_t *)malloc(512*1024);
 	irx_len = psf2_load_file("psf2.irx", buf, 512*1024);
-
+	
 	if (irx_len != 0xffffffff)
 	{
 		initialPC = psf2_load_elf(buf, irx_len);
@@ -530,6 +542,10 @@ int32_t psf2_start(uint8_t *buffer, uint32_t length)
 
 	lengthMS = psfTimeToMS(c->inf_length);
 	fadeMS = psfTimeToMS(c->inf_fade);
+	
+	if (ao_set_len != -2)
+		lengthMS = ao_set_len;
+	
 	if (lengthMS == 0)
 	{
 		lengthMS = ~0;
@@ -560,7 +576,7 @@ int32_t psf2_start(uint8_t *buffer, uint32_t length)
 
 	buf = (uint8_t *)&psx_ram[2];
 	strcpy((char *)buf, "aofile:/");
-
+	
 	psx_ram[0] = LE32(FUNCT_HLECALL);
 
 	// back up initial RAM image to quickly restart songs
@@ -577,18 +593,17 @@ int32_t psf2_execute(void (*update)(const void *, int))
 {
 	int i;
 	
-	int stop_flag=0;
+	/*int stop_flag=0;
 
 	while (!stop_flag)
-	{
+	{*/
 		for (i = 0; i < 44100 / 60; i++)
 		{
 			SPU2async(update);
-			ps2_hw_slice();
+			ps2_hw_slice(); /* Final Fantasy X hangs ( mips hle call hung with pc at 0 ) */
 		}
-
 		ps2_hw_frame();
-	}
+	/*}*/
 
 	return AO_SUCCESS;
 }

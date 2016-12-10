@@ -67,6 +67,8 @@ int ao_sample_rate = 44100;
 
 int ao_set_spc_echo = 1;
 
+char ao_lib_dir[256] = "\0";
+
 void ao_add_sample(int sndtick, int sample)
 {
 	static int idx_len = 0;
@@ -344,6 +346,13 @@ char *strip_fn(const char *path)
 	
 }
 
+void ao_set_lib_dir(char *s)
+{
+	ao_lib_dir[0] = '\0';
+	
+	strcpy(ao_lib_dir, s);
+	
+}
 
 /* ao_get_lib: called to load secondary files */
 int ao_get_lib(struct filebuf *fbuf, char *libdir, char *filename)
@@ -353,15 +362,14 @@ int ao_get_lib(struct filebuf *fbuf, char *libdir, char *filename)
 	
     /*VFSFile file(filename_build({dirpath, filename}), "r");*/
     
+    
     if (!libdir)
 		tmpdir = filename_build("./", filename);
 	else
 		tmpdir = filename_build(libdir, filename);
-		
-	/*printf("loading %s...\n", tmpdir);*/
+	
+	/*printf("tmpdir: %s\n",tmpdir);*/
     
-    
-    //r = filebuf_load((char *) filename_build({dirpath, filename}), fbuf);
     r = filebuf_load(tmpdir, fbuf);
     
     free(tmpdir);
@@ -618,3 +626,7 @@ int strcmp_nocase (const char * a, const char * b, int len)
 
     return len < 0 ? g_ascii_strcasecmp (a, b) : g_ascii_strncasecmp (a, b, len);
 }
+
+
+int ao_file_open = 0;
+

@@ -7,9 +7,26 @@
  - consider usf/spc/nsf support:
  -  modes for keeping track of current/selected format.
  -  functions such as:  detecting file type, loading based on current format, playing based on current format.
- -  make psf_execute into a pointer function name file_execute.
  
- - consider having channel display have separate buffers
-		for different chips/systems, as right now
-		some vgm files using multiple chips might end up with
-		a clobbered channel display.
+
+CONFIG:
+	* add bool flags for scope/channel display elements
+
+UI:
+	* consider moving visuals from SDL2 to GTK+3, and adding a file open menu/other
+		enhancements while maintaining the overall minimalist look.
+	* consider alternate playlist-like view.
+
+
+GSF:
+	adapt playgsf code (under "gsf/")
+
+PSF2:
+	ensure all ready incorporated psf2 code is working.
+
+USF:
+	adapt lazyusf code (under "usf/")
+
+
+BUGS:
+	"broken double linked list" after moving on to next nsf file.
