@@ -3,7 +3,7 @@
 #include "usf.h"
 #include "cpu.h"
 #include "memory.h"
-#include "plugin.h"
+#include "usfplugin.h"
 #include "rsp.h"
 #include "types.h"
 #include "main.h"

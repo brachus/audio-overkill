@@ -50,12 +50,12 @@ CCPP = g++
 #endif
 
 
-CFLAGS :=  -O3 $(CFLAGS) -g
+CFLAGS :=  -O3  $(CFLAGS) -g
 
 CFLAGS += -Wno-unused-variable -Wno-unused-value -Wno-unused-but-set-variable
 CFLAGS += -Wno-pointer-to-int-cast
 
-CPPFLAGS := -O3 -fpermissive -Wno-unused-variable -Wno-unused-value
+CPPFLAGS := -O3 -fpermissive -Wno-unused-variable -Wno-unused-value -g
 CPPFLAGS += -Wno-unused-but-set-variable -Wno-overflow -Wno-deprecated
 
 LDFLAGS := -lm -lz -lglib-2.0 `pkg-config --cflags --libs gtk+-3.0` $(LDFLAGS) 
@@ -241,6 +241,60 @@ GMEOBJS = \
 	$(OBJ)/gme/Ym2413_Emu.o\
 	$(OBJ)/gme/Ym2612_Emu.o
 
+GSFMAINOBJS = \
+	$(OBJ)/gsf/plugin.o \
+	$(OBJ)/gsf/gsf.o \
+	$(OBJ)/gsf/VBA/bios.o \
+	$(OBJ)/gsf/VBA/GBA.o \
+	$(OBJ)/gsf/VBA/Globals.o \
+	$(OBJ)/gsf/VBA/snd_interp.o \
+	$(OBJ)/gsf/VBA/Sound.o \
+	$(OBJ)/gsf/VBA/unzip.o \
+	$(OBJ)/gsf/VBA/Util.o \
+	$(OBJ)/gsf/VBA/getopt1.o \
+	$(OBJ)/gsf/VBA/memgzio.o \
+	$(OBJ)/gsf/VBA/psftag.o
+
+USFMAINOBJS = \
+	$(OBJ)/usf/audio_hle_main.o \
+	$(OBJ)/usf/audio_ucode1.o \
+	$(OBJ)/usf/audio_ucode2.o \
+	$(OBJ)/usf/audio_ucode3.o \
+	$(OBJ)/usf/audio_ucode3mp3.o \
+	$(OBJ)/usf/cpu.o \
+	$(OBJ)/usf/dma.o \
+	$(OBJ)/usf/exception.o \
+	$(OBJ)/usf/interpreter_cpu.o \
+	$(OBJ)/usf/interpreter_ops.o \
+	$(OBJ)/usf/main.o \
+	$(OBJ)/usf/memory.o \
+	$(OBJ)/usf/pif.o \
+	$(OBJ)/usf/psftag.o \
+	$(OBJ)/usf/recompiler_cpu.o \
+	$(OBJ)/usf/recompiler_fpu_ops.o \
+	$(OBJ)/usf/recompiler_ops.o \
+	$(OBJ)/usf/registers.o \
+	$(OBJ)/usf/rsp.o \
+	$(OBJ)/usf/rsp_interpreter_cpu.o \
+	$(OBJ)/usf/rsp_mmx.o \
+	$(OBJ)/usf/rsp_recompiler_analysis.o \
+	$(OBJ)/usf/rsp_recompiler_cpu.o \
+	$(OBJ)/usf/rsp_recompiler_ops.o \
+	$(OBJ)/usf/rsp_sse.o \
+	$(OBJ)/usf/rsp_x86.o \
+	$(OBJ)/usf/tlb.o \
+	$(OBJ)/usf/usf.o \
+	$(OBJ)/usf/usfplugin.o \
+	$(OBJ)/usf/x86.o \
+	$(OBJ)/usf/x86_fpu.o
+
+
+LIBRESAMPLEOBJS = \
+	$(OBJ)/libresample/filterkit.o \
+	$(OBJ)/libresample/resample.o \
+	$(OBJ)/libresample/resamplesubs.o
+
+
 MAINOBJS=\
 	$(OBJ)/ao.o\
 	$(OBJ)/conf.o\
@@ -250,9 +304,9 @@ MAINOBJS=\
 
 all: audiooverkill
 
-audiooverkill: $(EMUOBJS) $(VGMMAINOBJS) $(SIDMAINOBJS) $(GMEOBJS) psf.o main.o
+audiooverkill: $(EMUOBJS) $(VGMMAINOBJS) $(SIDMAINOBJS) $(GMEOBJS) $(LIBRESAMPLEOBJS) $(GSFMAINOBJS) $(USFMAINOBJS) psf.o main.o
 	@echo Linking audio overkill ...
-	@$(CCPP) $(LDFLAGS) $(EMUOBJS) $(VGMMAINOBJS) $(SIDMAINOBJS) $(GMEOBJS) $(PSFOBJS) $(MAINOBJS)  -o audio_overkill
+	@$(CCPP) $(LDFLAGS) $(EMUOBJS) $(VGMMAINOBJS) $(SIDMAINOBJS) $(GMEOBJS) $(LIBRESAMPLEOBJS) $(GSFMAINOBJS) $(USFMAINOBJS) $(PSFOBJS) $(MAINOBJS)  -o audio_overkill
 	@echo Done.
 
 
@@ -279,6 +333,37 @@ $(OBJ)/gme/%.o:	$(SRC)/gme/%.cpp
 	@echo Compiling $< ...
 	@mkdir -p $(@D)
 	@$(CCPP) $(CPPFLAGS) -c $< -o $@
+
+# compile the gsf library files (c++)
+$(OBJ)/gsf/%.o:	$(SRC)/gsf/%.cpp
+	@echo Compiling $< ...
+	@mkdir -p $(@D)
+	@$(CCPP) $(CPPFLAGS) -DLINUX -c $< -o $@
+$(OBJ)/gsf/VBA/%.o:	$(SRC)/gsf/VBA/%.cpp
+	@echo Compiling $< ...
+	@mkdir -p $(@D)
+	@$(CCPP) $(CPPFLAGS) -DLINUX -c $< -o $@
+$(OBJ)/gsf/VBA/%.o:	$(SRC)/gsf/VBA/%.c
+	@echo Compiling $< ...
+	@mkdir -p $(@D)
+	@$(CC) $(CFLAGS) -DLINUX -c $< -o $@
+
+
+
+# gsf source uses this:
+$(OBJ)/libresample/%.o:	$(SRC)/gsf/libresample-0.1.3/src/%.c
+	@echo Compiling $< ...
+	@mkdir -p $(@D)
+	@$(CC) $(CFLAGS)  -c $< -o $@
+
+
+# compile the usf library files (c++)
+$(OBJ)/usf/%.o:	$(SRC)/usf/%.cc
+	@echo Compiling $< ...
+	@mkdir -p $(@D)
+	@$(CCPP) $(CPPFLAGS) $(LDFLAGS)  -DLINUX -c $< -o $@
+
+
 
 # compile psf
 psf.o:

@@ -43,11 +43,11 @@
 #include "main.h"
 #include "cpu.h"
 #include "x86.h"
-#include "plugin.h"
+#include "usfplugin.h"
 #include "rsp.h"
 #include "usf.h"
 
-extern USFPlugin *context;
+//extern USFPlugin *context;
 
 
 uint32_t RdramSize, SystemRdramSize, RomFileSize;
@@ -65,11 +65,11 @@ uint8_t EmptySpace = 0;
 
 
 void AiLenChanged(){
-    context->ai_len_changed();
+    ai_len_changed();
 }
 
 unsigned AiReadLength(){
-    return context->ai_read_length();
+    return ai_read_length();
 }
 
 uint8_t *PageROM(uint32_t addr)

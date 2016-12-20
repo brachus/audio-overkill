@@ -420,6 +420,8 @@ void qsound_update(UINT8 ChipID, stream_sample_t **outputs, int samples)
 				*pOutR++ += ((sample * pC->rvol * pC->vol) >> 14);
 				
 				
+				mix_chan_flag(_AO_H_QSOUND, QSOUND_CHANNELS, i, pC->address);
+				
 				mix_chan_disp(
 					_AO_H_QSOUND, QSOUND_CHANNELS,
 					i,

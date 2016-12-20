@@ -213,7 +213,7 @@ static int find_tag_var_end(const char *tagbuffer)
 ** Get tag variable
 ** The destination value buffer must be as big as the entire tag
 */
-int psftag_raw_getvar(const char *tag,
+int usftag_raw_getvar(const char *tag,
 		      const char *variable,
 		      char *value_out, int value_out_size)
 {
@@ -307,7 +307,7 @@ int psftag_raw_getvar(const char *tag,
 
 /////////////////////////////////////////////////////////////////////////////
 
-void psftag_raw_setvar(char *tag,
+void usftag_raw_setvar(char *tag,
 		       int tag_max_size,
 		       const char *variable, const char *value)
 {
@@ -463,7 +463,7 @@ void psftag_delete(void *psftag) {
 
 /////////////////////////////////////////////////////////////////////////////
 
-void psftag_getraw(void *psftag, char *raw_out, int raw_out_size)
+void usftag_getraw(void *psftag, char *raw_out, int raw_out_size)
 {
     if (raw_out_size < 1)
 	return;
@@ -471,7 +471,7 @@ void psftag_getraw(void *psftag, char *raw_out, int raw_out_size)
     raw_out[raw_out_size - 1] = 0;
 }
 
-void psftag_setraw(void *psftag, const char *raw_in)
+void usftag_setraw(void *psftag, const char *raw_in)
 {
     strncpy(((struct PSFTAG *) psftag)->str, raw_in, TAGMAX + 1);
     ((struct PSFTAG *) psftag)->str[TAGMAX] = 0;
@@ -479,22 +479,22 @@ void psftag_setraw(void *psftag, const char *raw_in)
 
 /////////////////////////////////////////////////////////////////////////////
 
-int psftag_getvar(void *psftag, const char *variable, char *value_out,
+int usftag_getvar(void *psftag, const char *variable, char *value_out,
 		  int value_out_size)
 {
-    return psftag_raw_getvar(((struct PSFTAG *) psftag)->str, variable,
+    return usftag_raw_getvar(((struct PSFTAG *) psftag)->str, variable,
 			     value_out, value_out_size);
 }
 
-void psftag_setvar(void *psftag, const char *variable, const char *value)
+void usftag_setvar(void *psftag, const char *variable, const char *value)
 {
-    psftag_raw_setvar(((struct PSFTAG *) psftag)->str, TAGMAX + 1,
+    usftag_raw_setvar(((struct PSFTAG *) psftag)->str, TAGMAX + 1,
 		      variable, value);
 }
 
 /////////////////////////////////////////////////////////////////////////////
 
-int psftag_readfromfile(void *psftag, const char *path)
+int usftag_readfromfile(void *psftag, const char *path)
 {
     struct PSFTAG *t = (struct PSFTAG *) psftag;
     FILE *f = NULL;
@@ -564,7 +564,7 @@ int psftag_readfromfile(void *psftag, const char *path)
 
 /////////////////////////////////////////////////////////////////////////////
 
-int psftag_writetofile(void *psftag, const char *path)
+int usftag_writetofile(void *psftag, const char *path)
 {
     struct PSFTAG *t = (struct PSFTAG *) psftag;
     FILE *f = NULL;

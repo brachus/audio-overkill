@@ -193,28 +193,52 @@ void GSFClose(void)
 
 #define EMU_COUNT 250000
 
-BOOL EmulationLoop(void) 
+int EmulationLoop(void) 
 {
   if(emulating /*&& !paused*/) {
-    for(int i = 0; i < 2; i++) {
+	
+	emuticksleft = EMU_COUNT;
+	
+	
+    for(;;) {
 		CPULoop(EMU_COUNT);
  
-	    return TRUE;
+	    if (emuhold==0)
+			return TRUE;
 	}
   }
   return FALSE;
 
 }
 
-
-BOOL IsValidGSF ( BYTE Test[4] ) {
-	if ( *((DWORD *)&Test[0]) == 0x22465350 ) { return TRUE; }
-	return FALSE;
+int emu_loop(void)
+{
+	
+	
+	
+	if (emulating)
+	{
+		CPULoop(emuticksleft);
+		
+		if (emuhold==0)
+			emuticksleft=EMU_COUNT;
+	}
+	
+	
+	return 1;
 }
 
-BOOL IsTagPresent ( BYTE Test[5] ) {
-	if ( *((DWORD *)&Test[0]) == 0x4741545b && Test[4]==0x5D) {return TRUE;}
-	return FALSE;
+
+
+
+int IsValidGSF ( char Test[4] ) {
+	if ( *((DWORD *)&Test[0]) == 0x22465350 ) { return 1; }
+	return 0;
+}
+
+int IsTagPresent ( char Test[5] ) {
+	if ( *((DWORD *)&Test[0]) == 0x4741545b && Test[4]==0x5D) {return 1;}
+	return 0;
 }
 
 

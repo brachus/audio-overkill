@@ -242,12 +242,19 @@ struct cfg_entry * read_entry(const char *s)
 					STR_RESET(str1);
 				}
 			}
+			else if (ch=='.')
+			{
+				STR_ADD(str1,512);
+				
+				md=MFLOAT;
+			}
 		}
 		else if (md==MINT)
 		{
 			if (ch=='.')
 			{
 				md=MFLOAT;
+				STR_ADD(str1,512);
 			}
 			else if (ch=='x')
 			{
@@ -371,7 +378,11 @@ struct cfg_entry * read_entry(const char *s)
 					md=MVALUE;
 			}
 			else
+			{
 				md=MSTR;
+				STR_ADD(str1,512);
+			}
+				
 		}
 		else if (md==MCOMMA)
 		{
@@ -434,7 +445,7 @@ struct cfg_entry * read_entry(const char *s)
 		}
 		else if (types[0]==MFLOAT)
 		{
-			n->type = E_INT;
+			n->type = E_FLOAT;
 			n->dat[0].f = floats[0];
 		}
 	}

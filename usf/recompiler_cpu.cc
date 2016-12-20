@@ -3699,63 +3699,64 @@ void StartRecompilerCPU(void)
     //__try {
 
     //for (;;) {
-    while (cpu_running == 1) {
+    while (cpu_running == 1)
+    {
 
-	if (PROGRAM_COUNTER < 0x90000000)
-	    lastgood = PROGRAM_COUNTER;
-	Addr = PROGRAM_COUNTER;
-	if (!TranslateVaddr(&Addr)) {
-	    DoTLBMiss(NextInstruction == DELAY_SLOT, PROGRAM_COUNTER);
-	    NextInstruction = NORMAL;
-	    Addr = PROGRAM_COUNTER;
-	    if (!TranslateVaddr(&Addr)) {
-		StopEmulation();
-	    }
-	}
-	if (NextInstruction == DELAY_SLOT) {
-	    Block = (void (*)())*(DelaySlotTable + (Addr >> 12));
-
-	    if (Block == NULL) {
-		Block = (void (*)()) CompileDelaySlot();
-
-		*(DelaySlotTable + (Addr >> 12)) = (void*)Block;
-
-		NextInstruction = NORMAL;
-	    }
-
-	    CallBlock(Block);
-
-	    continue;
-	}
-
-
-	if (Addr > 0x10000000) {
-	    if (PROGRAM_COUNTER >= 0xB0000000
-		&& PROGRAM_COUNTER < (RomFileSize | 0xB0000000)) {
-		while (PROGRAM_COUNTER >= 0xB0000000
-		       && PROGRAM_COUNTER < (RomFileSize | 0xB0000000)) {
-		    ExecuteInterpreterOpCode();
+		if (PROGRAM_COUNTER < 0x90000000)
+			lastgood = PROGRAM_COUNTER;
+		Addr = PROGRAM_COUNTER;
+		if (!TranslateVaddr(&Addr)) {
+			DoTLBMiss(NextInstruction == DELAY_SLOT, PROGRAM_COUNTER);
+			NextInstruction = NORMAL;
+			Addr = PROGRAM_COUNTER;
+			if (!TranslateVaddr(&Addr)) {
+			StopEmulation();
+			}
 		}
-		continue;
-	    } else {
+		if (NextInstruction == DELAY_SLOT) {
+			Block = (void (*)())*(DelaySlotTable + (Addr >> 12));
 
-		StopEmulation();
-	    }
-	}
+			if (Block == NULL) {
+			Block = (void (*)()) CompileDelaySlot();
 
-	Block = (void (*)())*(JumpTable + (Addr >> 2));
+			*(DelaySlotTable + (Addr >> 12)) = (void*)Block;
 
+			NextInstruction = NORMAL;
+			}
 
-	if (Block == NULL) {
-	    Block = (void (*)()) Compiler4300iBlock();
+			CallBlock(Block);
 
-	    *(JumpTable + (Addr >> 2)) = (void*)Block;
-
-	    NextInstruction = NORMAL;
-	}
+			continue;
+		}
 
 
-	CallBlock(Block);
+		if (Addr > 0x10000000) {
+			if (PROGRAM_COUNTER >= 0xB0000000
+			&& PROGRAM_COUNTER < (RomFileSize | 0xB0000000)) {
+			while (PROGRAM_COUNTER >= 0xB0000000
+				   && PROGRAM_COUNTER < (RomFileSize | 0xB0000000)) {
+				ExecuteInterpreterOpCode();
+			}
+			continue;
+			} else {
+
+			StopEmulation();
+			}
+		}
+
+		Block = (void (*)())*(JumpTable + (Addr >> 2));
+
+
+		if (Block == NULL) {
+			Block = (void (*)()) Compiler4300iBlock();
+
+			*(JumpTable + (Addr >> 2)) = (void*)Block;
+
+			NextInstruction = NORMAL;
+		}
+
+		printf("begin call block\n");
+		CallBlock(Block);
     }
 
     cpu_stopped = 1;

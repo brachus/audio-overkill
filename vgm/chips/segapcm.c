@@ -136,6 +136,9 @@ void SEGAPCM_update(UINT8 ChipID, stream_sample_t **outputs, int samples)
 				/* apply panning and advance */
 				outputs[0][i] += v * voll;
 				outputs[1][i] += v * volr;
+				
+				mix_chan_disp(_AO_H_SEGA_PCM, 16, ch, v * voll, v * volr); /* from AO.H */
+				
 				addr += delta;
 			}
 
@@ -145,6 +148,8 @@ void SEGAPCM_update(UINT8 ChipID, stream_sample_t **outputs, int samples)
 			base[5] = addr >> 16;
 			spcm->low[ch] = flags & 1 ? 0 : addr;
 		}
+		else
+			mix_chan_disp(_AO_H_SEGA_PCM, 16, ch, 0, 0); /* from AO.H */
 //}
 //else
 //{

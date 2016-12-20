@@ -16,6 +16,12 @@
 // along with this program; if not, write to the Free Software Foundation,
 // Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 
+extern "C"
+{
+	#include "../../ao.h"
+}
+
+
 #ifndef LINUX
 #include <memory.h>
 #include <windows.h>
@@ -605,6 +611,9 @@ void soundEvent(u32 address, u16 data)
     break;
   case FIFOA_L:
   case FIFOA_H:
+    mix_chan_disp(
+		_AO_H_GSF,6,4, data, data); /* FROM AO.H */
+    
     soundDSFifoA[soundDSFifoAWriteIndex++] = data & 0xFF;
     soundDSFifoA[soundDSFifoAWriteIndex++] = data >> 8;
     soundDSFifoACount += 2;
@@ -613,6 +622,9 @@ void soundEvent(u32 address, u16 data)
     break;
   case FIFOB_L:
   case FIFOB_H:
+    mix_chan_disp(
+		_AO_H_GSF,6,5, data, data); /* FROM AO.H */
+  
     soundDSFifoB[soundDSFifoBWriteIndex++] = data & 0xFF;
     soundDSFifoB[soundDSFifoBWriteIndex++] = data >> 8;
     soundDSFifoBCount += 2;
@@ -928,10 +940,13 @@ void soundDirectSoundB()
 
 void soundDirectSoundBTimer()
 {
-  if(soundDSBEnabled) {
-    if(soundDSFifoBCount <= 16) {
+  if(soundDSBEnabled) 
+  {
+    if(soundDSFifoBCount <= 16) 
+    {
       CPUCheckDMA(3, 4);
-      if(soundDSFifoBCount <= 16) {
+      if(soundDSFifoBCount <= 16) 
+      {
         soundEvent(FIFOB_L, (u16)0);
         soundEvent(FIFOB_H, (u16)0);
         soundEvent(FIFOB_L, (u16)0);
@@ -947,19 +962,19 @@ void soundDirectSoundBTimer()
     interp_push(1, (s8)soundDSBValue << 8);
     soundDSFifoBIndex = (++soundDSFifoBIndex) & 31;
     soundDSFifoBCount--;
-  } else {
-    soundDSBValue = 0;
   }
+  else
+    soundDSBValue = 0;
 }
 
 void soundTimerOverflow(int timer)
 {
-  if(soundDSAEnabled && (soundDSATimer == timer)) {
+  if(soundDSAEnabled && (soundDSATimer == timer))
     soundDirectSoundATimer();
-  }
-  if(soundDSBEnabled && (soundDSBTimer == timer)) {
+    
+  if(soundDSBEnabled && (soundDSBTimer == timer))
     soundDirectSoundBTimer();
-  }
+    
 }
 
 #ifndef max
@@ -976,6 +991,38 @@ void soundMix()
   int ratio = ioMem[0x82] & 3;
   int dsaRatio = ioMem[0x82] & 4;
   int dsbRatio = ioMem[0x82] & 8;
+  
+  /* FROM AO.H: */
+  mix_chan_disp(
+	_AO_H_GSF,6,0, 
+	(soundBalance & 16) ? (int)((s8)soundBuffer[0][soundIndex]) : 0,
+	(soundBalance & 1 ) ? (int)((s8)soundBuffer[0][soundIndex]) : 0 );
+  mix_chan_disp(
+	_AO_H_GSF,6,1, 
+	(soundBalance & 32) ? (int)((s8)soundBuffer[1][soundIndex]) : 0,
+	(soundBalance & 2 ) ? (int)((s8)soundBuffer[1][soundIndex]) : 0 );
+  mix_chan_disp(
+	_AO_H_GSF,6,2, 
+	(soundBalance & 64) ? (int)((s8)soundBuffer[2][soundIndex]) : 0,
+	(soundBalance & 4 ) ? (int)((s8)soundBuffer[2][soundIndex]) : 0 );
+  mix_chan_disp(
+	_AO_H_GSF,6,3, 
+	(soundBalance & 128) ? (int)((s8)soundBuffer[3][soundIndex]) : 0,
+	(soundBalance & 8  ) ? (int)((s8)soundBuffer[3][soundIndex]) : 0 );
+  mix_chan_disp( _AO_H_GSF,6,4, 0,0);
+  mix_chan_disp( _AO_H_GSF,6,5, 0,0);
+  /*mix_chan_disp(
+	_AO_H_GSF,6,4, 
+	((soundControl & 0x0200) && (soundEnableFlag & 0x100)) ?
+		(int)((s16)soundBuffer[4][soundIndex]) : 0,
+	((soundControl & 0x0100) && (soundEnableFlag & 0x100)) ?
+		(int)((s16)soundBuffer[4][soundIndex]) : 0 );
+  mix_chan_disp(
+	_AO_H_GSF,6,5, 
+	((soundControl & 0x2000) && (soundEnableFlag & 0x200)) ?
+		(int)((s16)soundBuffer[5][soundIndex]) : 0,
+	((soundControl & 0x1000) && (soundEnableFlag & 0x200)) ?
+		(int)((s16)soundBuffer[5][soundIndex]) : 0 );*/
   
   if(soundBalance & 16) {
     cgbRes = ((s8)soundBuffer[0][soundIndex]);
@@ -1168,10 +1215,43 @@ void soundMix()
   int ratio = ioMem[0x82] & 3;
   int dsaRatio = ioMem[0x82] & 4;
   int dsbRatio = ioMem[0x82] & 8;
+  
+  /* FROM AO.H: */
+  mix_chan_disp(
+	_AO_H_GSF,6,0, 
+	(soundBalance & 16) ? (int)((s8)soundBuffer[0][soundIndex]) : 0,
+	(soundBalance & 1 ) ? (int)((s8)soundBuffer[0][soundIndex]) : 0 );
+  mix_chan_disp(
+	_AO_H_GSF,6,1, 
+	(soundBalance & 32) ? (int)((s8)soundBuffer[1][soundIndex]) : 0,
+	(soundBalance & 2 ) ? (int)((s8)soundBuffer[1][soundIndex]) : 0 );
+  mix_chan_disp(
+	_AO_H_GSF,6,2, 
+	(soundBalance & 64) ? (int)((s8)soundBuffer[2][soundIndex]) : 0,
+	(soundBalance & 4 ) ? (int)((s8)soundBuffer[2][soundIndex]) : 0 );
+  mix_chan_disp(
+	_AO_H_GSF,6,3, 
+	(soundBalance & 128) ? (int)((s8)soundBuffer[3][soundIndex]) : 0,
+	(soundBalance & 8  ) ? (int)((s8)soundBuffer[3][soundIndex]) : 0 );
+  mix_chan_disp( _AO_H_GSF,6,4, 0,0);
+  mix_chan_disp( _AO_H_GSF,6,5, 0,0);
+  /*mix_chan_disp(
+	_AO_H_GSF,6,4, 
+	((soundControl & 0x0200) && (soundEnableFlag & 0x100)) ?
+		(int)((s16)soundBuffer[4][soundIndex]) : 0,
+	((soundControl & 0x0100) && (soundEnableFlag & 0x100)) ?
+		(int)((s16)soundBuffer[4][soundIndex]) : 0 );
+  mix_chan_disp(
+	_AO_H_GSF,6,5, 
+	((soundControl & 0x2000) && (soundEnableFlag & 0x200)) ?
+		(int)((s16)soundBuffer[5][soundIndex]) : 0,
+	((soundControl & 0x1000) && (soundEnableFlag & 0x200)) ?
+		(int)((s16)soundBuffer[5][soundIndex]) : 0 );*/
  
- 
+ /* left channel */
   if((soundBalance & 16)) {
     cgbRes = ((s8)soundBuffer[0][soundIndex]);
+    
   }
   if((soundBalance & 32)) {
     cgbRes += ((s8)soundBuffer[1][soundIndex]);
@@ -1257,6 +1337,7 @@ void soundMix()
   else
     soundFinalWave[soundBufferIndex++] = res;
   
+  /* right channel */
   res = 0;
   cgbRes = 0;
   

@@ -340,7 +340,7 @@ int SPUasync(u32 cycles, void (*update)(const void *, int))
              //////////////////////////////////////////// flag handler
              
              /*ao_chan_flag_disp[ch]= flags;*/
-             ao_chan_flag_disp[ch] = (int) s_chan[ch].pStart;
+             mix_chan_flag(_AO_H_PSF, 24, ch, (int) s_chan[ch].pStart );
              
             
              

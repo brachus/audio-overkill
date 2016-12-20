@@ -59,6 +59,9 @@
 
 extern int emulating;
 
+int emuhold=0;
+int emuticksleft=0;	
+
 int cpuDmaTicksToUpdate = 0;
 int cpuDmaCount = 0;
 bool cpuDmaHack = 0;
@@ -532,6 +535,7 @@ inline int CPUUpdateTicksAccessSeq16(u32 address)
 
 inline int CPUUpdateTicks()
 {
+	
   int cpuLoopTicks = lcdTicks;
   
   if(soundTicks < cpuLoopTicks)
@@ -2783,8 +2787,52 @@ void CPUReset()
       }
   }
   */
+  
+  cpuLoopTicks = 0;
+  cpuSavedTicks = 0;
+  
+  cpuDmaTicksToUpdate = 0;
+  cpuDmaCount = 0;
+  cpuDmaHack = 0;
+  cpuDmaLast = 0;
+  dummyAddress = 0;
+
+
+  gbaSaveType = 0; // used to remember the save type on reset
+  intState = false;
+  stopState = false;
+  holdState = false;
+  holdType = 0;
+  
+ N_FLAG = 0;
+C_FLAG = 0;
+Z_FLAG = 0;
+V_FLAG = 0;
+armState = true;
+armIrqEnable = true;
+armNextPC = 0x00000000;
+armMode = 0x1f;
+stop = 0x08000568;
+saveType = 0;
+useBios = false;
+skipBios = false;
+frameSkip = 1;
+speedup = false;
+synchronize = true;
+cpuDisableSfx = false;
+cpuIsMultiBoot = false;
+parseDebug = true;
+	layerSettings = 0xff00;
+	layerEnable = 0xff00;
+	speedHack = false;
+	cpuSaveType = 0;
+	cpuEnhancedDetection = true;
+	cheatsEnabled = true;
+  
+  
+  
   //rtcReset();
-  // clen registers
+  // clean registers
   memset(&reg[0], 0, sizeof(reg));
   // clean OAM
   memset(oam, 0, 0x400);
@@ -3008,6 +3056,8 @@ void CPUReset()
     if(cpuIsMultiBoot)
       BIOS_RegisterRamReset(0xfe);
   }
+  
+  
 
   /*switch(cpuSaveType) {
   case 0: // automatic
@@ -3113,18 +3163,21 @@ void CPULoop(int ticks)
   extCpuLoopTicks = &cpuLoopTicks;
   extClockTicks = &clockTicks;
   extTicks = &ticks;
+  
 
-  cpuLoopTicks = CPUUpdateTicks();
+   cpuLoopTicks = CPUUpdateTicks();
   if(cpuLoopTicks > ticks) {
-    cpuLoopTicks = ticks;
-    cpuSavedTicks = ticks;
-  }
-
-  if(intState) {
-    cpuLoopTicks = 5;
-    cpuSavedTicks = 5;
+	cpuLoopTicks = ticks;
+	cpuSavedTicks = ticks;
   }
   
+  
+
+  if(intState) {
+	cpuLoopTicks = 5;
+	cpuSavedTicks = 5;
+  }
+ 
   for(;;) {
 /*#ifndef FINAL_VERSION
     if(systemDebug) {
@@ -3190,8 +3243,9 @@ void CPULoop(int ticks)
         clockTicks = cpuSavedTicks;// + cpuLoopTicks;
       }
       cpuDmaTicksToUpdate = -cpuLoopTicks;
-
+	
     updateLoop:
+		/*CULPRIT*/
       lcdTicks -= clockTicks;
       
       if(lcdTicks <= 0) {
@@ -3615,6 +3669,8 @@ void CPULoop(int ticks)
       if(soundTicks <= 0) {
         soundTick();
         soundTicks += SOUND_CLOCK_TICKS;
+        
+        emuhold=1;
       }
       timerOverflow = 0;
 
@@ -3633,10 +3689,13 @@ void CPULoop(int ticks)
 #endif
 
       ticks -= clockTicks;
+      
+      emuticksleft=ticks;
 
       cpuLoopTicks = CPUUpdateTicks();
       
-      if(cpuDmaTicksToUpdate > 0) {
+      
+      if(cpuDmaTicksToUpdate > 0) { /* CULPRIT */
         clockTicks = cpuSavedTicks;
         if(clockTicks > cpuDmaTicksToUpdate)
           clockTicks = cpuDmaTicksToUpdate;
@@ -3674,7 +3733,7 @@ void CPULoop(int ticks)
         }
       }
       
-      if(ticks <= 0)
+      if(ticks <= 0 || emuhold==1)
 	  {
 	    cpupercentaverage[cpuaveragepointer++]=(int)(((float)executedticks/(float)currentticks)*100.);
 		if(cpuaveragepointer==10)
@@ -3688,6 +3747,10 @@ void CPULoop(int ticks)
 			cpupercent/=10;
 		}
 	    //cpupercent=(int)(((float)executedticks/(float)currentticks)*100.);
+	    
+	    if (ticks<=0)
+			emuhold=0;
+	    
         break;
 	  }
     }

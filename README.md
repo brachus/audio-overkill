@@ -7,13 +7,16 @@ audacious.  After making the interface usable and pretty enough, I figured
 I could make this into a kinda self-contained video game music player,
 similar to Audio Overload.
 
-At the moment, this project is Linux only.  I know the build system is utter
+At the moment, this project is Linux x86 only.  I know the build system is utter
 crap, but I've yet to read up on Autoconf (that may take
-a while).
+a while).  All the code I've basically aggregated and modified has only been tested on
+x86-64, and some code may be x86 specific (e.g. USF code uses a dynamic recompiler).
+
 
 Supported formats:
 
-* __PSF__ - Playstation  (still hadn't got around to PSF2 yet.)
+* __PSF__ - Playstation
+* __PSF2__ - Playstation 2
 * __VGM__ - Various;  Includes Sega Genesis/Mega Drive, PC-88xx, PC-98xx, X68k, PC Engine, and MANY others. 
 * __SID__ - Commodore 64
 * __SPC__ - SNES/Super Famicom
@@ -24,6 +27,8 @@ Supported formats:
 * __GBS__ - Game Boy
 * __GYM__ - Sega Genesis/Mega Drive
 * __KSS__ - MSX
+* __GSF__ - Game Boy Advance
+* __USF__ _ Nintendo 64
 
 
 What I'm using to build:
@@ -43,9 +48,6 @@ taking code from other projects with relative ease.
 
 Formats I'd like to add include:
 
-* __USF__ (N64)
-* __PSF2__ (Playstation 2)
-* __GSF__ (Game Boy Advance)
 * __DSF__ (Dream Cast)
 
 Additionally, I might add some GUI features like a file selector (GTK+ based perhaps), and

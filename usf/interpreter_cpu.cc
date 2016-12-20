@@ -740,9 +740,8 @@ void StartInterpreterCPU(void)
 {
     NextInstruction = NORMAL;
 
-    while (cpu_running) {
-	ExecuteInterpreterOpCode();
-    }
+    while (cpu_running)
+		ExecuteInterpreterOpCode();
 
     cpu_stopped = 1;
 

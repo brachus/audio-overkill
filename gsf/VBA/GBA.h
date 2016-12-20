@@ -116,6 +116,9 @@ extern void cpuEnableProfiling(int hz);
 
 extern struct EmulatedSystem GBASystem;
 
+extern int emuhold;
+extern int emuticksleft;
+
 #define R13_IRQ  18
 #define R14_IRQ  19
 #define SPSR_IRQ 20

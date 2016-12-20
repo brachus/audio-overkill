@@ -1,10 +1,12 @@
 
 extern void DisplayError (char *, ...);
 
-extern BOOL IsTagPresent (BYTE *);
-extern BOOL IsValidGSF (BYTE *);
+extern int IsTagPresent (char *);
+extern int IsValidGSF (char *);
 extern void setupSound(void);
 extern int GSFRun(char *);
 extern void GSFClose(void) ;
-extern BOOL EmulationLoop(void);
+extern int EmulationLoop(void);
+extern int emu_loop(void);
 
+extern void (*tmp_update )(const void *, int);

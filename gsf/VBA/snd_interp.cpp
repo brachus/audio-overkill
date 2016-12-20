@@ -1,6 +1,7 @@
 #include <math.h>
 
-#include "libresample.h"
+/* this is stupid*/
+#include "../libresample-0.1.3/include/libresample.h"
 
 #include "GBA.h"
 #include "Globals.h"

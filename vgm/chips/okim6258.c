@@ -214,6 +214,8 @@ void okim6258_update(UINT8 ChipID, stream_sample_t **outputs, int samples)
 				}
 			}
 			nibble = (chip->data_in >> nibble_shift) & 0xf;
+			
+			mix_chan_flag(_AO_H_OKIM6258, 1, 0, (int) chip->data_in*256);
 
 			/* Output to the buffer */
 			//INT16 sample = clock_adpcm(chip, nibble);

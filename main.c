@@ -34,6 +34,10 @@
 
 #include "gme/plugin.h"
 
+#include "gsf/plugin.h"
+
+#include "usf/usfpluginout.h"
+
 
 #include "filelist.h"
 
@@ -85,6 +89,15 @@ static int f_borderless = 0;
 static int f_play_file_choose = 0;
 
 static int f_filter_surround = 0;
+
+static int f_filter_hi_pass = 0;
+
+static int f_filter_hi_pass_f0 = 100;
+static float f_filter_hi_pass_q = 1.5;
+static int f_filter_hi_pass_precision = 10;
+static float f_filter_hi_pass_mix = 0.5;
+
+static float f_boost=1.0;
 
 char default_folder[256];
 
@@ -155,7 +168,8 @@ enum
 	F_USF,
 	F_VGM,
 	F_SID,
-	F_GME
+	F_GME,
+	F_GSF
 };
 
 int play_stat = M_STOPPED;
@@ -811,6 +825,18 @@ int main(int argc, char *argv[])
 				file_execute = &gme_execute;
 				file_open = &gme_open;
 			}
+			else if (get_file_type(get_flist_idx(flist,fcur)) == F_GSF)
+			{
+				file_close = &gsf_close;
+				file_execute = &gsf_execute;
+				file_open = &gsf_open;
+			}
+			else if (get_file_type(get_flist_idx(flist,fcur)) == F_USF)
+			{
+				file_close = &usf_close;
+				file_execute = &usf_execute;
+				file_open = &usf_open;
+			}
 			else
 			{
 				play_stat = M_ERR;
@@ -908,7 +934,7 @@ int main(int argc, char *argv[])
 		file_close();
 	free_scope();
 	
-	
+	return 0;
 }
 
 int pw_init(SDL_Surface *in)
@@ -1075,9 +1101,25 @@ void load_conf(char * fn)
 				strcpy(default_folder, tmp->dat[0].s);
 			
 			else if (ENTRY_NAME("surround") && CONF_IS_BOOL)
-				f_filter_surround = (tmp->dat[0].i) ? 1:0; 
+				f_filter_surround = (tmp->dat[0].i) ? 1:0;
+			
+			else if (ENTRY_NAME("hi_pass") && CONF_IS_BOOL)
+				f_filter_hi_pass = (tmp->dat[0].i) ? 1:0;
+			
+			else if (ENTRY_NAME("hi_pass_f0") && tmp->type==E_INT)
+				f_filter_hi_pass_f0 = tmp->dat[0].i;
 				
+			else if (ENTRY_NAME("hi_pass_precision") && tmp->type==E_INT)
+				f_filter_hi_pass_precision = limint( tmp->dat[0].i, 2, 12);
+			
+			else if (ENTRY_NAME("hi_pass_q") && tmp->type==E_FLOAT)
+				f_filter_hi_pass_q = tmp->dat[0].f;
+			
+			else if (ENTRY_NAME("hi_pass_mix") && tmp->type==E_FLOAT)
+				f_filter_hi_pass_mix = tmp->dat[0].f;
 				
+			else if (ENTRY_NAME("volume_boost") && tmp->type==E_FLOAT)
+				f_boost = tmp->dat[0].f;
 			
 		}
 		
@@ -1214,24 +1256,23 @@ void update(const Uint8 * buf, int size)
 		
 		j=u_buf_fill_start;
 		i=0;
+		
 		goal = (u_buf_fill + u_buf_fill_start) % u_size;
+		
 		while (j!=goal)
 		{
-			ctmp[i] = u_buf[j];
+			ctmp[i++] = u_buf[j++];
 			
-			j++;
 			j%=u_size;
-			
-			i++;
 		}
 		
 		free(u_buf);
+		
 		u_buf = ctmp;
 		ctmp=0;
 		u_size = newsz;
 		u_buf_fill_start = 0;
 	}
-	
 	
 	j=u_buf_fill_start;
 	i=0;
@@ -1242,57 +1283,82 @@ void update(const Uint8 * buf, int size)
 	j+=u_buf_fill;
 	j%=u_size;
 		
-	
-	/*if (mono==0)  STEREO ONLY */
-		while (i < size)
-		{
-			u_buf[j] = buf[i];
-			
-			u_buf_fill++;
-				
-			
-			j++;
-			j%=u_size;
-			
-			i++;
-		}
-	/*else  MONO  (assuming 4-byte 2ch signed short le )
-		while (i < size)
-		{
-			if (i%4==0)
-			{
-				stmp = (buf[i+1]<<8) + (buf[i] & 0xff);
-				stmp1 = (buf[i+3]<<8) + (buf[i+2] & 0xff);
-				
-				tmp = ((int)stmp + (int)stmp1) / 2;
-				
-				u_buf[j % u_size] = tmp & 0xff;
-				u_buf[j+1 % u_size] = (tmp>>8) & 0xff;
-				
-				u_buf[j+2 % u_size] = tmp & 0xff;
-				u_buf[j+3 % u_size] = (tmp>>8) & 0xff;
-				
-			
-				u_buf_fill+=4;
-					
-				
-				j+=4;
-				j%=u_size;
-				
-			}
-			
-			i++;
-		}*/
+
+	while (i < size)
+	{
+		u_buf[j++] = buf[i++];
 		
-		
+		u_buf_fill++;
+
+		j%=u_size;
+	}
 	
 	return;
 }
 
 void fill_audio(void *udata, Uint8 *stream, int len)
 {
-	int i, j;
-	int16_t tmpl, tmpr, tmpm;
+	int i, j, x0,x1,x2,x3,x4;
+	int16_t tmpl, tmpr;
+		
+	float fs, f0, q, w0, a0, a1, a2, b0, b1, b2, alpha,
+		fx0,fx1,fx2,fx3,fx4;
+	
+	
+	#ifndef PI
+	#define PI 3.14159265359
+	#endif
+	
+	#define LIMIT16(a) \
+				if (a < (-0xffff/2 + 16)) \
+					a = (-0xffff/2 + 16); \
+				if (a > (0xffff/2 - 16)) \
+					a = (0xffff/2 - 16)
+	
+	
+	/* filter vars */
+
+	fs=44100; 
+	f0 = (float) f_filter_hi_pass_f0; /* cut-off (or center) frequency in Hz */
+	q = f_filter_hi_pass_q;/* filter Q */
+	w0 = 2 * PI * f0 / fs;
+	alpha = sin(w0) / (2 * q);
+	a0 = 1 + alpha;
+	a1 = -2 * cos(w0);
+	a2 = 1 - alpha;
+	b0 = (1 + cos(w0)) / 2;
+	b1 = -(1 + cos(w0));
+	b2 = (1 + cos(w0)) / 2;
+	
+		
+	x0 = ((float) b0 / a0) * pow(2,f_filter_hi_pass_precision);
+	x1 = ((float) b1 / a0) * pow(2,f_filter_hi_pass_precision);
+	x2 = ((float) b2 / a0) * pow(2,f_filter_hi_pass_precision);
+	x3 = ((float) a1 / a0) * pow(2,f_filter_hi_pass_precision);
+	x4 = ((float) a2 / a0) * pow(2,f_filter_hi_pass_precision);
+	
+	fx0 = b0/a0;
+	fx1 = b1/a0;
+	fx2 = b2/a0;
+	fx3 = a1/a0;
+	fx4 = a2/a0;
+	
+	
+	static int prevl0=0,
+		prevl1=0,
+		prevl2=0,
+		prevr0=0,
+		prevr1=0,
+		prevr2=0,
+		pprevl1=0,
+		pprevl2=0,
+		pprevr1=0,
+		pprevr2=0;
+	
+	if (f_filter_hi_pass_mix > 1.0)
+		f_filter_hi_pass_mix = 1.0;
+	if (f_filter_hi_pass_mix < 0.0)
+		f_filter_hi_pass_mix = 0.0;
 	
 	
 	if (play_stat==M_PLAY)
@@ -1313,28 +1379,64 @@ void fill_audio(void *udata, Uint8 *stream, int len)
 		i=0;
 		j=u_buf_fill_start;
 		
-		
 		if (len % 4 == 0) /* must be two-channel signed shorts (4 bytes) */
-		
 			while (i < len) 
 			{
 				/* copy data from u_buf */
-				tmpl = (u_buf[j+1] << 8) + u_buf[j];
+				tmpl = (u_buf[j+1] << 8) | (u_buf[j]);
 				u_buf_fill-=2;  j+=2;  j%=u_size;
 				
-				tmpr = (u_buf[j+1] << 8) + u_buf[j];
+				tmpr = (u_buf[j+1] << 8) | (u_buf[j] );
 				u_buf_fill-=2;  j+=2;  j%=u_size;
 				
 				/* filter it depending of set flags */
 				
-				if (tmpl < (-0xffff/2 + 16)) /*prep for filtering ?*/
-					tmpl = (-0xffff/2 + 16);
-				if (tmpr < (-0xffff/2 + 16))
-					tmpr = (-0xffff/2 + 16);
-				if (tmpl > (0xffff/2 - 16))
-					tmpl = (0xffff/2 - 16);
-				if (tmpr > (0xffff/2 - 16))
-					tmpr = (0xffff/2 - 16);
+				LIMIT16(tmpl);
+				LIMIT16(tmpr);
+				
+				
+				
+				if (f_filter_hi_pass)
+				{
+					prevl2 = prevl1; /* cycle pre-filter vars */
+					prevl1 = prevl0;
+					
+					prevl0 = (int16_t) tmpl;
+					
+					prevr2 = prevr1;
+					prevr1 = prevr0;
+					prevr0 = (int16_t) tmpr;
+					
+					
+					
+					pprevl2 = pprevl1; /* cycle post-filter vars */
+					pprevr2 = pprevr1;
+					
+					
+					pprevl1 = (int) ((fx0 * prevl0)) +
+							((fx1 * prevl1)) +
+							((fx2 * prevl2)) -
+							((fx3 * pprevl1)) -
+							((fx4 * pprevl2));
+					
+					pprevr1 = (int) ((fx0 * prevr0)) +
+							((fx1 * prevr1)) +
+							((fx2 * prevr2)) -
+							((fx3 * pprevr1)) -
+							((fx4 * pprevr2));
+					
+					LIMIT16(pprevr1);
+					LIMIT16(pprevl1);
+					
+					/* assign tmpl and r while applying mix variable (thrown in 2 for now) */
+					tmpl = ((float) tmpl * (1.0-f_filter_hi_pass_mix)) + ((float) pprevl1 * 2 * f_filter_hi_pass_mix);
+					tmpr = ((float) tmpr * (1.0-f_filter_hi_pass_mix)) + ((float) pprevr1 * 2 * f_filter_hi_pass_mix);
+					
+					
+					LIMIT16(tmpl);
+					LIMIT16(tmpr);
+					
+				}
 				
 				if (mono)
 				{
@@ -1343,9 +1445,23 @@ void fill_audio(void *udata, Uint8 *stream, int len)
 				}
 				
 				if (f_filter_surround)
-				{
 					tmpr = -tmpr;
+				
+				
+				if (f_boost	!= 1.0)
+				{
+					x0 = ((float) tmpl * f_boost);
+					x1 = ((float) tmpr * f_boost);
+					
+					LIMIT16(x0);
+					LIMIT16(x1);
+					
+					tmpl=x0;
+					tmpr=x1;
 				}
+				
+				
+				
 					
 				
 				
@@ -1365,25 +1481,6 @@ void fill_audio(void *udata, Uint8 *stream, int len)
 					scope_bufsiz++;
 				}
 				
-			}
-		else
-			while (i < len)
-			{
-				stream[i] = u_buf[j]; /* fill stream */
-				
-				
-				i++;
-				
-				if (j%4==0 && j+1 < u_size && scope_bufsiz < 1024)
-				{
-					scope_buf[scope_bufsiz] = (u_buf[j+1]<<8) + (u_buf[j]);
-					scope_bufsiz++;
-				}
-				
-				j++;
-				j%=u_size;
-				
-				u_buf_fill--;
 			}
 		
 		u_buf_fill_start += len;
@@ -1581,7 +1678,7 @@ void update_ao_ch_flag_disp(SDL_Surface *in, int md)
 			for (i=0;i<(ao_channel_nchannels[curchp]);i++)
 			{
 		
-				tmp = ao_chan_flag_disp[i];
+				tmp = ao_chan_flag_disp[curchp * 128 + i];
 				
 				
 				y = SCREENHEIGHT - 10;
@@ -1751,7 +1848,7 @@ int get_file_type(char * fn)
 	if (!strcmp_nocase(ext,"psf2",-1))
 		return F_PSF2;
 		
-	if (!strcmp_nocase(ext,"usf",-1))
+	if (!strcmp_nocase(ext,"usf",-1) || !strcmp_nocase(ext,"miniusf",-1))
 		return F_USF;
 		
 	if (!strcmp_nocase(ext,"vgm",-1) || 
@@ -1773,6 +1870,9 @@ int get_file_type(char * fn)
 			!strcmp_nocase(ext,"spc",-1) /* not including vgm*/
 			)
 		return F_GME;
+	
+	if (!strcmp_nocase(ext,"gsf",-1) || !strcmp_nocase(ext,"minigsf",-1))
+		return F_GSF;
 	
 	return F_UNKNOWN;
 	

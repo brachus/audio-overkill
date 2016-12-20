@@ -131,20 +131,28 @@ struct filebuf
 	int state;
 	uint8_t *buf;
 	long len;
+	long seek;
 };
 
 int is_dir(char *fn);
 
+#define _AO_FBUF_CUR	(0)
+#define _AO_FBUF_SET	(1)
+#define _AO_FBUF_END	(2)
+
 struct filebuf *filebuf_init();
 int filebuf_free(struct filebuf *r);
 int filebuf_load(char *fn, struct filebuf *r);
+long filebuf_fread(void *buffer, long size, long nmemb, struct filebuf *f);
+long filebuf_fseek(struct filebuf * file, long offset, int whence);
+
+
 char * filename_build(const char *dir, char *fn);
 
 char *strip_dir(const char *path);
 char *strip_fn(const char *path);
 
 int ao_get_lib(struct filebuf *fbuf, char *libdir, char *filename);
-
 
 extern char *ao_chip_names[];
 
@@ -174,8 +182,7 @@ enum
 	_AO_H_SN76489,
 	_AO_H_SN76496,
 	_AO_H_YM2151,
-	
-	
+	_AO_H_MULTIPCM,
 	
 	
 	
@@ -187,10 +194,12 @@ enum
 	
 	_AO_H_GME_NSF,
 	_AO_H_GME_SPC,
-	_AO_H_GME_KSS
+	_AO_H_GME_KSS,
 	/* fill out chips supported in blargg's game music emulator here */
 	
 	
+	_AO_H_GSF,
+	_AO_H_USF
 };
 
 extern int ao_channel_set_chip[4];
@@ -214,7 +223,12 @@ extern int ao_sample_limit[2];
 extern int ao_set_len;
 
 void mix_chan_disp_flush();
+
 void mix_chan_disp(int chip_id, int nchannels,int ch, short l, short r);
+
+int mix_chan_find_avail_chip(int chip_id, int nchannels);
+
+void mix_chan_flag(int chip_id, int nchannels, int ch, int samp);
 
 void ao_add_sample(int sndtick, int sample);
 

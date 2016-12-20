@@ -2,7 +2,7 @@
 #include "usf.h"
 #include "audio_hle.h"
 #include "memory.h"
-#include "plugin.h"
+#include "usfplugin.h"
 // "Mupen64 HLE RSP plugin v0.2 with Azimers code by Hacktarux"
 
 u32 inst1, inst2;

@@ -121,6 +121,7 @@ struct filebuf *filebuf_init()
 	r->len=0;
 	r->state=0;
 	r->buf=0;
+	r->seek=0;
 	
 	return r;
 }
@@ -133,8 +134,77 @@ int filebuf_free(struct filebuf *r)
 	r->state = 0;
 	r->len = 0;
 	r->buf=0;
+	r->seek=0;
 	
 	return r->state;
+}
+
+long filebuf_fread(void *buffer, long size, long nmemb, struct filebuf *f)
+{
+	long ret = 0, i,k;
+	
+	uint8_t *ptr = (uint8_t *) buffer;
+	
+	if (!f || !f->state)
+		return 0;
+	
+	i = f->seek;
+	
+	//printf("start:%d, size: %d, len: %d\n",f->seek, size, f->len);
+	
+	for (ret=0; ret<nmemb && i<f->len; ret++)
+	{
+		//if ((i+size)>=f->len)
+		//	break;
+		
+		for (k=0;k<size;k++)
+		{
+			if (i>=f->len)
+				break;
+				
+			*(ptr++) = (char) f->buf[i];
+			//printf("%c\n",f->buf[i]);
+			
+			i++;
+			f->seek++;
+		}
+			
+	}
+	
+	return ret;
+}
+
+long filebuf_fseek(struct filebuf * file, long offset, int whence)
+{
+    long ret = 0;
+    
+    if (!file || !file->state)
+		return 0;
+    
+    switch(whence)
+    {
+	case _AO_FBUF_CUR: /* assuming offset is always in bytes */
+		file->seek += offset;
+		ret = 1;
+		break;
+	case _AO_FBUF_SET:
+		file->seek = offset;
+		ret = 1;
+		break;
+	case _AO_FBUF_END:
+		file->seek = file->len - 1; /* is this needed ? */
+		ret = 1;
+		break;
+	default:
+		break;
+	}
+	
+	if (file->seek < 0)
+		file->seek = 0;
+	if (file->seek >= file->len)
+		file->seek = file->len;
+    
+    return ret;
 }
 
 int filebuf_load(char *fn, struct filebuf *r)
@@ -169,6 +239,7 @@ int filebuf_load(char *fn, struct filebuf *r)
 	fclose(fp);	
 	
 	r->state = 1;
+	r->seek=0;
 	
 	return r->state;
 }
@@ -390,23 +461,26 @@ char *ao_chip_names[] =
 	"K051649",
 	"YM2203",
 	"YM2608",
-	"NES APU",
-	"NES APU",
-	"OKI M6258",
-	"OKI M6295",
+	"NES-APU",
+	"NES-APU",
+	"OKI-M6258",
+	"OKI-M6295",
 	"C6280",
-	"SEGA PCM",
-	"FM 2612",
+	"SEGA-PCM",
+	"FM-2612",
 	"QSOUND",
 	"SN76489",
 	"SN76496",
 	"YM2151",
+	"MULTI-PCM",
 	
 	"SID",
 	
 	"NSF",
 	"NINTENDO S-SMP",
-	"KSS"
+	"KSS",
+	
+	"GSF"
 };
 
 int ao_channel_set_chip[4];
@@ -463,29 +537,25 @@ void mix_chan_disp_flush()
 	}
 }
 
-void mix_chan_disp(int chip_id, int nchannels, int ch, short l, short r)
+int mix_chan_find_avail_chip(int chip_id, int nchannels)
 {
-	
-	int tmpl, tmpr, cmatch = -1, i, j, ch_idx, ch_left;
+	int i,j;
 	
 	for (i=0;i<4;i++)
 	{
 		if (chip_id == ao_channel_set_chip[i])
-		{
-			cmatch = i;
-			break;
-		}
+			return i;
+			
 		if (ao_channel_set_chip[i] == -1)
 		{
-			cmatch = i;
 			
-			ao_channel_set_chip[cmatch] = chip_id;
-			ao_channel_nchannels[cmatch] = nchannels;
+			ao_channel_set_chip[i] = chip_id;
+			ao_channel_nchannels[i] = nchannels;
 			
 			/* refresh chip names string here */
 			
 			tag_chips[0] = '\0';
-			for (j=cmatch;j>=0;j--)
+			for (j=i;j>=0;j--)
 			{
 				strcat(tag_chips, ao_chip_names[ao_channel_set_chip[j]]);
 				strcat(tag_chips, " ");
@@ -493,15 +563,33 @@ void mix_chan_disp(int chip_id, int nchannels, int ch, short l, short r)
 			}
 			
 			
-			
-			break;
+			return i;
 		}
 	}
+	
+	return -1;
+}
+
+void mix_chan_flag(int chip_id, int nchannels, int ch, int samp)
+{
+	int i,j,cmatch;
+	
+	cmatch = mix_chan_find_avail_chip(chip_id,nchannels);
+	
+	if (cmatch >= 0)
+		ao_chan_flag_disp[(cmatch * _AO_H_MAX_DISP_CHAN) + ch] = samp;
+	
+}
+
+void mix_chan_disp(int chip_id, int nchannels, int ch, short l, short r)
+{
+	
+	int tmpl, tmpr, cmatch = -1, i, j, ch_idx, ch_left;
+	
+	cmatch = mix_chan_find_avail_chip(chip_id,nchannels);
 		
 	if (cmatch < 0)
 		return;
-		
-	
 	
 	
 	ch_idx = (cmatch * _AO_H_MAX_DISP_CHAN) + ch;

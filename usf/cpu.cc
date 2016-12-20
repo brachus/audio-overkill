@@ -28,14 +28,14 @@
 #include "main.h"
 #include "cpu.h"
 #include "usf.h"
-#include "plugin.h"
+#include "usfplugin.h"
 #include "audio_hle.h"
 #include "recompiler_cpu.h"
 #include "x86.h"
 #include "registers.h"
 #include "rsp.h"
 
-#include <libaudcore/plugin.h>
+//#include <libaudcore/plugin.h>
 
 #include <glib.h>
 
@@ -107,8 +107,8 @@ void CheckTimer(void)
 	Timers->CurrentTimerType = count;
     }
     if (Timers->CurrentTimerType == -1) {
-	DisplayError("No active timers ???\nEmulation Stoped");
-	StopEmulation();
+	DisplayError("No active timers ???\nEmulation Stopped");
+	cpu_running = 0;
     }
     for (count = 0; count < MaxTimers; count++) {
 	if (!Timers->Active[count]) {
@@ -424,7 +424,6 @@ int32_t DelaySlotEffectsJump(uint32_t JumpPC)
 void DoSomething(void)
 {
     if (CPU_Action->CloseCPU) {
-	//StopEmulation();
 	cpu_running = 0;
 	//printf("Stopping?\n");
 	if (!(fake_seek_stopping & 3))
@@ -551,7 +550,7 @@ uint32_t Machine_LoadStateFromRAM(void *savestatespace)
     SetupTLB();
     ChangeCompareTimer();
     AI_STATUS_REG = 0;
-    context->ai_dacrate_changed(AI_DACRATE_REG);
+    ai_dacrate_changed(AI_DACRATE_REG);
 
 //      StartAiInterrupt();
 
@@ -564,7 +563,7 @@ void StartEmulationFromSave(void *savestate)
 {
     uint32_t count = 0;
     if (use_interpreter)
-	CPU_Type = CPU_Interpreter;
+		CPU_Type = CPU_Interpreter;
 
     //printf("Starting generic Cpu\n");
 
@@ -574,10 +573,11 @@ void StartEmulationFromSave(void *savestate)
     memset(DMEM, 0, 0x1000);
     memset(IMEM, 0, 0x1000);
     memset(TLB_Map, 0, 0x100000 * sizeof(uintptr_t) + 0x10000);
-    if (!use_interpreter) {
-	memset(JumpTable, 0, 0x200000 * sizeof(uintptr_t));
-	memset(RecompCode, 0xcc, NormalCompileBufferSize);	// fill with Breakpoints
-	memset(DelaySlotTable, 0, ((0x1000000) >> 0xA));
+    if (!use_interpreter)
+    {
+		memset(JumpTable, 0, 0x200000 * sizeof(uintptr_t));
+		memset(RecompCode, 0xcc, NormalCompileBufferSize);	// fill with Breakpoints
+		memset(DelaySlotTable, 0, ((0x1000000) >> 0xA));
     }
 
     memset(CPU_Action, 0, sizeof(CPU_Action));
@@ -593,9 +593,9 @@ void StartEmulationFromSave(void *savestate)
     Timers->CurrentTimerType = -1;
     Timers->Timer = 0;
 
-    for (count = 0; count < MaxTimers; count++) {
-	Timers->Active[count] = 0;
-    }
+    for (count = 0; count < MaxTimers; count++)
+		Timers->Active[count] = 0;
+		
     ChangeTimer(ViTimer, 5000);
     ChangeCompareTimer();
     ViFieldNumber = 0;
@@ -608,7 +608,6 @@ void StartEmulationFromSave(void *savestate)
 
     SampleRate = 48681812 / (AI_DACRATE_REG + 1);
 
-    context->open_sound();
 
     ///////////////////////////////////////////////  pcontext->set_params(pcontext, SampleRate * 4, SampleRate, 2);
 
@@ -629,17 +628,18 @@ void StartEmulationFromSave(void *savestate)
     cpu_stopped = 0;
     cpu_running = 1;
     fake_seek_stopping = 0;
+    
 
-    switch (CPU_Type) {
+    /*switch (CPU_Type) {
     case CPU_Interpreter:
-	StartInterpreterCPU();
+	StartInterpreterCPU();  HERE 
 	break;
     case CPU_Recompiler:
 	StartRecompilerCPU();
 	break;
     default:
 	DisplayError("Unhandled CPU %d", CPU_Type);
-    }
+    }*/
 
 }
 

@@ -40,6 +40,8 @@
 #include <stddef.h>	// for NULL
 #include "multipcm.h"
 
+#include "../../ao.h"
+
 //????
 #define MULTIPCM_CLOCKDIV   	(180.0)
 
@@ -466,7 +468,9 @@ void MultiPCM_update(UINT8 ChipID, stream_sample_t **outputs, int samples)
 				signed int csample=(signed short) (ptChip->ROM[(slot->Base+adr) & ptChip->ROMMask]<<8);
 				signed int fpart=slot->offset&((1<<SHIFT)-1);
 				sample=(csample*fpart+slot->Prev*((1<<SHIFT)-fpart))>>SHIFT;
-
+				
+				mix_chan_flag(_AO_H_MULTIPCM, 28, sl, (int) slot->Base );
+				
 				if(slot->Regs[6]&7)	//Vibrato enabled
 				{
 					step=step*PLFO_Step(&(slot->PLFO));
@@ -496,7 +500,11 @@ void MultiPCM_update(UINT8 ChipID, stream_sample_t **outputs, int samples)
 
 				smpl+=(LPANTABLE[vol]*sample)>>SHIFT;
 				smpr+=(RPANTABLE[vol]*sample)>>SHIFT;
+				
+				mix_chan_disp(_AO_H_MULTIPCM, 28, sl, (LPANTABLE[vol]*sample)>>SHIFT, (RPANTABLE[vol]*sample)>>SHIFT); /* from AO.H */
+				
 			}
+			mix_chan_disp(_AO_H_MULTIPCM, 28, sl, 0,0); /* from AO.H */
 		}
 /*#define ICLIP16(x) (x<-32768)?-32768:((x>32767)?32767:x)
 		datap[0][i]=ICLIP16(smpl);
