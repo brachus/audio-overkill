@@ -59,7 +59,7 @@
 #include "peops2/registers.h"
 #include "peops2/spu.h"
 
-#include "corlett.h"
+#include "../corlett.h"
 
 #define DEBUG_LOADER	(0)
 #define MAX_FS		(32)	// maximum # of filesystems (libs and subdirectories)
@@ -68,7 +68,6 @@
 #define ELF32_R_SYM(val)                ((val) >> 8)
 #define ELF32_R_TYPE(val)               ((val) & 0xff)
 
-#define LE32(x) FROM_LE32(x)
 
 static corlett_t	*c = 0;
 

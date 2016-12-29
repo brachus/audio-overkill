@@ -21,6 +21,8 @@ extern "C"
 
 int16_t samplebuf[16384];
 
+struct filebuf *uopen_fb;
+
 float samplebuf_44k[44100*2];
 float samplebuf_44k_b[44100*2];
 float samplebuf_44k_c[44100*2];
@@ -62,11 +64,12 @@ int usf_execute ( void (*update)(const void *, int ))
 int usf_open (char * fn)
 {
 	
-	struct filebuf *fb = filebuf_init();
+	uopen_fb = filebuf_init();
 	
-	if (!filebuf_load(fn, fb))
+	if (!filebuf_load(fn, uopen_fb))
 	{
-		filebuf_free(fb);
+		filebuf_free(uopen_fb);
+		uopen_fb = 0;
 		return 0;
 	}
 	
@@ -74,23 +77,26 @@ int usf_open (char * fn)
 	
 	usf_init();
 	
-	usf_play(fn, fb); /* no longer calls StartEmulationFromSave. */
+	usf_play(fn, uopen_fb); /* no longer calls StartEmulationFromSave. */
 	
 	handle[0] = resample_open(1, 44100. / SampleRate, 44100. / SampleRate);
     handle[1] = resample_open(1, 44100. / SampleRate, 44100. / SampleRate);
+    
+    
 }
 
 void usf_close ( void )
 {
 	if (cpu_running)
-	{
-		cpu_running = 0;
 		CloseCpu();
-	}
 	
-
-    //usf_playing = false;
-    //is_paused = 0;
+	cpu_running = 0;
+	
+	if (uopen_fb != 0)
+		filebuf_free(uopen_fb);
+	
+	Release_Memory();
+	
 }
 
 

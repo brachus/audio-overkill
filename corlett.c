@@ -83,10 +83,9 @@ The following data is optional and may be omitted:
 
 #include <zlib.h>
 
-#include "../ao.h"
+#include "ao.h"
 #include "corlett.h"
 
-#define LE32(x) FROM_LE32(x)
 
 #define DECOMP_MAX_SIZE		((32 * 1024 * 1024) + 12)
 
@@ -107,9 +106,9 @@ int corlett_decode(uint8_t *input, uint32_t input_len, uint8_t **output, uint64_
 	}
 
 	// Get our values
-	res_area = LE32(buf[1]);
-	comp_length = LE32(buf[2]);
-	comp_crc = LE32(buf[3]);
+	res_area = FROM_LE32(buf[1]);
+	comp_length = FROM_LE32(buf[2]);
+	comp_crc = FROM_LE32(buf[3]);
 
 	if (comp_length > 0)
 	{

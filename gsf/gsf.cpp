@@ -20,7 +20,8 @@
 
 int emulating = 0;
 
-
+#define TRUE (1)
+#define FALSE (1)
 
 struct EmulatedSystem emulator;
 

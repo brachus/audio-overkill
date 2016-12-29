@@ -1,6 +1,8 @@
 #ifndef _EMUTYPES_H_
 #define _EMUTYPES_H_
 
+#undef INLINE
+
 #ifndef INLINE
 
 #if defined(_MSC_VER)

@@ -101,10 +101,19 @@ void usf_fseek(struct filebuf * file, int64_t offset, int whence)
 
 int LoadUSF(const char * fn, struct filebuf * fil)
 {
-    uint32_t reservedsize = 0, codesize = 0, crc = 0, tagstart =
-	0, reservestart = 0;
+    uint32_t reservedsize = 0,
+		codesize = 0,
+		crc = 0,
+		tagstart = 0,
+		reservestart = 0;
     uint32_t filesize = 0, tagsize = 0, temp = 0;
     uint8_t buffer[16], *buffer2 = NULL, *tagbuffer = NULL;
+    
+	struct filebuf *fb = 0;
+	
+	char path[512];
+	
+	int pathlength = 0;
 
     is_fading = 0;
     fade_type = 1;
@@ -150,7 +159,8 @@ int LoadUSF(const char * fn, struct filebuf * fil)
     tagstart = reservestart + reservedsize;
     tagsize = filesize - tagstart;
 
-    if (tagsize) {
+    if (tagsize)
+    {
 		usf_fseek(fil, tagstart,  _AO_FBUF_SET );
 		usf_fread(buffer, 5, 1, fil);
 		
@@ -178,29 +188,29 @@ int LoadUSF(const char * fn, struct filebuf * fil)
 			"_lib",
 			(char *) buffer2,
 			50000);
-			
 
 		if (strlen((char *) buffer2))
 		{
-			char path[512];
-			int pathlength = 0;
+			
 			if (strrchr(fn, '/'))	//linux
-			pathlength = strrchr(fn, '/') - fn + 1;
+				pathlength = strrchr(fn, '/') - fn + 1;
 			else if (strrchr(fn, '\\'))	//windows
-			pathlength = strrchr(fn, '\\') - fn + 1;
+				pathlength = strrchr(fn, '\\') - fn + 1;
 			else		//no path
-			pathlength = strlen(fn);
+				pathlength = strlen(fn);
 			strncpy(path, fn, pathlength);
 			path[pathlength] = 0;
 			strcat(path, (char *) buffer2);
-			struct filebuf *fb = filebuf_init();
-	
-			struct filebuf *file2=filebuf_init();;
+				
+			fb = filebuf_init();
 			
-			if (!filebuf_load(path, file2))
-				filebuf_free(file2);
+			if (!filebuf_load(path, fb))
+			{
+				filebuf_free(fb);
+				fb = 0;
+			}
 			else
-				LoadUSF(path, file2);
+				LoadUSF(path, fb);
 
 		}
 		
@@ -260,25 +270,26 @@ int LoadUSF(const char * fn, struct filebuf * fil)
 			strcpy(tag_track, buffer2); /* FOR AO.H */
 		}
 			
-		else {
+		else
+		{
 			int pathlength = 0;
 
 			if (strrchr(fn, '/'))	//linux
-			pathlength = strrchr(fn, '/') - fn + 1;
+				pathlength = strrchr(fn, '/') - fn + 1;
 			else if (strrchr(fn, '\\'))	//windows
-			pathlength = strrchr(fn, '\\') - fn + 1;
+				pathlength = strrchr(fn, '\\') - fn + 1;
 			else		//no path
-			pathlength = 7;
+				pathlength = 7;
 
 			strcpy((char *) title, &fn[pathlength]);
 
 		}
 
 		free(buffer2);
-		buffer2 = NULL;
+		buffer2 = 0;
 
 		free(tagbuffer);
-		tagbuffer = NULL;
+		tagbuffer = 0;
 
     }
 
@@ -346,6 +357,9 @@ int LoadUSF(const char * fn, struct filebuf * fil)
     }
     else if (*(uint32_t *) (savestatespace + 4) == 0x800000)
 		RdramSize = 0x800000;
+	
+	if (fb != 0)
+		filebuf_free(fb);
 
     return 1;
 }
@@ -353,7 +367,7 @@ int LoadUSF(const char * fn, struct filebuf * fil)
 
 bool usf_init()
 {
-    use_audiohle = 0;
+    use_audiohle = 1;
     use_interpreter = 1;
     RSP_Cpu = 0;		// 0 is recompiler, 1 is interpreter
 

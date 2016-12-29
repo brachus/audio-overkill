@@ -1,5 +1,12 @@
 // Band-limited sound synthesis buffer
 
+extern "C"
+{
+	
+	#include <stdio.h>
+	#include "../ao.h"
+}
+
 // Blip_Buffer 0.4.1
 #ifndef BLIP_BUFFER_H
 #define BLIP_BUFFER_H
@@ -369,6 +376,9 @@ inline void Blip_Synth<quality,range>::offset_resampled( blip_resampled_time_t t
 			defined (__x86_64__) || defined (__ia64__) || defined (__i386__)
 	
 	// straight forward implementation resulted in better code on GCC for x86
+	
+	
+	
 	
 	#define ADD_IMP( out, in ) \
 		buf [out] += (blip_long) imp [blip_res * (in)] * delta

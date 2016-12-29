@@ -40,11 +40,10 @@
 #include "peops/registers.h"
 #include "peops/spu.h"
 
-#include "corlett.h"
+#include "../corlett.h"
 
 #define DEBUG_LOADER	(0)
 
-#define LE32(x) FROM_LE32(x)
 
 static corlett_t	*c = 0;
 static char 		psfby[256];

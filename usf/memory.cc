@@ -86,10 +86,9 @@ uint8_t *PageROM(uint32_t addr)
 #define PAGE_SIZE	4096
 void *malloc_exec(uint32_t bytes)
 {
-    void *ptr = NULL;
+    void *ptr = 0;
 
-    ptr =
-	mmap(0, bytes, PROT_EXEC | PROT_READ | PROT_WRITE,
+    ptr = mmap(0, bytes, PROT_EXEC | PROT_READ | PROT_WRITE,
 	     MAP_PRIVATE | MAP_ANONYMOUS | MAP_32BIT, 0, 0);
 
     return ptr;
@@ -150,28 +149,31 @@ int32_t Allocate_Memory(void)
     RSP_Vect = (VECTOR *) ((char *) RSP_ACCUM + (sizeof(REGISTER) * 32));
 
 
-    if (!use_interpreter) {
-	JumpTable = (void **) malloc(0x200000 * sizeof(uintptr_t));
+    if (!use_interpreter)
+    {
+		JumpTable = (void **) malloc(0x200000 * sizeof(uintptr_t));
 
-	if (JumpTable == NULL)
-	    return 0;
+		if (JumpTable == NULL)
+			return 0;
 
-	memset(JumpTable, 0, 0x200000 * sizeof(uintptr_t));
+		memset(JumpTable, 0, 0x200000 * sizeof(uintptr_t));
 
-	RecompCode = (uint8_t*) malloc_exec(NormalCompileBufferSize);
+		RecompCode = (uint8_t*) malloc_exec(NormalCompileBufferSize);
 
-	memset(RecompCode, 0xcc, NormalCompileBufferSize);	// fill with Breakpoints
+		memset(RecompCode, 0xcc, NormalCompileBufferSize);	// fill with Breakpoints
 
-	DelaySlotTable = (void **) malloc((0x1000000) >> 0xA);
-	if (DelaySlotTable == NULL)
-	    return 0;
+		DelaySlotTable = (void **) malloc((0x1000000) >> 0xA);
+		if (DelaySlotTable == NULL)
+			return 0;
 
-	memset(DelaySlotTable, 0, ((0x1000000) >> 0xA));
+		memset(DelaySlotTable, 0, ((0x1000000) >> 0xA));
 
-    } else {
-	JumpTable = NULL;
-	RecompCode = NULL;
-	DelaySlotTable = NULL;
+    }
+    else
+    {
+		JumpTable = NULL;
+		RecompCode = NULL;
+		DelaySlotTable = NULL;
     }
     RDRAM = (uint8_t *) (N64MEM);
     IMEM = DMEM + 0x1000;
@@ -186,16 +188,15 @@ int PreAllocate_Memory(void)
     int i = 0;
 
     // Moved the savestate allocation here :)  (for better management later)
-    savestatespace = (uint8_t*)malloc(0x80275C);
+    savestatespace = (uint8_t*) malloc(0x80275C);
 
     if (savestatespace == 0)
-	return 0;
+		return 0;
 
     memset(savestatespace, 0, 0x80275C);
 
-    for (i = 0; i < 0x400; i++) {
+    for (i = 0; i < 0x400; i++)
 	ROMPages[i] = 0;
-    }
 
     return 1;
 }
@@ -204,59 +205,71 @@ void Release_Memory(void)
 {
     uint32_t i;
 
-    for (i = 0; i < 0x400; i++) {
-	if (ROMPages[i]) {
-	    free(ROMPages[i]);
-	    ROMPages[i] = 0;
-	}
+    for (i = 0; i < 0x400; i++)
+    {
+		if (ROMPages[i])
+		{
+			free(ROMPages[i]);
+			ROMPages[i] = 0;
+		}
     }
     printf("Freeing memory\n");
 
     MemoryState = 0;
 
-    if (MemChunk != 0) {
-	munmap(MemChunk, 0x100000 * sizeof(uintptr_t));
-	MemChunk = 0;
+    if (MemChunk != 0)
+    {
+		munmap(MemChunk, 0x100000 * sizeof(uintptr_t));
+		MemChunk = 0;
     }
-    if (N64MEM != 0) {
-	munmap(N64MEM, RdramSize);
-	N64MEM = 0;
+    if (N64MEM != 0)
+    {
+		munmap(N64MEM, RdramSize);
+		N64MEM = 0;
     }
-    if (NOMEM != 0) {
-	munmap(NOMEM, 0xD000);
-	NOMEM = 0;
-    }
-
-    if (DelaySlotTable != NULL) {
-	free(DelaySlotTable);
-	DelaySlotTable = NULL;
-    }
-    if (JumpTable != NULL) {
-	free(JumpTable);
-	JumpTable = NULL;
-    }
-    if (RecompCode != NULL) {
-	munmap(RecompCode, NormalCompileBufferSize);
-	RecompCode = NULL;
-    }
-    if (RSPRecompCode != NULL) {
-	munmap(RSPRecompCode, RSP_RECOMPMEM_SIZE + RSP_SECRECOMPMEM_SIZE);
-	RSPRecompCode = NULL;
+    if (NOMEM != 0)
+    {
+		munmap(NOMEM, 0xD000);
+		NOMEM = 0;
     }
 
-    if (RSPJumpTables != NULL) {
-	free(RSPJumpTables);
-	RSPJumpTables = NULL;
+    if (DelaySlotTable != 0)
+    {
+		free(DelaySlotTable);
+		DelaySlotTable = 0;
     }
-    if (JumpTable != NULL) {
-	free(JumpTable);
-	JumpTable = NULL;
+    if (JumpTable != 0)
+    {
+		free(JumpTable);
+		JumpTable = 0;
+    }
+    if (RecompCode != 0)
+    {
+		munmap(RecompCode, NormalCompileBufferSize);
+		RecompCode = 0;
+    }
+    if (RSPRecompCode != 0)
+    {
+		munmap(RSPRecompCode, RSP_RECOMPMEM_SIZE + RSP_SECRECOMPMEM_SIZE);
+		RSPRecompCode = 0;
+    }
+
+    if (RSPJumpTables != 0)
+    {
+		free(RSPJumpTables);
+		RSPJumpTables = 0;
+    }
+    if (JumpTable != 0)
+    {
+		free(JumpTable);
+		JumpTable = 0;
     }
 
 
     if (savestatespace)
-	free(savestatespace);
-    savestatespace = NULL;
+		free(savestatespace);
+		
+    savestatespace = 0;
 
 }
 
@@ -265,12 +278,15 @@ void Release_Memory(void)
 void Compile_LB(int32_t Reg, uint32_t addr, uint32_t SignExtend)
 {
     uintptr_t Addr = addr;
-    if (!TranslateVaddr(&Addr)) {
-	MoveConstToX86reg(0, Reg);
-	return;
+    
+    if (!TranslateVaddr(&Addr))
+    {
+		MoveConstToX86reg(0, Reg);
+		return;
     }
 
-    switch (Addr & 0xFFF00000) {
+    switch (Addr & 0xFFF00000)
+    {
     case 0x00000000:
     case 0x00100000:
     case 0x00200000:
@@ -281,14 +297,14 @@ void Compile_LB(int32_t Reg, uint32_t addr, uint32_t SignExtend)
     case 0x00700000:
     case 0x10000000:
 
-	if (SignExtend) {
-	    MoveSxVariableToX86regByte(Addr + N64MEM, Reg);
-	} else {
-	    MoveZxVariableToX86regByte(Addr + N64MEM, Reg);
-	}
-	break;
+		if (SignExtend)
+			MoveSxVariableToX86regByte(Addr + N64MEM, Reg);
+		else
+			MoveZxVariableToX86regByte(Addr + N64MEM, Reg);
+		break;
+		
     default:
-	MoveConstToX86reg(0, Reg);
+		MoveConstToX86reg(0, Reg);
     }
 }
 

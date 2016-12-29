@@ -59,7 +59,6 @@
 #define DEBUG_UNK_RW	(0)		// debug unknown reads/writes
 #define DEBUG_THREADING (0)		// debug PS2 IOP threading
 
-#define LE32(x) FROM_LE32(x)
 
 extern void mips_get_info(uint32_t state, union cpuinfo *info);
 extern void mips_set_info(uint32_t state, union cpuinfo *info);

@@ -41,6 +41,7 @@ typedef INT32 stream_sample_t;
 // don't define BYTE_XOR_BE so that it throws an error when compiling
 #endif
 
+#ifndef INLINE
 #if defined(_MSC_VER)
 //#define INLINE	static __forceinline
 #define INLINE	static __inline
@@ -49,6 +50,8 @@ typedef INT32 stream_sample_t;
 #else
 #define INLINE	static inline
 #endif
+#endif
+
 #define M_PI	3.14159265358979323846
 
 #ifdef _DEBUG

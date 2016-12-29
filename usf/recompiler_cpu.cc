@@ -3705,6 +3705,7 @@ void StartRecompilerCPU(void)
 		if (PROGRAM_COUNTER < 0x90000000)
 			lastgood = PROGRAM_COUNTER;
 		Addr = PROGRAM_COUNTER;
+		printf("addr %d",Addr);
 		if (!TranslateVaddr(&Addr)) {
 			DoTLBMiss(NextInstruction == DELAY_SLOT, PROGRAM_COUNTER);
 			NextInstruction = NORMAL;
@@ -3755,7 +3756,6 @@ void StartRecompilerCPU(void)
 			NextInstruction = NORMAL;
 		}
 
-		printf("begin call block\n");
 		CallBlock(Block);
     }
 

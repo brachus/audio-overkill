@@ -38,6 +38,8 @@
 
 #include "usf/usfpluginout.h"
 
+#include "dsf/dsf_plugin.h"
+
 
 #include "filelist.h"
 
@@ -169,13 +171,82 @@ enum
 	F_VGM,
 	F_SID,
 	F_GME,
-	F_GSF
+	F_GSF,
+	F_DSF,
+	F_QSF,
+	F_SSF,
+	F_2SF
 };
 
 int play_stat = M_STOPPED;
 
 
 struct flist_base *flist;
+
+struct key_comb
+{
+	int shift; /* boolean values */
+	int ctrl;
+	int alt;
+	
+	int key; /* SDL defined key syms. */
+};
+
+/*key_tran_str =
+	{
+		"escape",
+		"space",
+		"left",
+		"right",
+		"up",
+		"down",
+		"",
+		
+	}*/
+
+struct key_comb kshortcuts[16];
+
+enum
+{
+	KS_PREV_TRACK,
+	KS_NEXT_TRACK,
+	KS_FIRST_TRACK,
+	KS_LAST_TRACK,
+	KS_RELOAD_CONF,
+	KS_TOGGLE_MONO,
+	KS_PAUSE,
+	KS_QUIT,
+	KS_OPEN_FILE,
+	KS_DELETE_CURRENT_ITEM,
+	KS_DELETE_ALL_ITEMS,
+	KS_END
+};
+
+void keys_reset()
+{
+	int i;
+	
+	for (i=0;i<KS_END;i++)
+	{
+		kshortcuts[i].shift = 0;
+		kshortcuts[i].ctrl = 0;
+		kshortcuts[i].alt = 0;
+	}
+	
+	kshortcuts[KS_PREV_TRACK].key = SDLK_LEFT;
+	kshortcuts[KS_NEXT_TRACK].key = SDLK_RIGHT;
+	kshortcuts[KS_FIRST_TRACK].key = SDLK_DOWN;
+	kshortcuts[KS_LAST_TRACK].key = SDLK_UP;
+	kshortcuts[KS_RELOAD_CONF].key = SDLK_c;
+	kshortcuts[KS_TOGGLE_MONO].key = SDLK_m;
+	kshortcuts[KS_PAUSE].key = SDLK_SPACE;
+	kshortcuts[KS_QUIT].key = SDLK_ESCAPE;
+	kshortcuts[KS_OPEN_FILE].key = SDLK_f;
+	kshortcuts[KS_DELETE_CURRENT_ITEM].key = SDLK_x;
+	kshortcuts[KS_DELETE_ALL_ITEMS].key = SDLK_x;
+	
+	kshortcuts[KS_DELETE_ALL_ITEMS].shift = 1;
+}
 
 
 GtkWidget *
@@ -275,7 +346,11 @@ void *do_gtk_dialog_slave(void* thread_id)
 
 	gtk_init(0, 0);
 	
-	wdg_slave = create_filechooser_dialog(gtk_choose_fn, GTK_FILE_CHOOSER_ACTION_OPEN);
+	wdg_slave =
+		create_filechooser_dialog(
+			gtk_choose_fn,
+			GTK_FILE_CHOOSER_ACTION_OPEN
+			);
 	
 	
 	
@@ -340,19 +415,12 @@ void gtk_slave_file_check_kill()
 	{
 		i--;
 		
-		if (!i)
-		{
-			/* file chooser meets its demise here */
-			
-			
+		if (!i)  /* file chooser meets its demise here */
 			gtk_dialog_response(GTK_DIALOG(wdg_slave), 0);
-		}
 			
 	}
 	else
-		i=16;
-	
-		
+		i = 16;
 		
 		
 }			
@@ -369,6 +437,9 @@ int main(int argc, char *argv[])
 	char tmpstr1[64];
 	char chtrack, *ctmp;	
 	
+	/* reset keyboard shortcuts to default */
+	keys_reset();
+	
 	load_conf(CONFIG_FNAME);
 	
 	SDL_AudioSpec wanted;
@@ -380,23 +451,24 @@ int main(int argc, char *argv[])
 	SDL_Rect tr;
 	
 	FILE *fp;
-	
-	
-	
-	
+
+	/* set sdl color structs */
 	sdl_set_col(&tcol_a, TEXT_COLOR, 0);
 	sdl_set_col(&tcol_b, TEXT_BG_COLOR, 0);
 	
 	tr.w=SCREENWIDTH;
 	tr.h=SCREENHEIGHT;
 	
+	/* init audio buffer */
 	u_buf_init();
 	
+	/* init and clear scope visual */
 	init_scope();
 	clear_scope();
 	
 	TTF_Init();
 	
+	/* load our font */
     TTF_Font *font = TTF_OpenFont(TTF_FONT, 11);
     
     if (!font)
@@ -407,10 +479,8 @@ int main(int argc, char *argv[])
 		f_render_font=0;
 	}
 	
+	/* load files from arguments and given directories into a file list. */
 	flist = flist_init();
-	
-	
-		
 	for (i=1;i<argc;i++)
 	{
 		if (is_dir(argv[i]))
@@ -421,10 +491,10 @@ int main(int argc, char *argv[])
 			
 	}
 	
-	
+	/* set gtk file chooser directory */
 	strcpy(gtk_choose_fn, default_folder);
 	
-	
+	/* set action if opened with no files in arguments */
 	if (flist->len == 0)
 	{
 		play_stat = M_NOFILE;
@@ -432,9 +502,10 @@ int main(int argc, char *argv[])
 		gtk_slave_file_chooser_open();
 		
 	}
-	fcur = 0;
 	
-	ao_track_select = 0; /* this needs to go. */
+	/* set variables to keep track of current file/track within file. */
+	fcur = 0;
+	ao_track_select = 0;
 	ao_track_max = -1;
 	
 	reset_chan_disp();
@@ -484,6 +555,8 @@ int main(int argc, char *argv[])
 	
 	tickdelay=20;
 	
+	
+	
 	while (run)
 	{
 		
@@ -493,46 +566,56 @@ int main(int argc, char *argv[])
 			{
 			case SDL_QUIT:
 				run = 0;
-				
 				break;
+				
 			case SDL_KEYDOWN:
 				
 				k_shift = e.key.keysym.mod & (KMOD_LSHIFT | KMOD_RSHIFT);
 				k_ctrl = e.key.keysym.mod & (KMOD_LCTRL | KMOD_RCTRL);
 				
-				switch ( e.key.keysym.sym )
-				{
-				case SDLK_ESCAPE:
-					run = 0;
-					break;
-					
-				case SDLK_SPACE:
-					if (play_stat == M_STOPPED || play_stat == M_ERR)
-						play_stat = M_LOAD;
-					else if (play_stat == M_PAUSE)
-						play_stat = M_PLAY;
-					else if (play_stat == M_PLAY)
-						play_stat = M_PAUSE;
 				
-					break;
+				#define KS_IF_MATCH \
+					if (!(kshortcuts[i].key == e.key.keysym.sym && \
+					 ((kshortcuts[i].shift != 0) ? (k_shift!=0):1) && \
+					 ((kshortcuts[i].ctrl != 0) ? (k_ctrl!=0):1)))\
+						break;
 				
-				case SDLK_m:
-					mono = (mono == 1) ? 0 : 1;
-					break;
+				#define KS_CHANGE_TRACK_DOAFTER \
+					if (play_stat == M_PLAY) \
+							play_stat = M_RELOAD; \
+						else if (play_stat == M_PAUSE) \
+							play_stat = M_RELOAD_IDLE; \
+						
+						if (play_stat == M_STOPPED || play_stat == M_ERR) \
+							play_stat = M_LOAD;
 				
-				case SDLK_LEFT:
-				case SDLK_RIGHT:
+				#define KS_DEL_TRACK_DOAFTER \
+					play_stat = M_RELOAD; \
+					ao_track_select = 0; \
+					ao_track_max = -1; \
+					if (flist->len == 0) \
+					{ \
+						clear_tags(); \
+						SDL_PauseAudio(1); \
+						reset_u_buf(); \
+						reset_chan_disp(); \
+						clear_scope(); \
+						if (file_close != 0) \
+							file_close(); \
+						fcur=0; \
+						play_stat = M_NOFILE; \
+					} \
+					else if (fcur >= flist->len) \
+						fcur = flist->len - 1;
 				
-					if (ao_track_max == -1)
+				for (i=0;i<KS_END;i++)
+					switch(i)
 					{
-						if (e.key.keysym.sym==SDLK_LEFT && fcur > 0)
+					case KS_PREV_TRACK:
+						KS_IF_MATCH
+						if (ao_track_max == -1 && fcur > 0)
 							fcur--;
-						else if (e.key.keysym.sym==SDLK_RIGHT && fcur<(flist->len-1)) 
-							fcur++;
-					}
-					else
-					{
-						if (e.key.keysym.sym==SDLK_LEFT)
+						else
 						{
 							if (ao_track_select > 0)
 								ao_track_select--;
@@ -544,9 +627,15 @@ int main(int argc, char *argv[])
 								 * file will be selected
 								 */
 							}
-								
 						}
-						else if (e.key.keysym.sym==SDLK_RIGHT) 
+						KS_CHANGE_TRACK_DOAFTER
+						break;
+						
+					case KS_NEXT_TRACK:
+						KS_IF_MATCH
+						if (ao_track_max == -1 && fcur<(flist->len-1)) 
+							fcur++;
+						else
 						{
 							if (ao_track_select < ao_track_max)
 								ao_track_select++;
@@ -556,105 +645,93 @@ int main(int argc, char *argv[])
 								ao_track_select = 0;
 							}
 						}
-					}
-					
-					
-					if (play_stat == M_PLAY)
-						play_stat = M_RELOAD;
-					else if (play_stat == M_PAUSE)
-						play_stat = M_RELOAD_IDLE;
-					
-					if (play_stat == M_STOPPED || play_stat == M_ERR)
-						play_stat = M_LOAD;
-					
-					break;
-				
-				case SDLK_0:case SDLK_1:case SDLK_2:
-				case SDLK_3:case SDLK_4:case SDLK_5:
-				case SDLK_6:case SDLK_7:case SDLK_8:
-				case SDLK_9:case SDLK_q:case SDLK_w:
-				case SDLK_e:case SDLK_r:case SDLK_t:
-				case SDLK_y:case SDLK_u:case SDLK_i:
-				case SDLK_o:case SDLK_p:
-					experimental_sample_filter( e.key.keysym.sym );
-					break;
-				
-				/* get rid of ao_track_select */
-				case SDLK_a:
-				case SDLK_d:	
-					if (e.key.keysym.sym==SDLK_d)
-						ao_track_select++;
-					else
-						ao_track_select--;
-					
-					if (play_stat == M_PLAY)
-						play_stat = M_RELOAD;
-					else if (play_stat == M_PAUSE)
-						play_stat = M_RELOAD_IDLE;
-					
-					if (play_stat == M_STOPPED || play_stat == M_ERR)
-						play_stat = M_LOAD;
-					break;
-					
-				case SDLK_c:
-					
-					load_conf(CONFIG_FNAME);
-					
-					/* refresh a couple things... */
-					sdl_set_col(&tcol_a, TEXT_COLOR, 0);
-					sdl_set_col(&tcol_b, TEXT_BG_COLOR, 0);
-					free_scope();
-					init_scope();
-					
-					SDL_SetWindowSize(win, c_screen_w, c_screen_h);
-					
-					/* should screen be freed ? */
-					screen = SDL_GetWindowSurface(win);
-					break;
-				
-				case SDLK_f:
-					gtk_slave_file_chooser_open();
-					break;
-				
-				case SDLK_x:
-					
-					if (k_ctrl && k_shift) /* SHIFT + CTRL + X = remove all */
-					{
+						KS_CHANGE_TRACK_DOAFTER
+						break;
+						
+					case KS_FIRST_TRACK:
+						KS_IF_MATCH
+						if (ao_track_max == -1)
+							fcur = 0;
+						else
+						{
+							if (ao_track_select > 0)
+								ao_track_select = 0;
+							else
+								fcur = 0;
+						}
+						KS_CHANGE_TRACK_DOAFTER
+						break;
+						
+					case KS_LAST_TRACK:
+						KS_IF_MATCH
+						if (ao_track_max == -1)
+							fcur = flist->len-1;
+						else
+						{
+							if (ao_track_select < ao_track_max)
+								ao_track_select = ao_track_max;
+							else
+								fcur = flist->len-1;
+						}
+						KS_CHANGE_TRACK_DOAFTER
+						break;
+						
+					case KS_RELOAD_CONF:
+						KS_IF_MATCH
+						load_conf(CONFIG_FNAME);
+						/* refresh a couple things... */
+						sdl_set_col(&tcol_a, TEXT_COLOR, 0);
+						sdl_set_col(&tcol_b, TEXT_BG_COLOR, 0);
+						free_scope();
+						init_scope();
+						SDL_SetWindowSize(win, c_screen_w, c_screen_h);
+						/* should screen be freed ? */
+						screen = SDL_GetWindowSurface(win);
+						break;
+						
+					case KS_TOGGLE_MONO:
+						KS_IF_MATCH
+						mono = (mono == 1) ? 0 : 1;
+						break;
+						
+					case KS_PAUSE:
+						KS_IF_MATCH
+						if (play_stat == M_STOPPED || play_stat == M_ERR)
+							play_stat = M_LOAD;
+						else if (play_stat == M_PAUSE)
+							play_stat = M_PLAY;
+						else if (play_stat == M_PLAY)
+							play_stat = M_PAUSE;
+						break;
+						
+					case KS_QUIT:
+						KS_IF_MATCH
+						run = 0;
+						break;
+						
+					case KS_OPEN_FILE:
+						KS_IF_MATCH
+						gtk_slave_file_chooser_open();
+						break;
+						
+					case KS_DELETE_CURRENT_ITEM:
+						KS_IF_MATCH
+						
+						del_flist_idx(flist, fcur);
+						
+						KS_DEL_TRACK_DOAFTER
+						break;
+						
+					case KS_DELETE_ALL_ITEMS:
+						KS_IF_MATCH
+						
 						while (flist->len > 0)
 							del_flist_idx(flist, 0);
+						
+						KS_DEL_TRACK_DOAFTER
+						break;
 					}
-					else
-						del_flist_idx(flist, fcur);
-					
-					play_stat = M_RELOAD;
-					
-					ao_track_select = 0;
-					ao_track_max = -1;
-
-					if (flist->len == 0)
-					{
-						clear_tags();
-						SDL_PauseAudio(1);
-						
-						reset_u_buf();
-						reset_chan_disp();
-						
-						clear_scope();
-						
-						if (file_close != 0)
-							file_close();
-						
-						fcur=0;
-						
-						play_stat = M_NOFILE;
-					}
-					
-					else if (fcur >= flist->len)
-						fcur = flist->len - 1;
-					break;
 				
-				default:break;
-				}
 				break;
 			default:break;
 			}
@@ -837,6 +914,12 @@ int main(int argc, char *argv[])
 				file_execute = &usf_execute;
 				file_open = &usf_open;
 			}
+			else if (get_file_type(get_flist_idx(flist,fcur)) == F_DSF)
+			{
+				file_close = &close_dsf_file;
+				file_execute = &dsf_execute;
+				file_open = &load_dsf_file;
+			}
 			else
 			{
 				play_stat = M_ERR;
@@ -1000,7 +1083,7 @@ void load_conf(char * fn)
 	
 	while (tmp)
 	{
-		if (strcmp("general",tmp->section)==0)
+		if (!strcmp("general",tmp->section))
 		{
 			
 			if (ENTRY_NAME("fps")  && tmp->type==E_INT)
@@ -1122,7 +1205,26 @@ void load_conf(char * fn)
 				f_boost = tmp->dat[0].f;
 			
 		}
-		
+		/*
+		else if (!strcmp("keyboard",tmp->section))
+		{
+			if (ENTRY_NAME("prev_track") && tmp->type==E_STR  )
+				strcpy(c_ttf_font, tmp->dat[0].s);
+			if (ENTRY_NAME("prev_track") && tmp->type==E_STR  )
+				strcpy(c_ttf_font, tmp->dat[0].s);
+			if (ENTRY_NAME("prev_track") && tmp->type==E_STR  )
+				strcpy(c_ttf_font, tmp->dat[0].s);
+			if (ENTRY_NAME("prev_track") && tmp->type==E_STR  )
+				strcpy(c_ttf_font, tmp->dat[0].s);
+			if (ENTRY_NAME("prev_track") && tmp->type==E_STR  )
+				strcpy(c_ttf_font, tmp->dat[0].s);
+			if (ENTRY_NAME("prev_track") && tmp->type==E_STR  )
+				strcpy(c_ttf_font, tmp->dat[0].s);
+			if (ENTRY_NAME("prev_track") && tmp->type==E_STR  )
+				strcpy(c_ttf_font, tmp->dat[0].s);
+			if (ENTRY_NAME("prev_track") && tmp->type==E_STR  )
+				strcpy(c_ttf_font, tmp->dat[0].s);
+		}*/
 		
 		tmp = tmp->next;
 	}
@@ -1873,6 +1975,18 @@ int get_file_type(char * fn)
 	
 	if (!strcmp_nocase(ext,"gsf",-1) || !strcmp_nocase(ext,"minigsf",-1))
 		return F_GSF;
+	
+	if (!strcmp_nocase(ext,"dsf",-1) || !strcmp_nocase(ext,"minidsf",-1))
+		return F_DSF;
+	
+	if (!strcmp_nocase(ext,"qsf",-1) || !strcmp_nocase(ext,"miniqsf",-1))
+		return F_QSF;
+	
+	if (!strcmp_nocase(ext,"ssf",-1) || !strcmp_nocase(ext,"minissf",-1))
+		return F_SSF;
+	
+	if (!strcmp_nocase(ext,"2sf",-1) || !strcmp_nocase(ext,"mini2sf",-1))
+		return F_2SF;
 	
 	return F_UNKNOWN;
 	

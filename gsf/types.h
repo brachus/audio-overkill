@@ -7,8 +7,6 @@ typedef unsigned char BYTE;
 typedef unsigned short WORD;
 typedef unsigned int DWORD;
 
-#define TRUE	1
-#define FALSE	0
 
 #endif
 

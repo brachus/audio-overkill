@@ -9,7 +9,7 @@
 #include <glib.h>
 
 #include "ao.h"
-#include "psf/corlett.h"
+#include "corlett.h"
 #include "psf/eng_protos.h"
 
 #ifdef unix
@@ -25,7 +25,7 @@ struct stat sb;
 
 
 
-int is_dir(char *fn)
+int is_dir(const char *fn)
 {
 	#ifdef unix
 	
@@ -207,7 +207,7 @@ long filebuf_fseek(struct filebuf * file, long offset, int whence)
     return ret;
 }
 
-int filebuf_load(char *fn, struct filebuf *r)
+int filebuf_load(const char *fn, struct filebuf *r)
 {
 	FILE *fp;
 	char ch;
@@ -245,7 +245,7 @@ int filebuf_load(char *fn, struct filebuf *r)
 }
 
 
-char *filename_build(const char *dir, char *fn)
+char *filename_build(const char *dir, const char *fn)
 {
 	int i, j, dlen, flen, len, md;
 	char dr='/';
@@ -425,6 +425,47 @@ void ao_set_lib_dir(char *s)
 	
 }
 
+int ao_get_lib_newer(const char *filename, uint8 **buffer, uint64 *length)
+{
+	char *tmpdir;
+	struct filebuf *fb;
+	int r;
+	
+	fb = filebuf_init();
+	
+	if (!fb)
+		return AO_FAIL;
+	
+	/* sneak in ao_lib_dir */
+	
+	if (ao_lib_dir=='\0')
+		tmpdir = filename_build("./", filename);
+	else
+		tmpdir = filename_build(ao_lib_dir, filename);
+	
+	if (!tmpdir)
+		return AO_FAIL;
+	
+	r = filebuf_load(tmpdir, fb);
+	
+	free(tmpdir);
+	
+	if (!r)
+	{
+		filebuf_free(fb);
+		return AO_FAIL;
+	}
+	
+	*length = (uint64) fb->len;
+	*buffer = (uint8 *) fb->buf;
+	
+	//free(fb);
+
+
+	return AO_SUCCESS;
+
+}
+
 /* ao_get_lib: called to load secondary files */
 int ao_get_lib(struct filebuf *fbuf, char *libdir, char *filename)
 {
@@ -479,6 +520,7 @@ char *ao_chip_names[] =
 	"NSF",
 	"NINTENDO S-SMP",
 	"KSS",
+	"GBS",
 	
 	"GSF"
 };
@@ -494,6 +536,7 @@ int ao_channel_mix_update_cnt1[4*128];
 
 int ao_channel_mix_update_cnt[4*128];
 int ao_channel_mix_update_acc[4*128*2];
+int ao_channel_mix_update_prev[4*128*2];
 
 #define _AO_H_MAX_DISP_CHAN 128
 
@@ -548,7 +591,6 @@ int mix_chan_find_avail_chip(int chip_id, int nchannels)
 			
 		if (ao_channel_set_chip[i] == -1)
 		{
-			
 			ao_channel_set_chip[i] = chip_id;
 			ao_channel_nchannels[i] = nchannels;
 			
@@ -583,25 +625,31 @@ void mix_chan_flag(int chip_id, int nchannels, int ch, int samp)
 
 void mix_chan_disp(int chip_id, int nchannels, int ch, short l, short r)
 {
+	int tmpl, tmpr, cmatch = -1, i, j, ch_idx, ch_left, ldiff, rdiff;
 	
-	int tmpl, tmpr, cmatch = -1, i, j, ch_idx, ch_left;
+	//printf("%d %d %d %d %d\n",chip_id, nchannels, ch, l, r);
 	
-	cmatch = mix_chan_find_avail_chip(chip_id,nchannels);
-		
+	cmatch = mix_chan_find_avail_chip(chip_id, nchannels);
+			
 	if (cmatch < 0)
 		return;
-	
 	
 	ch_idx = (cmatch * _AO_H_MAX_DISP_CHAN) + ch;
 	ch_left = ((cmatch * _AO_H_MAX_DISP_CHAN) + ch) * 2;
 	
+	/* using difference in measuring audio levels */
 	
-	l=l<0?-l:l;
-	r=r<0?-r:r;
+	ldiff = ((int) l) - ((int) ao_channel_mix_update_prev[ch_left]);
+	rdiff = ((int) r) - ((int) ao_channel_mix_update_prev[ch_left+1]);
 	
+	ao_channel_mix_update_prev[ch_left] = l;
+	ao_channel_mix_update_prev[ch_left+1] = r;
 	
-	ao_channel_mix_update_acc[ch_left] += l;
-	ao_channel_mix_update_acc[ch_left + 1] += r;
+	ldiff=ldiff<0?-ldiff:ldiff;
+	rdiff=rdiff<0?-rdiff:rdiff;
+	
+	ao_channel_mix_update_acc[ch_left] += ldiff;
+	ao_channel_mix_update_acc[ch_left + 1] += rdiff;
 	
 	/* update min-max.  this will be the window for displaying the values. */
 	

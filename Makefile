@@ -1,5 +1,5 @@
 #
-# Audio Overkill Make File
+# Audio Overkill Make File (recycled from VGMPlay Makefile)
 
 
 # disable Hardware OPL Support
@@ -23,7 +23,6 @@ BYTE_ORDER = 1
 EMUFLAGS := -DENABLE_ALL_CORES
 
 CC = gcc
-
 CCPP = g++
 
 #PREFIX = /usr/local
@@ -73,32 +72,17 @@ endif
 SRC = .
 OBJ = obj
 
-PSFSRCS = \
-	  $(SRC)/psf/plugin.c\
-	  $(SRC)/psf/audstrings.c\
-	  $(SRC)/psf/corlett.c\
-      $(SRC)/psf/psx.c \
-      $(SRC)/psf/psx_hw.c \
-      $(SRC)/psf/eng_psf.c \
-      $(SRC)/psf/eng_psf2.c \
-      $(SRC)/psf/peops/spu.c \
-      $(SRC)/psf/peops2/dma.c \
-      $(SRC)/psf/peops2/registers.c \
-      $(SRC)/psf/peops2/spu.c\
 
 
-#OBJDIRS = \
-#	$(OBJ) \
-#	$(EMUOBJ)
 
-VGMMAINOBJS = \
+VGMOBJS = \
 	$(OBJ)/vgm/VGMPlay.o \
 	$(OBJ)/vgm/VGMPlay_AddFmts.o \
 	$(OBJ)/vgm/Stream.o \
 	$(OBJ)/vgm/ChipMapper.o\
 	$(OBJ)/vgm/plugin.o
 
-SIDMAINOBJS = \
+SIDOBJS = \
 	$(OBJ)/sid/plugin.o \
 	$(OBJ)/sid/sidengine.o \
 	$(OBJ)/sid/soundcard.o
@@ -178,7 +162,6 @@ EMUOBJS = \
 
 PSFOBJS = \
 	$(OBJ)/psf/plugin.o\
-	$(OBJ)/psf/corlett.o\
 	$(OBJ)/psf/psx.o\
 	$(OBJ)/psf/psx_hw.o\
 	$(OBJ)/psf/eng_psf.o\
@@ -241,7 +224,7 @@ GMEOBJS = \
 	$(OBJ)/gme/Ym2413_Emu.o\
 	$(OBJ)/gme/Ym2612_Emu.o
 
-GSFMAINOBJS = \
+GSFOBJS = \
 	$(OBJ)/gsf/plugin.o \
 	$(OBJ)/gsf/gsf.o \
 	$(OBJ)/gsf/VBA/bios.o \
@@ -255,7 +238,7 @@ GSFMAINOBJS = \
 	$(OBJ)/gsf/VBA/memgzio.o \
 	$(OBJ)/gsf/VBA/psftag.o
 
-USFMAINOBJS = \
+USFOBJS = \
 	$(OBJ)/usf/audio_hle_main.o \
 	$(OBJ)/usf/audio_ucode1.o \
 	$(OBJ)/usf/audio_ucode2.o \
@@ -288,6 +271,34 @@ USFMAINOBJS = \
 	$(OBJ)/usf/x86.o \
 	$(OBJ)/usf/x86_fpu.o
 
+DSFOBJS = $(OBJ)/dsf/aica.o \
+	$(OBJ)/dsf/aicadsp.o \
+	$(OBJ)/dsf/arm7.o \
+	$(OBJ)/dsf/arm7i.o \
+	$(OBJ)/dsf/dc_hw.o \
+	$(OBJ)/dsf/dsf_plugin.o \
+	$(OBJ)/dsf/eng_dsf.o
+
+
+# DSF engine
+#OBJS += eng_dsf/eng_dsf.o eng_dsf/dc_hw.o eng_dsf/aica.o eng_dsf/aicadsp.o eng_dsf/arm7.o eng_dsf/arm7i.o
+
+# SSF engine
+#OBJS += eng_ssf/m68kcpu.o eng_ssf/m68kopac.o eng_ssf/m68kopdm.o eng_ssf/m68kopnz.o eng_ssf/m68kops.o
+#OBJS += eng_ssf/scsp.o eng_ssf/scspdsp.o eng_ssf/sat_hw.o eng_ssf/eng_ssf.o
+
+# QSF engine
+#OBJS += eng_qsf/eng_qsf.o eng_qsf/kabuki.o eng_qsf/qsound.o eng_qsf/z80.o eng_qsf/z80dasm.o
+
+# PSF engine
+#OBJS += eng_psf/eng_psf.o eng_psf/psx.o eng_psf/psx_hw.o eng_psf/peops/spu.o
+
+# PSF2 extentions
+#OBJS += eng_psf/eng_psf2.o eng_psf/peops2/spu.o eng_psf/peops2/dma.o eng_psf/peops2/registers.o
+
+# SPU engine (requires PSF engine)
+#OBJS += eng_psf/eng_spu.o
+
 
 LIBRESAMPLEOBJS = \
 	$(OBJ)/libresample/filterkit.o \
@@ -297,6 +308,9 @@ LIBRESAMPLEOBJS = \
 
 MAINOBJS=\
 	$(OBJ)/ao.o\
+	$(OBJ)/corlett.o\
+	$(OBJ)/corlett_newer.o\
+	$(OBJ)/utils.o\
 	$(OBJ)/conf.o\
 	$(OBJ)/filelist.o\
 	$(OBJ)/main.o
@@ -304,9 +318,9 @@ MAINOBJS=\
 
 all: audiooverkill
 
-audiooverkill: $(EMUOBJS) $(VGMMAINOBJS) $(SIDMAINOBJS) $(GMEOBJS) $(LIBRESAMPLEOBJS) $(GSFMAINOBJS) $(USFMAINOBJS) psf.o main.o
+audiooverkill: $(EMUOBJS) $(VGMOBJS) $(SIDOBJS) $(GMEOBJS) $(LIBRESAMPLEOBJS) $(GSFOBJS) $(USFOBJS) $(DSFOBJS) $(PSFOBJS) $(MAINOBJS)
 	@echo Linking audio overkill ...
-	@$(CCPP) $(LDFLAGS) $(EMUOBJS) $(VGMMAINOBJS) $(SIDMAINOBJS) $(GMEOBJS) $(LIBRESAMPLEOBJS) $(GSFMAINOBJS) $(USFMAINOBJS) $(PSFOBJS) $(MAINOBJS)  -o audio_overkill
+	@$(CCPP) $(LDFLAGS) $(EMUOBJS) $(VGMOBJS) $(SIDOBJS) $(GMEOBJS) $(LIBRESAMPLEOBJS) $(GSFOBJS) $(USFOBJS) $(DSFOBJS) $(PSFOBJS) $(MAINOBJS)  -o audio_overkill
 	@echo Done.
 
 
@@ -334,7 +348,7 @@ $(OBJ)/gme/%.o:	$(SRC)/gme/%.cpp
 	@mkdir -p $(@D)
 	@$(CCPP) $(CPPFLAGS) -c $< -o $@
 
-# compile the gsf library files (c++)
+# compile gsf code (c++)
 $(OBJ)/gsf/%.o:	$(SRC)/gsf/%.cpp
 	@echo Compiling $< ...
 	@mkdir -p $(@D)
@@ -349,54 +363,50 @@ $(OBJ)/gsf/VBA/%.o:	$(SRC)/gsf/VBA/%.c
 	@$(CC) $(CFLAGS) -DLINUX -c $< -o $@
 
 
-
-# gsf source uses this:
+# libresample
 $(OBJ)/libresample/%.o:	$(SRC)/gsf/libresample-0.1.3/src/%.c
 	@echo Compiling $< ...
 	@mkdir -p $(@D)
 	@$(CC) $(CFLAGS)  -c $< -o $@
 
 
-# compile the usf library files (c++)
+# compile usf code (c++)
 $(OBJ)/usf/%.o:	$(SRC)/usf/%.cc
 	@echo Compiling $< ...
 	@mkdir -p $(@D)
 	@$(CCPP) $(CPPFLAGS) $(LDFLAGS)  -DLINUX -c $< -o $@
 
 
+# compile dsf code
+$(OBJ)/dsf/%.o:	$(SRC)/dsf/%.c
+	@echo Compiling $< ...
+	@mkdir -p $(@D)
+	@$(CC) $(CFLAGS) $(LDFLAGS) -DLINUX -c $< -o $@
+	
+# compile psf code
+$(OBJ)/psf/%.o:	$(SRC)/psf/%.c
+	@echo Compiling $< ...
+	@mkdir -p $(@D)
+	@$(CC) $(CFLAGS) $(LDFLAGS) -c $< -o $@
+	
+$(OBJ)/psf/peops/%.o:	$(SRC)/psf/peops/%.c
+	@echo Compiling $< ...
+	@mkdir -p $(@D)
+	@$(CC) $(CFLAGS) $(LDFLAGS) -c $< -o $@
 
-# compile psf
-psf.o:
-	@echo Compiling psf objects ...
-	@mkdir -p $(OBJ)/psf/
-	@mkdir -p $(OBJ)/psf/peops/
-	@mkdir -p $(OBJ)/psf/peops2/
-	@$(CC) $(CFLAGS) $(LDFLAGS) -c psf/plugin.c -o $(OBJ)/psf/plugin.o
-	@$(CC) $(CFLAGS) $(LDFLAGS) -c psf/corlett.c -o $(OBJ)/psf/corlett.o
-	@$(CC) $(CFLAGS) $(LDFLAGS) -c psf/psx.c -o $(OBJ)/psf/psx.o
-	@$(CC) $(CFLAGS) $(LDFLAGS) -c psf/psx_hw.c -o $(OBJ)/psf/psx_hw.o
-	@$(CC) $(CFLAGS) $(LDFLAGS) -c psf/eng_psf.c -o $(OBJ)/psf/eng_psf.o
-	@$(CC) $(CFLAGS) $(LDFLAGS) -c psf/eng_psf2.c -o $(OBJ)/psf/eng_psf2.o
-	@$(CC) $(CFLAGS) $(LDFLAGS) -c psf/peops/spu.c -o $(OBJ)/psf/peops/spu.o
-	@$(CC) $(CFLAGS) $(LDFLAGS) -c psf/peops/adsr.c -o $(OBJ)/psf/peops/adsr.o
-	@$(CC) $(CFLAGS) $(LDFLAGS) -c psf/peops/reverb.c -o $(OBJ)/psf/peops/reverb.o
-	@$(CC) $(CFLAGS) $(LDFLAGS) -c psf/peops2/dma.c -o $(OBJ)/psf/peops2/dma.o
-	@$(CC) $(CFLAGS) $(LDFLAGS) -c psf/peops2/registers.c -o $(OBJ)/psf/peops2/registers.o
-	@$(CC) $(CFLAGS) $(LDFLAGS) -c psf/peops2/spu.c -o $(OBJ)/psf/peops2/spu.o
-	@$(CC) $(CFLAGS) $(LDFLAGS) -c psf/peops2/xa.c -o $(OBJ)/psf/peops2/xa.o
-	@$(CC) $(CFLAGS) $(LDFLAGS) -c psf/peops2/adsr.c -o $(OBJ)/psf/peops2/adsr.o
-	@$(CC) $(CFLAGS) $(LDFLAGS) -c psf/peops2/reverb.c -o $(OBJ)/psf/peops2/reverb.o
+$(OBJ)/psf/peops2/%.o:	$(SRC)/psf/peops2/%.c
+	@echo Compiling $< ...
+	@mkdir -p $(@D)
+	@$(CC) $(CFLAGS) $(LDFLAGS) -c $< -o $@
 
-#@$(CC) $(CFLAGS) $(LDFLAGS) -c psf/peops/dma.c -o $(OBJ)/psf/peops/dma.o
 
-# compile main
-main.o:
-	@echo Compiling main objects ...
-	@mkdir -p $(OBJ)
-	@$(CC) $(CFLAGS)  $(LDFLAGS) -c main.c -o $(OBJ)/main.o
-	@$(CC) $(CFLAGS)  $(LDFLAGS) -c ao.c -o $(OBJ)/ao.o
-	@$(CC) $(CFLAGS)  $(LDFLAGS) -c filelist.c -o $(OBJ)/filelist.o
-	@$(CC) $(CFLAGS)  $(LDFLAGS) -c conf.c -o $(OBJ)/conf.o
+# compile main code
+$(OBJ)/%.o:	$(SRC)/%.c
+	@echo Compiling $< ...
+	@mkdir -p $(@D)
+	@$(CC) $(CFLAGS) $(LDFLAGS) -c $< -o $@
+
+	
 
 clean:
 	@echo Deleting object files ...
@@ -404,24 +414,3 @@ clean:
 	@echo Deleting executable file\(s\) ...
 	@rm -f audio_overkill 
 	@echo Done.
-
-# Thanks to ZekeSulastin and nextvolume for the install and uninstall routines.
-#install:	vgmplay
-#	install -m 755 vgmplay $(DESTDIR)$(PREFIX)/bin/vgmplay
-#	install -m 644 vgmplay.1 $(DESTDIR)$(MANPREFIX)/man1/vgmplay.1
-#	mkdir -m 755 -p $(DESTDIR)$(PREFIX)/share/vgmplay
-#	install -m 644 VGMPlay.ini $(DESTDIR)$(PREFIX)/share/vgmplay/vgmplay.ini
-#	-install -m 644 yrw801.rom $(DESTDIR)$(PREFIX)/share/vgmplay/yrw801.rom
-
-
-## Install the "vgm-player" wrapper
-#play_inst:	install
-#	install -m 755 vgm-player $(DESTDIR)$(PREFIX)/bin/vgm-player
-
-#uninstall:
-#	rm $(DESTDIR)$(PREFIX)/bin/vgmplay
-#	rm $(DESTDIR)$(PREFIX)/bin/vgm-player
-#	rm $(DESTDIR)$(MANPREFIX)/man1/vgmplay.1
-#	rm -rf $(DESTDIR)$(PREFIX)/share/vgmplay
-
-#.PHONY: all clean install uninstall

@@ -1,7 +1,6 @@
 //
 // Audio Overload SDK
 //
-// Fake ao.h to set up the general Audio Overload style environment
 //
 
 #ifndef __AO_H
@@ -11,10 +10,7 @@
 
 
 #define WANT_AUD_BSWAP
-/*
-#include <libaudcore/audio.h>
-#include <libaudcore/index.h>
-*/
+
 
 #ifdef WANT_AUD_BSWAP
 
@@ -95,12 +91,154 @@ extern uint64_t bswap64 (uint64_t x)
 #endif
 
 
-/*#define UINT32 uint32_t
-#define UINT16 uint16_t
-#define UINT8 uint8_t
-#define INT32 int32_t
-#define INT16 int16_t
-#define INT8 int8_t*/
+
+typedef unsigned char ao_bool;
+
+#ifdef __GNUC__
+#include <stddef.h>	// get NULL
+#include <stdbool.h>
+
+#ifndef TRUE
+#define TRUE  (1)
+#endif
+#ifndef FALSE
+#define FALSE (0)
+#endif
+
+#endif
+
+#ifdef _MSC_VER
+#include <stddef.h>	// get NULL
+
+#ifndef TRUE
+#define TRUE  (1)
+#endif
+#ifndef FALSE
+#define FALSE (0)
+#endif
+
+#define true (1)
+#define false (0)
+
+#define strcasecmp _strcmpi
+
+#endif
+
+typedef unsigned char		uint8;
+typedef unsigned char		UINT8;
+typedef signed char			int8;
+typedef signed char			INT8;
+typedef unsigned short		uint16;
+typedef unsigned short		UINT16;
+typedef signed short		int16;
+typedef signed short		INT16;
+typedef signed int			int32;
+typedef unsigned int		uint32;
+#ifdef LONG_IS_64BIT
+typedef signed long             int64;
+typedef unsigned long           uint64;
+#else
+typedef signed long long	int64;
+typedef unsigned long long	uint64;
+#endif
+
+#ifdef WIN32
+/*#include "win32_utf8/src/entry.h"*/
+
+#ifndef _BASETSD_H
+typedef signed int			INT32;
+typedef unsigned int		UINT32;
+typedef signed long long	INT64;
+typedef unsigned long long	UINT64;
+#endif
+#else
+typedef signed int			INT32;
+typedef unsigned int		UINT32;
+#ifdef LONG_IS_64BIT
+typedef signed long         INT64;
+typedef unsigned long       UINT64;
+#else
+typedef signed long long	INT64;
+typedef unsigned long long	UINT64;
+#endif
+#endif
+
+#define __LITTLE_ENDIAN__ 1
+/* fix this mess. */
+
+#ifdef __BIG_ENDIAN__
+	#undef LSB_FIRST
+#endif
+
+#ifdef __LITTLE_ENDIAN__
+	#define LSB_FIRST	1
+#endif
+
+#ifndef INLINE
+#if defined(_MSC_VER)
+#define INLINE static __forceinline
+#elif defined(__GNUC__)
+#define INLINE static __inline__
+#elif defined(_MWERKS_)
+#define INLINE static inline
+#elif defined(__powerc)
+#define INLINE static inline
+#else
+#define INLINE
+#endif
+#endif
+
+INLINE uint16 SWAP16(uint16 x)
+{
+	return (
+		((x & 0xFF00) >> 8) |
+		((x & 0x00FF) << 8)
+	);
+}
+
+INLINE uint32 SWAP24(uint32 x)
+{
+	return (
+		((x & 0xFF0000) >> 16) |
+		((x & 0x00FF00) << 0) |
+		((x & 0x0000FF) << 16)
+	);
+}
+
+INLINE uint32 SWAP32(uint32 x)
+{
+	return (
+		((x & 0xFF000000) >> 24) |
+		((x & 0x00FF0000) >> 8) |
+		((x & 0x0000FF00) << 8) |
+		((x & 0x000000FF) << 24)
+	);
+}
+
+#if LSB_FIRST
+#define BE16(x) (SWAP16(x))
+#define BE24(x) (SWAP24(x))
+#define BE32(x) (SWAP32(x))
+#define LE16(x) (x)
+#define LE24(x) (x)
+#define LE32(x) (x)
+
+#ifndef __ENDIAN__ /* Mac OS X Endian header has this function in it */
+#define Endian32_Swap(x) (SWAP32(res))
+#endif
+
+#else
+
+#define BE16(x) (x)
+#define BE24(x) (x)
+#define BE32(x) (x)
+#define LE16(x) (SWAP16(x))
+#define LE24(x) (SWAP24(x))
+#define LE32(x) (SWAP32(x))
+
+#endif
+
+
 #define u_int32_t uint32_t
 #define u_int16_t uint16_t
 #define u_int8_t uint8_t
@@ -134,7 +272,7 @@ struct filebuf
 	long seek;
 };
 
-int is_dir(char *fn);
+int is_dir(const char *fn);
 
 #define _AO_FBUF_CUR	(0)
 #define _AO_FBUF_SET	(1)
@@ -142,16 +280,17 @@ int is_dir(char *fn);
 
 struct filebuf *filebuf_init();
 int filebuf_free(struct filebuf *r);
-int filebuf_load(char *fn, struct filebuf *r);
+int filebuf_load(const char *fn, struct filebuf *r);
 long filebuf_fread(void *buffer, long size, long nmemb, struct filebuf *f);
 long filebuf_fseek(struct filebuf * file, long offset, int whence);
 
 
-char * filename_build(const char *dir, char *fn);
+char * filename_build(const char *dir, const char *fn);
 
 char *strip_dir(const char *path);
 char *strip_fn(const char *path);
 
+int ao_get_lib_newer(const char *filename, uint8 **buffer, uint64 *length);
 int ao_get_lib(struct filebuf *fbuf, char *libdir, char *filename);
 
 extern char *ao_chip_names[];
@@ -195,11 +334,15 @@ enum
 	_AO_H_GME_NSF,
 	_AO_H_GME_SPC,
 	_AO_H_GME_KSS,
+	_AO_H_GME_GB,
 	/* fill out chips supported in blargg's game music emulator here */
 	
 	
 	_AO_H_GSF,
-	_AO_H_USF
+	_AO_H_USF,
+	
+	_AO_H_DSF,
+	_AO_H_SSF
 };
 
 extern int ao_channel_set_chip[4];
@@ -213,6 +356,7 @@ extern int ao_channel_mix_update_cnt1[4*128];
 
 extern int ao_channel_mix_update_cnt[4*128];
 extern int ao_channel_mix_update_acc[4*128*2];
+extern int ao_channel_mix_update_prev[4*128*2];
 
 
 extern int ao_sample_idx[64];
@@ -257,7 +401,6 @@ extern int play_stat;
 
 extern int ao_file_open;
 
-/* get rid of sid_subsong_sel */
 extern int ao_track_select;
 extern int ao_track_max;
 

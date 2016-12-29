@@ -84,7 +84,7 @@ static int buffered_len;
 
 
 
-char * get_chip_str(UINT8 c_id, UINT8 sub_type, UINT32 clock)
+const char * get_chip_str(UINT8 c_id, UINT8 sub_type, UINT32 clock)
 {
 	if (! clock)
 		return 0;

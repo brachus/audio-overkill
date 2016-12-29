@@ -4,6 +4,12 @@
 
 #include <string.h>
 
+extern "C"
+{
+	#include "../ao.h"
+}
+
+
 /* Copyright (C) 2003-2006 Shay Green. This module is free software; you
 can redistribute it and/or modify it under the terms of the GNU Lesser
 General Public License as published by the Free Software Foundation; either
@@ -338,6 +344,9 @@ void Effects_Buffer::mix_mono( blip_sample_t* out_, blargg_long count )
 	{
 		int s = BLIP_READER_READ( c );
 		BLIP_READER_NEXT( c, bass );
+		
+		mix_chan_disp(_AO_H_GME_GB, 3, 0, (short) s, (short) s); 
+		
 		out [0] = s;
 		out [1] = s;
 		if ( (BOOST::int16_t) s != s )
@@ -371,8 +380,11 @@ void Effects_Buffer::mix_stereo( blip_sample_t* out_, blargg_long count )
 		if ( (BOOST::int16_t) left != left )
 			left = 0x7FFF - (left >> 24);
 		
+		mix_chan_disp(_AO_H_GME_GB, 3, 0, (short) left, (short) right); 
+		
 		out [0] = left;
 		out [1] = right;
+		
 		
 		out += 2;
 		
@@ -433,8 +445,11 @@ void Effects_Buffer::mix_mono_enhanced( blip_sample_t* out_, blargg_long count )
 		if ( (BOOST::int16_t) left != left )
 			left = 0x7FFF - (left >> 24);
 		
+		mix_chan_disp(_AO_H_GME_GB, 3, 0, (short) left, (short) right); 
+		
 		out [0] = left;
 		out [1] = right;
+		
 		
 		out += 2;
 		
@@ -506,6 +521,8 @@ void Effects_Buffer::mix_enhanced( blip_sample_t* out_, blargg_long count )
 		
 		if ( (BOOST::int16_t) left != left )
 			left = 0x7FFF - (left >> 24);
+		
+		mix_chan_disp(_AO_H_GME_GB, 3, 0, (short) left, (short) right); 
 		
 		out [0] = left;
 		out [1] = right;

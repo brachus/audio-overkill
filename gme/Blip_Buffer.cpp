@@ -2,6 +2,12 @@
 
 #include "Blip_Buffer.h"
 
+extern "C"
+{
+	#include "../ao.h"
+}
+
+
 #include <assert.h>
 #include <limits.h>
 #include <string.h>
@@ -245,6 +251,7 @@ static void gen_sinc( float* out, int count, double oversample, double treble, d
 		double a = 1.0 - cos_angle - cos_nc_angle + cos_nc1_angle;
 		
 		out [i] = (float) ((a * d + c * b) / (b * d)); // a / b + c / d
+		
 	}
 }
 
@@ -399,6 +406,9 @@ long Blip_Buffer::read_samples( blip_sample_t* BLIP_RESTRICT out, long max_sampl
 				blip_long s = BLIP_READER_READ( reader );
 				if ( (blip_sample_t) s != s )
 					s = 0x7FFF - (s >> 24);
+				
+				mix_chan_disp(_AO_H_GME_GB, 3, 0, (short) s, (short) s); 
+				
 				*out++ = (blip_sample_t) s;
 				BLIP_READER_NEXT( reader, bass );
 			}
@@ -410,6 +420,9 @@ long Blip_Buffer::read_samples( blip_sample_t* BLIP_RESTRICT out, long max_sampl
 				blip_long s = BLIP_READER_READ( reader );
 				if ( (blip_sample_t) s != s )
 					s = 0x7FFF - (s >> 24);
+					
+				mix_chan_disp(_AO_H_GME_GB, 3, 0, (short) s, (short) s); 
+				
 				*out = (blip_sample_t) s;
 				out += 2;
 				BLIP_READER_NEXT( reader, bass );
@@ -438,6 +451,9 @@ void Blip_Buffer::mix_samples( blip_sample_t const* in, long count )
 	{
 		blip_long s = (blip_long) *in++ << sample_shift;
 		*out += s - prev;
+		
+		mix_chan_disp(_AO_H_GME_GB, 3, 0, (short) s, (short) s); 
+		
 		prev = s;
 		++out;
 	}

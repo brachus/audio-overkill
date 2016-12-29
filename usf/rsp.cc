@@ -35,17 +35,19 @@ char *GPR_Strings[32];
 void RSPReInitMemory()
 {
 
-    if (RSPRecompCode == NULL) {
-	printf("enough memory for RSP RSPRecompCode!");
-	return;
+    if (RSPRecompCode == NULL)
+    {
+		printf("enough memory for RSP RSPRecompCode!");
+		return;
     }
 
     RSPRecompCodeSecondary = RSPRecompCode + RSP_RECOMPMEM_SIZE;
 
 
-    if (RSPJumpTables == NULL) {
-	DisplayError("Not enough memory for Jump Table!");
-	return;
+    if (RSPJumpTables == NULL)
+    {
+		DisplayError("Not enough memory for Jump Table!");
+		return;
     }
 
     memset((uint8_t *) RSPJumpTables, 0, 0x2000 * MaxMaps);
@@ -61,21 +63,23 @@ void RSPReInitMemory()
 int32_t RSPAllocateMemory(void)
 {
 
-    RSPRecompCode =
-	(uint8_t *) malloc_exec(RSP_RECOMPMEM_SIZE +
+    RSPRecompCode = (uint8_t *) malloc_exec(RSP_RECOMPMEM_SIZE +
 				RSP_SECRECOMPMEM_SIZE);
-    if (RSPRecompCode == NULL) {
-	DisplayError("Not enough memory for RSP RSPRecompCode!");
-	return 0;
+				
+    if (RSPRecompCode == NULL)
+    {
+		DisplayError("Not enough memory for RSP RSPRecompCode!");
+		return 0;
     }
 
     RSPRecompCodeSecondary = RSPRecompCode + RSP_RECOMPMEM_SIZE;
 
-    RSPJumpTables = (uint8_t*)malloc(0x2000 * MaxMaps);
+    RSPJumpTables = (uint8_t*) malloc(0x2000 * MaxMaps);
 
-    if (RSPJumpTables == NULL) {
-	DisplayError("Not enough memory for Jump Table!");
-	return 0;
+    if (RSPJumpTables == NULL)
+    {
+		DisplayError("Not enough memory for Jump Table!");
+		return 0;
     }
 
     memset((uint8_t *) RSPJumpTables, 0, 0x2000 * MaxMaps);
@@ -93,80 +97,83 @@ FILE *qfil = 0;
 void real_run_rsp(uint32_t cycles)
 {
 //replace with interpreter
-    if (RSP_Cpu) {
-	RSP_Running = 1;
+    if (RSP_Cpu)
+    {
+		RSP_Running = 1;
 
-	while (RSP_Running) {
-	    // int32_t last = -1, count = 0, el, del;
-	    RSP_LW_IMEM(*PrgCount, &RSPOpC.Hex);
+		while (RSP_Running)
+		{
+			// int32_t last = -1, count = 0, el, del;
+			RSP_LW_IMEM(*PrgCount, &RSPOpC.Hex);
 
-	    /*if(*PrgCount == 0x100) {
-	       int32_t i= 0;
-	       FILE *fil4 = fopen("sc2000i.dmem","wb");
-	       for(i = 0; i < 0x2000;i+=4) {
-	       uint32_t dat = 0;
-	       dat = *(int32_t*)(DMEM + i);
-	       DoBswap(&dat);
-	       fwrite(&dat,1,4,fil4);
-	       }
-	       fclose(fil4);
-	       printf("RSP: %x\n", RSP_GPR[26].UW);
-	       //            Int3();
-	       //                   RSPBreakPoint();
-	       } */
-/*
-			if(!qfil) qfil = fopen("rsplogi.log","wb");
-	fprintf(qfil,"PC = %08x    ", *PrgCount);
-			fprintf(qfil,"r0=%08x at=%08x v0=%08x v1=%08x a0=%08x a1=%08x a2=%08x a3=%08x t0=%08x t1=%08x t2=%08x t3=%08x t4=%08x t5=%08x t6=%08x t7=%08x s0=%08x s1=%08x s2=%08x s3=%08x s4=%08x s5=%08x s6=%08x s7=%08x t8=%08x t9=%08x k0=%08x k1=%08x gp=%08x sp=%08x s8=%08x ra=%08x\n",
-				RSP_GPR[0].UW,RSP_GPR[1].UW,RSP_GPR[2].UW,RSP_GPR[3].UW,
-			RSP_GPR[4].UW,RSP_GPR[5].UW,RSP_GPR[6].UW,RSP_GPR[7].UW,
-			RSP_GPR[8].UW,RSP_GPR[9].UW,RSP_GPR[10].UW,RSP_GPR[11].UW,RSP_GPR[12].UW,
-			RSP_GPR[13].UW,RSP_GPR[14].UW,RSP_GPR[15].UW,RSP_GPR[16].UW,
-			RSP_GPR[17].UW,RSP_GPR[18].UW,RSP_GPR[19].UW,RSP_GPR[20].UW,
-			RSP_GPR[21].UW,RSP_GPR[22].UW,RSP_GPR[23].UW,RSP_GPR[24].UW,
-			RSP_GPR[25].UW,RSP_GPR[26].UW,RSP_GPR[27].UW,RSP_GPR[28].UW,
-			RSP_GPR[29].UW,RSP_GPR[30].UW,RSP_GPR[31].UW);
-*/
-	    /*if((RSPOpC.op == 18) && (RSPOpC.rs & 0x10)) {
-	       for (count = 0; count < 8; count ++ ) {
-	       el = Indx[RSPOpC.rs].B[count];
-	       del = EleSpec[RSPOpC.rs].B[el];
-	       if((last >= 0) && (last != del))
-	       printf("not same!\t%d\n", RSPOpC.funct);
-	       // 16,19,20,22
-	       // funct: 0,16,6,14,44,15,7
-	       last = del;
-	       }
-	       } */
+			/*if(*PrgCount == 0x100) {
+			   int32_t i= 0;
+			   FILE *fil4 = fopen("sc2000i.dmem","wb");
+			   for(i = 0; i < 0x2000;i+=4) {
+			   uint32_t dat = 0;
+			   dat = *(int32_t*)(DMEM + i);
+			   DoBswap(&dat);
+			   fwrite(&dat,1,4,fil4);
+			   }
+			   fclose(fil4);
+			   printf("RSP: %x\n", RSP_GPR[26].UW);
+			   //            Int3();
+			   //                   RSPBreakPoint();
+			   } */
+	/*
+				if(!qfil) qfil = fopen("rsplogi.log","wb");
+		fprintf(qfil,"PC = %08x    ", *PrgCount);
+				fprintf(qfil,"r0=%08x at=%08x v0=%08x v1=%08x a0=%08x a1=%08x a2=%08x a3=%08x t0=%08x t1=%08x t2=%08x t3=%08x t4=%08x t5=%08x t6=%08x t7=%08x s0=%08x s1=%08x s2=%08x s3=%08x s4=%08x s5=%08x s6=%08x s7=%08x t8=%08x t9=%08x k0=%08x k1=%08x gp=%08x sp=%08x s8=%08x ra=%08x\n",
+					RSP_GPR[0].UW,RSP_GPR[1].UW,RSP_GPR[2].UW,RSP_GPR[3].UW,
+				RSP_GPR[4].UW,RSP_GPR[5].UW,RSP_GPR[6].UW,RSP_GPR[7].UW,
+				RSP_GPR[8].UW,RSP_GPR[9].UW,RSP_GPR[10].UW,RSP_GPR[11].UW,RSP_GPR[12].UW,
+				RSP_GPR[13].UW,RSP_GPR[14].UW,RSP_GPR[15].UW,RSP_GPR[16].UW,
+				RSP_GPR[17].UW,RSP_GPR[18].UW,RSP_GPR[19].UW,RSP_GPR[20].UW,
+				RSP_GPR[21].UW,RSP_GPR[22].UW,RSP_GPR[23].UW,RSP_GPR[24].UW,
+				RSP_GPR[25].UW,RSP_GPR[26].UW,RSP_GPR[27].UW,RSP_GPR[28].UW,
+				RSP_GPR[29].UW,RSP_GPR[30].UW,RSP_GPR[31].UW);
+	*/
+			/*if((RSPOpC.op == 18) && (RSPOpC.rs & 0x10)) {
+			   for (count = 0; count < 8; count ++ ) {
+			   el = Indx[RSPOpC.rs].B[count];
+			   del = EleSpec[RSPOpC.rs].B[el];
+			   if((last >= 0) && (last != del))
+			   printf("not same!\t%d\n", RSPOpC.funct);
+			   // 16,19,20,22
+			   // funct: 0,16,6,14,44,15,7
+			   last = del;
+			   }
+			   } */
 
-	    //if(RSPOpC.rs < 0x10) printf("%d\n", RSPOpC.rs);
+			//if(RSPOpC.rs < 0x10) printf("%d\n", RSPOpC.rs);
 
-	    (RSP_Opcode[RSPOpC.op]) ();
+			(RSP_Opcode[RSPOpC.op]) ();
 
-	    switch (RSP_NextInstruction) {
-	    case NORMAL:
-		*PrgCount = (*PrgCount + 4) & 0xFFC;
-		break;
-	    case DELAY_SLOT:
-		RSP_NextInstruction = JUMP;
-		*PrgCount = (*PrgCount + 4) & 0xFFC;
-		break;
-	    case JUMP:
-		RSP_NextInstruction = NORMAL;
+			switch (RSP_NextInstruction)
+			{
+			case NORMAL:
+				*PrgCount = (*PrgCount + 4) & 0xFFC;
+				break;
+			case DELAY_SLOT:
+				RSP_NextInstruction = JUMP;
+				*PrgCount = (*PrgCount + 4) & 0xFFC;
+				break;
+			case JUMP:
+				RSP_NextInstruction = NORMAL;
 
-		*PrgCount = RSP_JumpTo;
-		break;
-	    }
+				*PrgCount = RSP_JumpTo;
+				break;
+			}
 
-	}
+		}
 
-	*PrgCount -= 4;
+		*PrgCount -= 4;
 
-	return;
+		return;
 
-    } else {
-	RunRecompilerCPU(cycles);
     }
+    else
+		RunRecompilerCPU(cycles);
 
 }
 
@@ -177,60 +184,69 @@ void RSP_SP_DMA_READ(void)
 
     SP_DRAM_ADDR_REG &= 0x00FFFFFF;
 
-    if (SP_DRAM_ADDR_REG > 0x800000) {
-	printf("SP DMA READ\nSP_DRAM_ADDR_REG not in RDRam space");
-	return;
+    if (SP_DRAM_ADDR_REG > 0x800000)
+    {
+		printf("SP DMA READ\nSP_DRAM_ADDR_REG not in RDRam space");
+		return;
     }
 
-    if ((SP_RD_LEN_REG & 0xFFF) + 1 + (SP_MEM_ADDR_REG & 0xFFF) > 0x1000) {
-	printf
-	    ("SP DMA READ\ncould not fit copy in memory segement\nSP_RD_LEN_REG=%08x\nSP_MEM_ADDR_REG=%08x",
-	     SP_RD_LEN_REG, SP_MEM_ADDR_REG);
-	return;
+    if ((SP_RD_LEN_REG & 0xFFF) + 1 + (SP_MEM_ADDR_REG & 0xFFF) > 0x1000)
+    {
+		printf
+			("SP DMA READ\ncould not fit copy in memory segement\nSP_RD_LEN_REG=%08x\nSP_MEM_ADDR_REG=%08x",
+			 SP_RD_LEN_REG, SP_MEM_ADDR_REG);
+		return;
     }
 
     Length = ((SP_RD_LEN_REG & 0xFFF) | 7) + 1;
     Skip = (SP_RD_LEN_REG >> 20) + Length;
     Count = ((SP_RD_LEN_REG >> 12) & 0xFF) + 1;
 
-    if ((SP_MEM_ADDR_REG & 0x1000) != 0) {
-	Dest = IMEM + ((SP_MEM_ADDR_REG & 0x0FFF) & ~7);
-    } else {
-	Dest = DMEM + ((SP_MEM_ADDR_REG & 0x0FFF) & ~7);
-    }
+    if ((SP_MEM_ADDR_REG & 0x1000) != 0)
+		Dest = IMEM + ((SP_MEM_ADDR_REG & 0x0FFF) & ~7);
+    else
+		Dest = DMEM + ((SP_MEM_ADDR_REG & 0x0FFF) & ~7);
+		
     Source = RDRAM + (SP_DRAM_ADDR_REG & ~7);
 
 #if defined(RSP_SAFE_DMA)
-    for (j = 0; j < Count; j++) {
-	for (i = 0; i < Length; i++) {
-	    *(uint8_t *) (((uint32_t) Dest + j * Length + i) ^ 3) =
-		*(uint8_t *) (((uint32_t) Source + j * Skip + i) ^ 3);
-	}
+    for (j = 0; j < Count; j++)
+    {
+		for (i = 0; i < Length; i++)
+		{
+			*(uint8_t *) (((uint32_t) Dest + j * Length + i) ^ 3) =
+			*(uint8_t *) (((uint32_t) Source + j * Skip + i) ^ 3);
+		}
     }
 #else
-    if ((Skip & 0x3) == 0) {
-	for (j = 0; j < Count; j++) {
-	    memcpy(Dest, Source, Length);
-	    Source += Skip;
-	    Dest += Length;
-	}
-    } else {
-	for (j = 0; j < Count; j++) {
-	    for (i = 0; i < Length; i++) {
-		*(uint8_t *) (uintptr_t) (((uint32_t) (uintptr_t) Dest + i)
-					  ^ 3) =
-		    *(uint8_t
-		      *) (uintptr_t) (((uint32_t) (uintptr_t) Source +
-				       i) ^ 3);
-	    }
-	    Source += Skip;
-	    Dest += Length;
-	}
+    if ((Skip & 0x3) == 0)
+    {
+		for (j = 0; j < Count; j++)
+		{
+			memcpy(Dest, Source, Length);
+			Source += Skip;
+			Dest += Length;
+		}
+    }
+    else
+    {
+		for (j = 0; j < Count; j++)
+		{
+			for (i = 0; i < Length; i++)
+			{
+				*(uint8_t *) (uintptr_t) (((uint32_t) (uintptr_t) Dest + i)
+							  ^ 3) =
+					*(uint8_t
+					  *) (uintptr_t) (((uint32_t) (uintptr_t) Source +
+							   i) ^ 3);
+			}
+			Source += Skip;
+			Dest += Length;
+		}
     }
 #endif
-    if ((!RSP_Cpu) && ((SP_MEM_ADDR_REG & 0x1000) != 0)) {
-	RSPSetJumpTable();
-    }
+    if ((!RSP_Cpu) && ((SP_MEM_ADDR_REG & 0x1000) != 0))
+		RSPSetJumpTable();
 
 
 
@@ -245,16 +261,18 @@ void RSP_SP_DMA_WRITE(void)
 
     SP_DRAM_ADDR_REG &= 0x00FFFFFF;
 
-    if (SP_DRAM_ADDR_REG > 0x800000) {
-	printf("SP DMA WRITE\nSP_DRAM_ADDR_REG not in RDRam space");
-	return;
+    if (SP_DRAM_ADDR_REG > 0x800000)
+    {
+		printf("SP DMA WRITE\nSP_DRAM_ADDR_REG not in RDRam space");
+		return;
     }
 
-    if ((SP_WR_LEN_REG & 0xFFF) + 1 + (SP_MEM_ADDR_REG & 0xFFF) > 0x1000) {
-	printf
-	    ("SP DMA READ\ncould not fit copy in memory segement\nSP_WR_LEN_REG=%08x\nSP_MEM_ADDR_REG=%08x",
-	     SP_WR_LEN_REG, SP_MEM_ADDR_REG);
-	return;
+    if ((SP_WR_LEN_REG & 0xFFF) + 1 + (SP_MEM_ADDR_REG & 0xFFF) > 0x1000)
+    {
+		printf
+			("SP DMA READ\ncould not fit copy in memory segement\nSP_WR_LEN_REG=%08x\nSP_MEM_ADDR_REG=%08x",
+			 SP_WR_LEN_REG, SP_MEM_ADDR_REG);
+		return;
     }
 
     Length = ((SP_WR_LEN_REG & 0xFFF) | 7) + 1;
@@ -264,31 +282,39 @@ void RSP_SP_DMA_WRITE(void)
     Source = DMEM + ((SP_MEM_ADDR_REG & 0x1FFF) & ~7);
 
 #if defined(RSP_SAFE_DMA)
-    for (j = 0; j < Count; j++) {
-	for (i = 0; i < Length; i++) {
-	    *(uint8_t *) (((uint32_t) Dest + j * Skip + i) ^ 3) =
-		*(uint8_t *) (((uint32_t) Source + j * Length + i) ^ 3);
-	}
+    for (j = 0; j < Count; j++)
+    {
+		for (i = 0; i < Length; i++)
+		{
+			*(uint8_t *) (((uint32_t) Dest + j * Skip + i) ^ 3) =
+			*(uint8_t *) (((uint32_t) Source + j * Length + i) ^ 3);
+		}
     }
 #else
-    if ((Skip & 0x3) == 0) {
-	for (j = 0; j < Count; j++) {
-	    memcpy(Dest, Source, Length);
-	    Source += Length;
-	    Dest += Skip;
-	}
-    } else {
-	for (j = 0; j < Count; j++) {
-	    for (i = 0; i < Length; i++) {
-		*(uint8_t *) (uintptr_t) (((uint32_t) (uintptr_t) Dest + i)
-					  ^ 3) =
-		    *(uint8_t
-		      *) (intptr_t) (((uint32_t) (uintptr_t) Source +
-				      i) ^ 3);
-	    }
-	    Source += Length;
-	    Dest += Skip;
-	}
+    if ((Skip & 0x3) == 0)
+    {
+		for (j = 0; j < Count; j++)
+		{
+			memcpy(Dest, Source, Length);
+			Source += Length;
+			Dest += Skip;
+		}
+    }
+    else
+    {
+		for (j = 0; j < Count; j++)
+		{
+			for (i = 0; i < Length; i++)
+			{
+				*(uint8_t *) (uintptr_t) (((uint32_t) (uintptr_t) Dest + i)
+							  ^ 3) =
+					*(uint8_t
+					  *) (intptr_t) (((uint32_t) (uintptr_t) Source +
+							  i) ^ 3);
+			}
+			Source += Length;
+			Dest += Skip;
+		}
     }
 #endif
     SP_DMA_BUSY_REG = 0;
@@ -310,13 +336,11 @@ void RSP_LDV_DMEM(uint32_t Addr, int32_t vect, int32_t element)
     int32_t length, Count;
 
     length = 8;
-    if (length > 16 - element) {
-	length = 16 - element;
-    }
-    for (Count = element; Count < (length + element); Count++) {
-	RSP_Vect[vect].B[15 - Count] = *(DMEM + ((Addr ^ 3) & 0xFFF));
-	Addr += 1;
-    }
+    if (length > 16 - element)
+		length = 16 - element;
+		
+    for (Count = element; Count < (length + element); Count++)
+		RSP_Vect[vect].B[15 - Count] = *(DMEM + ((Addr++ ^ 3) & 0xFFF));
 
 }
 
@@ -326,9 +350,8 @@ void RSP_LFV_DMEM(uint32_t Addr, int32_t vect, int32_t element)
     VECTOR Temp;
 
     length = 8;
-    if (length > 16 - element) {
-	length = 16 - element;
-    }
+    if (length > 16 - element)
+		length = 16 - element;
 
     Temp.HW[7] = *(DMEM + (((Addr + element) ^ 3) & 0xFFF)) << 7;
     Temp.HW[6] =
@@ -346,22 +369,23 @@ void RSP_LFV_DMEM(uint32_t Addr, int32_t vect, int32_t element)
     Temp.HW[0] =
 	*(DMEM + ((((Addr + ((0x4 - element) ^ 3)) & 0xf)) & 0xFFF)) << 7;
 
-    for (count = element; count < (length + element); count++) {
-	RSP_Vect[vect].B[15 - count] = Temp.B[15 - count];
-    }
+    for (count = element; count < (length + element); count++)
+		RSP_Vect[vect].B[15 - count] = Temp.B[15 - count];
 }
 
 void RSP_LH_DMEM(uint32_t Addr, uint16_t * Value)
 {
-    if ((Addr & 0x1) != 0) {
-	if (Addr > 0xFFE) {
-	    printf("hmmmm.... Problem with:\nRSP_LH_DMEM");
-	    return;
-	}
-	Addr &= 0xFFF;
-	*Value = *(uint8_t *) (DMEM + (Addr ^ 3)) << 8;
-	*Value += *(uint8_t *) (DMEM + ((Addr + 1) ^ 3));
-	return;
+    if ((Addr & 0x1) != 0)
+    {
+		if (Addr > 0xFFE)
+		{
+			printf("hmmmm.... Problem with:\nRSP_LH_DMEM");
+			return;
+		}
+		Addr &= 0xFFF;
+		*Value = *(uint8_t *) (DMEM + (Addr ^ 3)) << 8;
+		*Value += *(uint8_t *) (DMEM + ((Addr + 1) ^ 3));
+		return;
     }
     *Value = *(uint16_t *) (DMEM + ((Addr ^ 2) & 0xFFF));
 
@@ -399,13 +423,10 @@ void RSP_LLV_DMEM(uint32_t Addr, int32_t vect, int32_t element)
     int32_t length, Count;
 
     length = 4;
-    if (length > 16 - element) {
+    if (length > 16 - element)
 	length = 16 - element;
-    }
-    for (Count = element; Count < (length + element); Count++) {
-	RSP_Vect[vect].B[15 - Count] = *(DMEM + ((Addr ^ 3) & 0xFFF));
-	Addr += 1;
-    }
+    for (Count = element; Count < (length + element); Count++)
+		RSP_Vect[vect].B[15 - Count] = *(DMEM + ((Addr++ ^ 3) & 0xFFF));
 
 }
 
@@ -443,10 +464,8 @@ void RSP_LRV_DMEM(uint32_t Addr, int32_t vect, int32_t element)
     offset = (Addr & 0xF) - 1;
     length = (Addr & 0xF) - element;
     Addr &= 0xFF0;
-    for (Count = element; Count < (length + element); Count++) {
-	RSP_Vect[vect].B[offset - Count] = *(DMEM + ((Addr ^ 3) & 0xFFF));
-	Addr += 1;
-    }
+    for (Count = element; Count < (length + element); Count++)
+		RSP_Vect[vect].B[offset - Count] = *(DMEM + ((Addr++ ^ 3) & 0xFFF));
 
 }
 
@@ -455,13 +474,11 @@ void RSP_LQV_DMEM(uint32_t Addr, int32_t vect, int32_t element)
     int32_t length, Count;
 
     length = ((Addr + 0x10) & ~0xF) - Addr;
-    if (length > 16 - element) {
-	length = 16 - element;
-    }
-    for (Count = element; Count < (length + element); Count++) {
-	RSP_Vect[vect].B[15 - Count] = *(DMEM + ((Addr ^ 3) & 0xFFF));
-	Addr += 1;
-    }
+    if (length > 16 - element)
+		length = 16 - element;
+	
+    for (Count = element; Count < (length + element); Count++)
+	RSP_Vect[vect].B[15 - Count] = *(DMEM + ((Addr++ ^ 3) & 0xFFF));
 
 }
 
@@ -470,13 +487,11 @@ void RSP_LSV_DMEM(uint32_t Addr, int32_t vect, int32_t element)
     int32_t length, Count;
 
     length = 2;
-    if (length > 16 - element) {
-	length = 16 - element;
-    }
-    for (Count = element; Count < (length + element); Count++) {
-	RSP_Vect[vect].B[15 - Count] = *(DMEM + ((Addr ^ 3) & 0xFFF));
-	Addr += 1;
-    }
+    if (length > 16 - element)
+		length = 16 - element;
+	
+    for (Count = element; Count < (length + element); Count++)
+		RSP_Vect[vect].B[15 - Count] = *(DMEM + ((Addr++ ^ 3) & 0xFFF));
 }
 
 void RSP_LTV_DMEM(uint32_t Addr, int32_t vect, int32_t element)
@@ -484,16 +499,15 @@ void RSP_LTV_DMEM(uint32_t Addr, int32_t vect, int32_t element)
     int32_t del, count, length;
 
     length = 8;
-    if (length > 32 - vect) {
-	length = 32 - vect;
-    }
+    if (length > 32 - vect)
+		length = 32 - vect;
 
     Addr = ((Addr + 8) & 0xFF0) + (element & 0x1);
-    for (count = 0; count < length; count++) {
-	del = ((8 - (element >> 1) + count) << 1) & 0xF;
-	RSP_Vect[vect + count].B[15 - del] = *(DMEM + (Addr ^ 3));
-	RSP_Vect[vect + count].B[14 - del] = *(DMEM + ((Addr + 1) ^ 3));
-	Addr += 2;
+    for (count = 0; count < length; count++)
+    {
+		del = ((8 - (element >> 1) + count) << 1) & 0xF;
+		RSP_Vect[vect + count].B[15 - del] = *(DMEM + (Addr++ ^ 3));
+		RSP_Vect[vect + count].B[14 - del] = *(DMEM + (Addr++ ^ 3));
     }
 }
 
@@ -526,26 +540,28 @@ void RSP_LUV_DMEM(uint32_t Addr, int32_t vect, int32_t element)
 
 void RSP_LW_DMEM(uint32_t Addr, uint32_t * Value)
 {
-    if ((Addr & 0x3) != 0) {
-	Addr &= 0xFFF;
-	if (Addr > 0xFFC) {
-	    printf("hmmmm.... Problem with:\nRSP_LW_DMEM");
-	    return;
-	}
-	*Value = *(uint8_t *) (DMEM + (Addr ^ 3)) << 0x18;
-	*Value += *(uint8_t *) (DMEM + ((Addr + 1) ^ 3)) << 0x10;
-	*Value += *(uint8_t *) (DMEM + ((Addr + 2) ^ 3)) << 8;
-	*Value += *(uint8_t *) (DMEM + ((Addr + 3) ^ 3));
-	return;
+    if ((Addr & 0x3) != 0)
+    {
+		Addr &= 0xFFF;
+		if (Addr > 0xFFC)
+		{
+			printf("hmmmm.... Problem with:\nRSP_LW_DMEM");
+			return;
+		}
+		*Value = *(uint8_t *) (DMEM + (Addr ^ 3)) << 0x18;
+		*Value += *(uint8_t *) (DMEM + ((Addr + 1) ^ 3)) << 0x10;
+		*Value += *(uint8_t *) (DMEM + ((Addr + 2) ^ 3)) << 8;
+		*Value += *(uint8_t *) (DMEM + ((Addr + 3) ^ 3));
+		return;
     }
     *Value = *(uint32_t *) (DMEM + (Addr & 0xFFF));
 }
 
 void RSP_LW_IMEM(uint32_t Addr, uint32_t * Value)
 {
-    if ((Addr & 0x3) != 0) {
-	printf("Unaligned RSP_LW_IMEM");
-    }
+    if ((Addr & 0x3) != 0)
+		printf("Unaligned RSP_LW_IMEM");
+    
     *Value = *(uint32_t *) (IMEM + (Addr & 0xFFF));
 }
 
@@ -563,11 +579,9 @@ void RSP_SDV_DMEM(uint32_t Addr, int32_t vect, int32_t element)
 {
     int32_t Count;
 
-    for (Count = element; Count < (8 + element); Count++) {
-	*(DMEM + ((Addr ^ 3) & 0xFFF)) =
-	    RSP_Vect[vect].B[15 - (Count & 0xF)];
-	Addr += 1;
-    }
+    for (Count = element; Count < (8 + element); Count++)
+		*(DMEM + ((Addr++ ^ 3) & 0xFFF)) =
+			RSP_Vect[vect].B[15 - (Count & 0xF)];
 }
 
 void RSP_SFV_DMEM(uint32_t Addr, int32_t vect, int32_t element)

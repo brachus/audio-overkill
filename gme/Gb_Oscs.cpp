@@ -2,6 +2,13 @@
 
 #include "Gb_Apu.h"
 
+extern "C"
+{
+	#include "../ao.h"
+	#include <stdio.h>
+}
+
+
 #include <string.h>
 
 /* Copyright (C) 2003-2006 Shay Green. This module is free software; you
@@ -134,7 +141,11 @@ void Gb_Square::run( blip_time_t time, blip_time_t end_time, int playing )
 		if ( delta )
 		{
 			last_amp = amp;
+			
+			
 			synth->offset( time, delta, output );
+			
+			
 		}
 	}
 	
@@ -151,10 +162,15 @@ void Gb_Square::run( blip_time_t time, blip_time_t end_time, int playing )
 		do
 		{
 			phase = (phase + 1) & 7;
+
 			if ( phase == 0 || phase == duty )
 			{
 				delta = -delta;
+				
+				
 				synth->offset_inline( time, delta, output );
+				
+				
 			}
 			time += period;
 		}
@@ -181,6 +197,7 @@ void Gb_Noise::run( blip_time_t time, blip_time_t end_time, int playing )
 		{
 			last_amp = amp;
 			synth->offset( time, delta, output );
+			
 		}
 	}
 	
@@ -211,6 +228,7 @@ void Gb_Noise::run( blip_time_t time, blip_time_t end_time, int playing )
 				delta = -delta;
 				bits |= 1;
 				synth->offset_resampled( resampled_time, delta, output );
+
 			}
 			resampled_time += resampled_period;
 		}
@@ -271,6 +289,7 @@ void Gb_Wave::run( blip_time_t time, blip_time_t end_time, int playing )
 		{
 			last_amp = amp;
 			synth->offset( time, delta, output );
+			
 		}
 	}
 	
@@ -293,6 +312,7 @@ void Gb_Wave::run( blip_time_t time, blip_time_t end_time, int playing )
 			{
 				last_amp = amp;
 				synth->offset_inline( time, delta, output );
+				
 			}
 			time += period;
 		}

@@ -33,8 +33,8 @@
 
 #include "okim6295.h"
 
-#define FALSE	0
-#define TRUE	1
+//#define FALSE	0
+//#define TRUE	1
 
 //#define MAX_SAMPLE_CHUNK	10000
 #define MAX_SAMPLE_CHUNK	0x10	// that's enough for VGMPlay's update rate

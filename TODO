@@ -18,15 +18,13 @@ UI:
 	* consider alternate playlist-like view.
 
 
-GSF:
-	adapt playgsf code (under "gsf/")
+*SF:
+	* consider merging all *sf code into a folder "xsf".
+	* scrap older AudioOverload SDK code (psf/) with newer code. (corlett_newer should replace corlett)
 
-PSF2:
-	ensure all ready incorporated psf2 code is working.
+get rid of "safe_strcpy".
 
-USF:
-	adapt lazyusf code (under "usf/")
+* enable/disable scope
 
+* stop flag
 
-BUGS:
-	"broken double linked list" after moving on to next nsf file.

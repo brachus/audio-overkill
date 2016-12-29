@@ -5,11 +5,14 @@
 
 #ifndef __cplusplus	// C++ already has the bool-type
 
+#ifndef true
+
 #define	false	0x00
 #define	true	0x01
 
 // the MS VC++ 6 compiler uses a one-byte-type (unsigned char, to be exact), so I'll reproduce this here
 typedef	unsigned char	bool;
+#endif
 
 #endif // !__cplusplus
 

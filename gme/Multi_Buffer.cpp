@@ -2,6 +2,13 @@
 
 #include "Multi_Buffer.h"
 
+extern "C"
+{
+	#include "../ao.h"
+	#include <stdio.h>
+}
+
+
 /* Copyright (C) 2003-2006 Shay Green. This module is free software; you
 can redistribute it and/or modify it under the terms of the GNU Lesser
 General Public License as published by the Free Software Foundation; either
@@ -163,6 +170,8 @@ void Stereo_Buffer::mix_stereo( blip_sample_t* out_, blargg_long count )
 	
 	int tmp_count = count;
 	
+	printf("mixste\n");
+	
 	for ( ; count; --count )
 	{
 		int c = BLIP_READER_READ( center );
@@ -178,11 +187,12 @@ void Stereo_Buffer::mix_stereo( blip_sample_t* out_, blargg_long count )
 		BLIP_READER_NEXT( left, bass );
 		BLIP_READER_NEXT( right, bass );
 		
+		mix_chan_disp(_AO_H_GME_GB, 3, 0, l,r); 
+		
 		out [0] = l;
 		out [1] = r;
 		out += 2;
 		
-		mix_chan_disp(666, tmp_count,count, l,r);
 	}
 	
 	BLIP_READER_END( center, bufs [0] );
@@ -199,6 +209,8 @@ void Stereo_Buffer::mix_stereo_no_center( blip_sample_t* out_, blargg_long count
 	
 	int tmp_count = count;
 	
+	printf("mixste\n");
+	
 	for ( ; count; --count )
 	{
 		blargg_long l = BLIP_READER_READ( left );
@@ -212,11 +224,12 @@ void Stereo_Buffer::mix_stereo_no_center( blip_sample_t* out_, blargg_long count
 		BLIP_READER_NEXT( left, bass );
 		BLIP_READER_NEXT( right, bass );
 		
+		mix_chan_disp(_AO_H_GME_GB, 3, 0, l,r); 
+		
 		out [0] = l;
 		out [1] = r;
 		out += 2;
 		
-		mix_chan_disp(666, tmp_count,count, l,r);
 	}
 	
 	BLIP_READER_END( right, bufs [2] );
@@ -231,6 +244,8 @@ void Stereo_Buffer::mix_mono( blip_sample_t* out_, blargg_long count )
 	
 	int tmp_count = count;
 	
+	printf("mixmono\n");
+	
 	for ( ; count; --count )
 	{
 		blargg_long s = BLIP_READER_READ( center );
@@ -238,11 +253,13 @@ void Stereo_Buffer::mix_mono( blip_sample_t* out_, blargg_long count )
 			s = 0x7FFF - (s >> 24);
 		
 		BLIP_READER_NEXT( center, bass );
+		
+		mix_chan_disp(_AO_H_GME_GB, 3, 0, s,s); 
+		
 		out [0] = s;
 		out [1] = s;
 		out += 2;
 		
-		mix_chan_disp(666, tmp_count,count, s,s);
 	}
 	
 	BLIP_READER_END( center, bufs [0] );

@@ -26,8 +26,10 @@ typedef INT16	Sint16;
 typedef INT32	Sint32;
 typedef UINT32	Uint32;
 typedef UINT8	BOOL;
-#define TRUE	1
-#define	FALSE	0
+
+
+//#define TRUE	1
+//#define FALSE	0
 
 //#define PSG_FRQ		3579545.0
 
