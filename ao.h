@@ -372,7 +372,7 @@ extern int ao_set_len;
 
 void mix_chan_disp_flush();
 
-void mix_chan_disp(int chip_id, int nchannels,int ch, short l, short r);
+void mix_chan_disp(int chip_id, int nchannels,int ch, int l, int r);
 
 int mix_chan_find_avail_chip(int chip_id, int nchannels);
 

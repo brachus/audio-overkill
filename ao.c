@@ -635,7 +635,7 @@ void mix_chan_flag(int chip_id, int nchannels, int ch, int samp)
 	
 }
 
-void mix_chan_disp(int chip_id, int nchannels, int ch, short l, short r)
+void mix_chan_disp(int chip_id, int nchannels, int ch, int l, int r)
 {
 	int tmpl, tmpr, cmatch = -1, i, j, ch_idx, ch_left, ldiff, rdiff;
 	

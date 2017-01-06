@@ -28,3 +28,4 @@ get rid of "safe_strcpy".
 
 * stop flag
 
+* separate color setting for channel disp and scope.

@@ -2998,7 +2998,12 @@ static long render_playing(DUMB_IT_SIGRENDERER *sigrenderer, IT_PLAYING *playing
 	long size_rendered;
 
 	if (playing->flags & IT_PLAYING_DEAD)
+	{
+		/* FROM AO.H */
+		mix_chan_disp(_AO_H_DUH, ao_channel_tmp_max, ao_channel_tmp_cur, 0, 0);
 		return 0;
+	}
+		
 
 	if (*left_to_mix <= 0)
 		volume = 0;
@@ -3014,8 +3019,13 @@ static long render_playing(DUMB_IT_SIGRENDERER *sigrenderer, IT_PLAYING *playing
 		else
 			size_rendered = dumb_resample_n_1_1(bits, &playing->resampler, NULL, size, 0, delta);
 		
-		/* FROM AO.H */
-		mix_chan_disp(_AO_H_DUH, ao_channel_tmp_max, ao_channel_tmp_cur, 0, 0);
+		{
+			int itmp;
+			/* FROM AO.H */
+			//for (itmp=size_rendered;itmp>0;itmp--)
+				mix_chan_disp(_AO_H_DUH, ao_channel_tmp_max, ao_channel_tmp_cur, 0, 0);
+		}
+		
 		
 	} else {
 		if (sigrenderer->n_channels == 2) {
@@ -3044,10 +3054,12 @@ static long render_playing(DUMB_IT_SIGRENDERER *sigrenderer, IT_PLAYING *playing
 				
 				{
 					sample_t click[2];
+					int itmp;
 					dumb_resample_get_current_sample_n_2_2(bits, &playing->resampler, lvol, rvol, click);
 					
 					/* FROM AO.H */
-					mix_chan_disp(_AO_H_DUH, ao_channel_tmp_max, ao_channel_tmp_cur, (short) (click[0]>>8),(short) (click[1]>>8));
+					//for (itmp=size_rendered;itmp>0;itmp--)
+						mix_chan_disp(_AO_H_DUH, ao_channel_tmp_max, ao_channel_tmp_cur, click[0], click[1]);
 				}
 				
 				
@@ -3077,10 +3089,12 @@ static long render_playing(DUMB_IT_SIGRENDERER *sigrenderer, IT_PLAYING *playing
 				
 				{
 					sample_t click[2];
+					int itmp;
 					dumb_resample_get_current_sample_n_1_2(bits, &playing->resampler, lvol, rvol, click);
 					
 					/* FROM AO.H */
-					mix_chan_disp(_AO_H_DUH, ao_channel_tmp_max, ao_channel_tmp_cur, (short) (click[0]>>8),(short) (click[1]>>8));
+					//for (itmp=size_rendered;itmp>0;itmp--)
+						mix_chan_disp(_AO_H_DUH, ao_channel_tmp_max, ao_channel_tmp_cur, click[0], click[1]);
 				}
 				
 				if (sigrenderer->click_remover) {
@@ -3112,10 +3126,12 @@ static long render_playing(DUMB_IT_SIGRENDERER *sigrenderer, IT_PLAYING *playing
 				
 				{
 					sample_t click;
+					int itmp;
 					dumb_resample_get_current_sample_n_2_1(bits, &playing->resampler, lvol, rvol, &click);
 					
 					/* FROM AO.H */
-					mix_chan_disp(_AO_H_DUH, ao_channel_tmp_max, ao_channel_tmp_cur, (short) (click>>8),(short) (click>>8));
+					//for (itmp=size_rendered;itmp>0;itmp--)
+						mix_chan_disp(_AO_H_DUH, ao_channel_tmp_max, ao_channel_tmp_cur, click, click);
 				}
 				
 					
@@ -3139,10 +3155,13 @@ static long render_playing(DUMB_IT_SIGRENDERER *sigrenderer, IT_PLAYING *playing
 				}
 				{
 					sample_t click;
+					int itmp;
+					
 					dumb_resample_get_current_sample_n_1_1(bits, &playing->resampler, volume, &click);
 					
 					/* FROM AO.H */
-					mix_chan_disp(_AO_H_DUH, ao_channel_tmp_max, ao_channel_tmp_cur, (short) (click>>8),(short) (click>>8));
+					//for (itmp=size_rendered;itmp>0;itmp--)
+						mix_chan_disp(_AO_H_DUH, ao_channel_tmp_max, ao_channel_tmp_cur, click, click);
 				}
 					
 				if (sigrenderer->click_remover) {
@@ -3167,6 +3186,7 @@ typedef struct IT_TO_MIX
 {
 	IT_PLAYING *playing;
 	float volume;
+	int id;/* FROM AO.H */
 }
 IT_TO_MIX;
 
@@ -3227,12 +3247,26 @@ static void render(DUMB_IT_SIGRENDERER *sigrenderer, float volume, float delta, 
 	int left_to_mix = dumb_it_max_to_mix;
 
 	sample_t **samples_to_filter = NULL;
+	
+	/* FROM AO.H */
+	ao_channel_tmp_max = DUMB_IT_N_CHANNELS + DUMB_IT_N_NNA_CHANNELS;
 
 	for (i = 0; i < DUMB_IT_N_CHANNELS; i++) {
 		if (sigrenderer->channel[i].playing && !(sigrenderer->channel[i].playing->flags & IT_PLAYING_DEAD)) {
 			to_mix[n_to_mix].playing = sigrenderer->channel[i].playing;
 			to_mix[n_to_mix].volume = volume == 0 ? 0 : calculate_volume(sigrenderer, sigrenderer->channel[i].playing, volume);
+			to_mix[n_to_mix].id = i;/* FROM AO.H */
 			n_to_mix++;
+		}
+		else
+		{
+			{
+				int itmp;
+				/* FROM AO.H */
+				//for (itmp=32;itmp>0;itmp--)
+					mix_chan_disp(_AO_H_DUH, ao_channel_tmp_max, i, 0, 0);
+
+			}
 		}
 	}
 
@@ -3240,15 +3274,25 @@ static void render(DUMB_IT_SIGRENDERER *sigrenderer, float volume, float delta, 
 		if (sigrenderer->playing[i]) { /* Won't be dead; it would have been freed. */
 			to_mix[n_to_mix].playing = sigrenderer->playing[i];
 			to_mix[n_to_mix].volume = volume == 0 ? 0 : calculate_volume(sigrenderer, sigrenderer->playing[i], volume);
+			to_mix[n_to_mix].id = i + DUMB_IT_N_CHANNELS;/* FROM AO.H */
 			n_to_mix++;
+		}
+		else
+		{
+			{
+				int itmp;
+				/* FROM AO.H */
+				//for (itmp=32;itmp>0;itmp--)
+					mix_chan_disp(_AO_H_DUH, ao_channel_tmp_max, i + DUMB_IT_N_CHANNELS, 0, 0);
+
+			}
 		}
 	}
 
 	if (volume != 0)
 		qsort(to_mix, n_to_mix, sizeof(IT_TO_MIX), &it_to_mix_compare);
 		
-	/* FROM AO.H */
-	ao_channel_tmp_max = n_to_mix;
+	
 
 	for (i = 0; i < n_to_mix; i++) {
 		IT_PLAYING *playing = to_mix[i].playing;
@@ -3256,7 +3300,7 @@ static void render(DUMB_IT_SIGRENDERER *sigrenderer, float volume, float delta, 
 		int cutoff = playing->filter_cutoff << IT_ENVELOPE_SHIFT;
 		
 		/* FROM AO.H */
-		ao_channel_tmp_cur = i;
+		ao_channel_tmp_cur = to_mix[i].id;
 
 		apply_pitch_modifications(sigrenderer->sigdata, playing, &note_delta, &cutoff);
 

@@ -768,8 +768,8 @@ int main(int argc, char *argv[])
 		/* display individual channels. */
 		if (f_enable_channel_disp)
 		{
-			update_ao_chdisp(screen);
-			update_ao_ch_flag_disp(screen, 2);
+			update_ao_chdisp_newer(screen);
+			//update_ao_ch_flag_disp(screen, 2);
 		}
 		
 		
@@ -1749,6 +1749,7 @@ void update_ao_chdisp(SDL_Surface *in)
 				
 				x = SCREENWIDTH - 10 - (ao_channel_nchannels[curchp] * 2 * 2 ) +  (i + (i/2 * 2)  ) -  curchp_x;
 				
+				
 				y = SCREENHEIGHT - 10;
 				to_y = y - (int) (fy*16);
 				
@@ -1771,6 +1772,143 @@ void update_ao_chdisp(SDL_Surface *in)
 				
 				
 			}
+			
+			curchp_x += (ao_channel_nchannels[curchp] * 2 * 2 ) +
+					((ao_channel_nchannels[curchp]-1) +
+						((ao_channel_nchannels[curchp]-1)/2) * 2) + 16;
+			
+		}
+		
+		
+	}
+	
+}
+
+void update_ao_chdisp_newer(SDL_Surface *in)
+{
+	
+	int i, curchp, curchp_x, x, y, to_y, minmax, chpcnt, tmpx, tmpi,shifty;
+	
+	float fy;
+	
+	
+	if (pw_init(in))
+	{	
+				
+		pw_set_rgb(SCOPE_COLOR);
+		
+		chpcnt=0;
+		
+		for (i=0;i<4;i++)
+			if (ao_channel_set_chip[i] != -1)
+				chpcnt++;
+
+		curchp_x = 0;
+		
+		tmpx=SCREENWIDTH-10;
+		shifty=0;
+		
+
+		for (curchp = 0; curchp < chpcnt;curchp++)
+		{
+			for (i=ao_channel_nchannels[curchp]-1;i>=0;i--)
+			{
+				
+				if (tmpx<SCREENWIDTH/2)
+				{
+					tmpx=SCREENWIDTH-10;
+					shifty-=20;
+				}
+					
+				
+				fy = 0.0;
+				
+				tmpi = i * 2 + 1;
+				
+				if (ao_channel_max[(curchp * 128) + (tmpi/2)] > ao_channel_min[(curchp * 128) + (tmpi/2)])
+				{
+					minmax = ao_channel_max[(curchp * 128) + (tmpi/2)]-ao_channel_min[(curchp * 128) + (tmpi/2)];
+					
+					fy=(float) ( ao_channel_mix[curchp * 128 * 2 + tmpi] ) / (minmax);
+					
+				}
+				
+				
+				
+				fy=fy>1.0?1.0:fy;
+				fy=fy<0.0?0.0:fy;
+				
+				
+				
+				
+				y = SCREENHEIGHT - 10 + shifty;
+				to_y = y - (int) (fy*16);
+				
+				y+=1;
+				
+				/*if (ao_channel_enable[i/2] == 0)
+					to_y = y + 3;*/
+								
+				while (y > to_y)
+				{
+					pw_set(in, tmpx, y);
+					y--;
+				}
+			
+				while (y < to_y)
+				{
+					pw_set(in, tmpx, y);
+					y++;
+				}
+				
+				tmpx--;
+				tmpi--;
+				
+				
+				fy=0.0;
+				
+				if (ao_channel_max[(curchp * 128) + (tmpi/2)] > ao_channel_min[(curchp * 128) + (tmpi/2)])
+				{
+					minmax = ao_channel_max[(curchp * 128) + (tmpi/2)]-ao_channel_min[(curchp * 128) + (tmpi/2)];
+					
+					fy=(float) ( ao_channel_mix[curchp * 128 * 2 + tmpi] ) / (minmax);
+					
+				}
+				
+				
+				
+				fy=fy>1.0?1.0:fy;
+				fy=fy<0.0?0.0:fy;
+				
+				
+				
+				
+				y = SCREENHEIGHT - 10 + shifty;
+				to_y = y - (int) (fy*16);
+				
+				y+=1;
+				
+				/*if (ao_channel_enable[i/2] == 0)
+					to_y = y + 3;*/
+								
+				while (y > to_y)
+				{
+					pw_set(in, tmpx, y);
+					y--;
+				}
+			
+				while (y < to_y)
+				{
+					pw_set(in, tmpx, y);
+					y++;
+				}
+				
+				tmpx -=3;
+				
+				
+			}
+			
+			tmpx-=10;
 			
 			curchp_x += (ao_channel_nchannels[curchp] * 2 * 2 ) +
 					((ao_channel_nchannels[curchp]-1) +
