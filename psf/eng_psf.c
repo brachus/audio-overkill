@@ -341,9 +341,7 @@ int32_t psf_start(uint8_t *buffer, uint32_t length)
 	#endif
 
 	if (lengthMS == 0)
-	{
 		lengthMS = ~0;
-	}
 
 	setlength(lengthMS, fadeMS);
 

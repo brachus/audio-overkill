@@ -342,7 +342,9 @@ enum
 	_AO_H_USF,
 	
 	_AO_H_DSF,
-	_AO_H_SSF
+	_AO_H_SSF,
+	
+	_AO_H_DUH
 };
 
 extern int ao_channel_set_chip[4];
@@ -351,6 +353,8 @@ extern int ao_channel_nchannels[4];
 extern int ao_channel_min[4*128];
 extern int ao_channel_max[4*128];
 extern int ao_chan_flag_disp[4*128];
+extern int ao_channel_tmp_cur;
+extern int ao_channel_tmp_max;
 
 extern int ao_channel_mix_update_cnt1[4*128];
 
@@ -407,10 +411,14 @@ extern int ao_track_max;
 extern int ao_sample_rate;
 
 extern int ao_set_spc_echo;
+extern int ao_play_next_on_stop;
 
 extern char ao_lib_dir[256];
 
 void ao_set_lib_dir(char *s);
+
+extern int f_enable_scope_disp;
+extern int f_enable_channel_disp;
 
 
 

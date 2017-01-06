@@ -87,7 +87,10 @@ int32 dsf_sample(int16_t *l, int16_t *r)
 	arm7_execute((33000000 / 60 / 4) / 735);
 	#endif
 	AICA_Update(NULL, NULL, l, r);
-	corlett_sample_fade(l, r);
+	
+	/* from ao.h */
+	if (ao_set_len != -1)
+		corlett_sample_fade(l, r);
 
 	return AO_SUCCESS;
 }

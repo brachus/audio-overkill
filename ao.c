@@ -63,9 +63,14 @@ int ao_set_len=~0;
 int ao_track_select = 0;
 int ao_track_max = -1;
 
+int f_enable_scope_disp = 1;
+int f_enable_channel_disp = 1;
+
 int ao_sample_rate = 44100;
 
 int ao_set_spc_echo = 1;
+
+int ao_play_next_on_stop = 1;
 
 char ao_lib_dir[256] = "\0";
 
@@ -522,7 +527,11 @@ char *ao_chip_names[] =
 	"KSS",
 	"GBS",
 	
-	"GSF"
+	"GSF",
+	"USF",
+	"DSF",
+	"SSF",
+	"DUH"
 };
 
 int ao_channel_set_chip[4];
@@ -537,6 +546,9 @@ int ao_channel_mix_update_cnt1[4*128];
 int ao_channel_mix_update_cnt[4*128];
 int ao_channel_mix_update_acc[4*128*2];
 int ao_channel_mix_update_prev[4*128*2];
+
+int ao_channel_tmp_cur = 0;
+int ao_channel_tmp_max = 0;
 
 #define _AO_H_MAX_DISP_CHAN 128
 

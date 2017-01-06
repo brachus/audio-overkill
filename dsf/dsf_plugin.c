@@ -1,13 +1,14 @@
 
 #include "dsf_plugin.h"
 
+
 int16_t *dsf_output = 0;
+
 
 int load_dsf_file(char *fn)
 {
 	if (ao_file_open == 1)
 		return 0;
-	
 	
 	char *ctmp;
 	struct filebuf *fb = filebuf_init();
@@ -31,8 +32,7 @@ int load_dsf_file(char *fn)
 	{
 		play_stat = M_ERR;
 		return 0;
-	}
-	
+	}	
 	
 	fok = dsf_start((uint8 *) fb->buf, (uint32) fb->len);
 	
@@ -40,7 +40,6 @@ int load_dsf_file(char *fn)
 		play_stat = M_ERR;
 	
 	filebuf_free(fb);
-	
 	
 	strcpy(tag_system, "Sega Dreamcast");
 	

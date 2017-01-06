@@ -546,9 +546,8 @@ int32_t psf2_start(uint8_t *buffer, uint32_t length)
 		lengthMS = ao_set_len;
 	
 	if (lengthMS == 0)
-	{
 		lengthMS = ~0;
-	}
+	
 	setlength2(lengthMS, fadeMS);
 
 	mips_init();

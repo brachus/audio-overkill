@@ -279,6 +279,47 @@ DSFOBJS = $(OBJ)/dsf/aica.o \
 	$(OBJ)/dsf/dsf_plugin.o \
 	$(OBJ)/dsf/eng_dsf.o
 
+DUHOBJS = $(OBJ)/dumb/src/plugin.o \
+	$(OBJ)/dumb/src/core/makeduh.o \
+	$(OBJ)/dumb/src/core/duhtag.o \
+	$(OBJ)/dumb/src/core/register.o \
+	$(OBJ)/dumb/src/core/readduh.o \
+	$(OBJ)/dumb/src/core/unload.o \
+	$(OBJ)/dumb/src/core/rendduh.o \
+	$(OBJ)/dumb/src/core/rawsig.o \
+	$(OBJ)/dumb/src/core/duhlen.o \
+	$(OBJ)/dumb/src/core/atexit.o \
+	$(OBJ)/dumb/src/core/rendsig.o \
+	$(OBJ)/dumb/src/core/dumbfile.o \
+	$(OBJ)/dumb/src/core/loadduh.o \
+	$(OBJ)/dumb/src/helpers/resample.o \
+	$(OBJ)/dumb/src/helpers/sampbuf.o \
+	$(OBJ)/dumb/src/helpers/silence.o \
+	$(OBJ)/dumb/src/helpers/clickrem.o \
+	$(OBJ)/dumb/src/helpers/memfile.o \
+	$(OBJ)/dumb/src/helpers/stdfile.o \
+	$(OBJ)/dumb/src/it/loadmod2.o \
+	$(OBJ)/dumb/src/it/loads3m2.o \
+	$(OBJ)/dumb/src/it/itread2.o \
+	$(OBJ)/dumb/src/it/itload.o \
+	$(OBJ)/dumb/src/it/readmod2.o \
+	$(OBJ)/dumb/src/it/readxm2.o \
+	$(OBJ)/dumb/src/it/itmisc.o \
+	$(OBJ)/dumb/src/it/xmeffect.o \
+	$(OBJ)/dumb/src/it/itload2.o \
+	$(OBJ)/dumb/src/it/itrender.o \
+	$(OBJ)/dumb/src/it/readxm.o \
+	$(OBJ)/dumb/src/it/loads3m.o \
+	$(OBJ)/dumb/src/it/loadxm2.o \
+	$(OBJ)/dumb/src/it/readmod.o \
+	$(OBJ)/dumb/src/it/loadxm.o \
+	$(OBJ)/dumb/src/it/loadmod.o \
+	$(OBJ)/dumb/src/it/itread.o \
+	$(OBJ)/dumb/src/it/itorder.o \
+	$(OBJ)/dumb/src/it/itunload.o \
+	$(OBJ)/dumb/src/it/reads3m2.o \
+	$(OBJ)/dumb/src/it/reads3m.o
+	
 
 # DSF engine
 #OBJS += eng_dsf/eng_dsf.o eng_dsf/dc_hw.o eng_dsf/aica.o eng_dsf/aicadsp.o eng_dsf/arm7.o eng_dsf/arm7i.o
@@ -318,9 +359,9 @@ MAINOBJS=\
 
 all: audiooverkill
 
-audiooverkill: $(EMUOBJS) $(VGMOBJS) $(SIDOBJS) $(GMEOBJS) $(LIBRESAMPLEOBJS) $(GSFOBJS) $(USFOBJS) $(DSFOBJS) $(PSFOBJS) $(MAINOBJS)
+audiooverkill: $(EMUOBJS) $(VGMOBJS) $(SIDOBJS) $(GMEOBJS) $(LIBRESAMPLEOBJS) $(GSFOBJS) $(USFOBJS) $(DSFOBJS) $(PSFOBJS) $(DUHOBJS) $(MAINOBJS)
 	@echo Linking audio overkill ...
-	@$(CCPP) $(LDFLAGS) $(EMUOBJS) $(VGMOBJS) $(SIDOBJS) $(GMEOBJS) $(LIBRESAMPLEOBJS) $(GSFOBJS) $(USFOBJS) $(DSFOBJS) $(PSFOBJS) $(MAINOBJS)  -o audio_overkill
+	@$(CCPP) $(LDFLAGS) $(EMUOBJS) $(VGMOBJS) $(SIDOBJS) $(GMEOBJS) $(LIBRESAMPLEOBJS) $(GSFOBJS) $(USFOBJS) $(DSFOBJS) $(PSFOBJS) $(DUHOBJS) $(MAINOBJS)  -o audio_overkill
 	@echo Done.
 
 
@@ -398,6 +439,27 @@ $(OBJ)/psf/peops2/%.o:	$(SRC)/psf/peops2/%.c
 	@echo Compiling $< ...
 	@mkdir -p $(@D)
 	@$(CC) $(CFLAGS) $(LDFLAGS) -c $< -o $@
+
+# compile DUMB
+$(OBJ)/dumb/src/%.o:	$(SRC)/dumb/src/%.c
+	@echo Compiling $< ...
+	@mkdir -p $(@D)
+	@$(CC) $(CFLAGS) $(LDFLAGS) -Idumb/include -c $< -o $@
+
+$(OBJ)/dumb/src/helpers/%.o:	$(SRC)/dumb/src/helpers/%.c
+	@echo Compiling $< ...
+	@mkdir -p $(@D)
+	@$(CC) $(CFLAGS) $(LDFLAGS) -Idumb/include -c $< -o $@
+
+$(OBJ)/dumb/src/core/%.o:	$(SRC)/dumb/src/core/%.c
+	@echo Compiling $< ...
+	@mkdir -p $(@D)
+	@$(CC) $(CFLAGS) $(LDFLAGS) -Idumb/include -c $< -o $@
+	
+$(OBJ)/dumb/src/it/%.o:	$(SRC)/dumb/src/it/%.c
+	@echo Compiling $< ...
+	@mkdir -p $(@D)
+	@$(CC) $(CFLAGS) $(LDFLAGS) -Idumb/include -c $< -o $@
 
 
 # compile main code

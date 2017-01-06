@@ -40,6 +40,8 @@
 
 #include "dsf/dsf_plugin.h"
 
+#include "dumb/src/plugin.h"
+
 
 #include "filelist.h"
 
@@ -175,7 +177,8 @@ enum
 	F_DSF,
 	F_QSF,
 	F_SSF,
-	F_2SF
+	F_2SF,
+	F_DUH
 };
 
 int play_stat = M_STOPPED;
@@ -421,7 +424,6 @@ void gtk_slave_file_check_kill()
 	}
 	else
 		i = 16;
-		
 		
 }			
 					
@@ -750,19 +752,26 @@ int main(int argc, char *argv[])
 		}
 			
 		
-		
 		SDL_FillRect(screen, 0, SDL_MapRGB(screen->format, BG_COLOR));
 		
 		
 		if (play_stat == M_PLAY)
 			dump_scope_buf();
 			
-		update_scope(screen);
 		
+		/* display scope */
+		if (f_enable_scope_disp)
+			update_scope(screen);
+			
 		mix_chan_disp_flush();
 		
-		update_ao_chdisp(screen);
-		update_ao_ch_flag_disp(screen, 2);
+		/* display individual channels. */
+		if (f_enable_channel_disp)
+		{
+			update_ao_chdisp(screen);
+			update_ao_ch_flag_disp(screen, 2);
+		}
+		
 		
 		rtmpy = 8;
 
@@ -920,11 +929,17 @@ int main(int argc, char *argv[])
 				file_execute = &dsf_execute;
 				file_open = &load_dsf_file;
 			}
+			else if (get_file_type(get_flist_idx(flist,fcur)) == F_DUH)
+			{
+				file_close = &pduh_close;
+				file_execute = &pduh_execute;
+				file_open = &pduh_open;
+			}
 			else
 			{
 				play_stat = M_ERR;
 				
-				file_close = 0;file_execute = 0;file_open = 0;
+				file_close = file_execute = file_open = 0;
 				
 				break;
 			}
@@ -971,6 +986,8 @@ int main(int argc, char *argv[])
 			break;
 		}
 		
+		
+		
 		if (play_stat != M_NOFILE && flist->len != 0)
 			sprintf(tmpstr,"(%d/%d)",fcur+1,flist->len);
 		else
@@ -997,8 +1014,15 @@ int main(int argc, char *argv[])
 			10, rtmpy,
 			1,SCREENWIDTH,tick);
 		
-		
-		
+		/* play next track on stop if enabled */
+		if (ao_play_next_on_stop && play_stat == M_STOPPED)
+		{
+			play_stat = M_LOAD;
+			
+			if (++fcur>=flist->len)
+				fcur--;
+			
+		}
 		
 		
 		SDL_UpdateWindowSurface(win);
@@ -1203,6 +1227,16 @@ void load_conf(char * fn)
 				
 			else if (ENTRY_NAME("volume_boost") && tmp->type==E_FLOAT)
 				f_boost = tmp->dat[0].f;
+			
+			else if (ENTRY_NAME("show_scope") && CONF_IS_BOOL)
+				f_enable_scope_disp = (tmp->dat[0].i) ? 1:0;
+			
+			else if (ENTRY_NAME("show_channels") && CONF_IS_BOOL)
+				f_enable_channel_disp = (tmp->dat[0].i) ? 1:0;
+			
+			else if (ENTRY_NAME("play_next_on_stop") && CONF_IS_BOOL)
+				ao_play_next_on_stop = (tmp->dat[0].i) ? 1:0;
+			
 			
 		}
 		/*
@@ -1987,6 +2021,14 @@ int get_file_type(char * fn)
 	
 	if (!strcmp_nocase(ext,"2sf",-1) || !strcmp_nocase(ext,"mini2sf",-1))
 		return F_2SF;
+		
+	if (	!strcmp_nocase(ext,"mod",-1) ||
+			!strcmp_nocase(ext,"it",-1) ||
+			!strcmp_nocase(ext,"xm",-1) ||
+			!strcmp_nocase(ext,"s3m",-1) ||
+			!strcmp_nocase(ext,"duh",-1)
+			)
+		return F_DUH;
 	
 	return F_UNKNOWN;
 	

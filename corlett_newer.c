@@ -161,7 +161,6 @@ static int corlett_decode_tags(corlett_t *c, uint8 *input, uint32 input_len)
 
 static int corlett_decode_lib(int libnum, uint8 *input, uint32 input_len, uint8 **output, uint64 *size, corlett_t *c, corlett_lib_callback_t *lib_callback)
 {
-	printf("* decode lib\n");
 	int ret = AO_SUCCESS;
 	uint32 *buf;
 	uint32 res_area, comp_crc,  actual_crc;
@@ -250,11 +249,10 @@ static int corlett_decode_lib(int libnum, uint8 *input, uint32 input_len, uint8 
 			uint64 lib_len, lib_raw_length;
 
 			if (i >= 1 && i <= 8)
-			{
 				lib_tag_name[4] = '0' + i + 1;
-			}
 
 			const char *libfile = corlett_tag_lookup(c, lib_tag_name);
+			
 			if(!libfile)
 				continue;
 
@@ -273,13 +271,30 @@ static int corlett_decode_lib(int libnum, uint8 *input, uint32 input_len, uint8 
 		
 		if (ret == AO_SUCCESS)
 		{
+			
+			/* fill tags for ao.h */
+			if (corlett_tag_lookup(c, "title") != 0)
+				strcpy(tag_track, corlett_tag_lookup(c, "title"));
+			if (corlett_tag_lookup(c, "game") != 0)
+				strcpy(tag_game, corlett_tag_lookup(c, "game"));
+			if (corlett_tag_lookup(c, "title") != 0)
+				strcpy(tag_author, corlett_tag_lookup(c, "artist"));
+			if (corlett_tag_lookup(c, "title") != 0)
+				strcpy(tag_year, corlett_tag_lookup(c, "year"));
+			
+			
 			// now figure out the time in samples for the length/fade
 			double length_seconds = psfTimeToSeconds(corlett_tag_lookup(c, "length"));
 			double fade_seconds = psfTimeToSeconds(corlett_tag_lookup(c, "fade"));
+			
+			/* FROM AO.H: fill tags */
 
 			#ifdef DEBUG
 			printf("length %f fade %f\n", length_seconds, fade_seconds);
 			#endif
+			
+			if (ao_set_len >= 0)
+				length_seconds = (double) ao_set_len / 1000.;
 
 			corlett_length_set(length_seconds, fade_seconds);
 		}

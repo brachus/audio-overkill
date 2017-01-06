@@ -1207,7 +1207,7 @@ INLINE INT32 AICA_UpdateSlot(struct _AICA *AICA, struct _SLOT *slot)
 static void AICA_DoMasterSample(struct _AICA *AICA, int16_t *l, int16_t *r)
 {
 	int sl, i;
-	INT32 smpl, smpr, smpltmp, smprtmp;
+	INT32 smpl, smpr;
 
 	smpl = smpr = 0;
 
@@ -1226,9 +1226,16 @@ static void AICA_DoMasterSample(struct _AICA *AICA, int16_t *l, int16_t *r)
 			AICADSP_SetSample(&AICA->DSP,(sample*AICA->LPANTABLE[Enc])>>(SHIFT-2),ISEL(slot),IMXL(slot));
 			Enc=((TL(slot))<<0x0)|((DIPAN(slot))<<0x8)|((DISDL(slot))<<0xd);
 			{
+				mix_chan_disp(_AO_H_DSF, 64, sl, (sample*AICA->LPANTABLE[Enc])>>SHIFT, (sample*AICA->RPANTABLE[Enc])>>SHIFT);
+				mix_chan_flag(_AO_H_DSF, 64, sl, (int) (slot->base) );
+				
 				smpl+=(sample*AICA->LPANTABLE[Enc])>>SHIFT;
 				smpr+=(sample*AICA->RPANTABLE[Enc])>>SHIFT;
 			}
+		}
+		else
+		{
+			mix_chan_disp( _AO_H_DSF, 64, sl, 0,0);
 		}
 	}
 
@@ -1244,13 +1251,9 @@ static void AICA_DoMasterSample(struct _AICA *AICA, int16_t *l, int16_t *r)
 			unsigned int Enc=((EFPAN(i))<<0x8)|((EFSDL(i))<<0xd);
 			
 			
-			smpltmp = (AICA->DSP.EFREG[i]*AICA->LPANTABLE[Enc])>>SHIFT;
-			smprtmp = (AICA->DSP.EFREG[i]*AICA->RPANTABLE[Enc])>>SHIFT;
 			
-			mix_chan_disp( _AO_H_DSF, 16, i, smpltmp,smprtmp);
-			
-			smpl+=smpltmp;
-			smpr+=smprtmp;
+			smpl+=(AICA->DSP.EFREG[i]*AICA->LPANTABLE[Enc])>>SHIFT;
+			smpr+=(AICA->DSP.EFREG[i]*AICA->RPANTABLE[Enc])>>SHIFT;
 		}
 	}
 

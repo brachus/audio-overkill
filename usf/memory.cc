@@ -47,8 +47,6 @@
 #include "rsp.h"
 #include "usf.h"
 
-//extern USFPlugin *context;
-
 
 uint32_t RdramSize, SystemRdramSize, RomFileSize;
 
@@ -64,11 +62,13 @@ uint32_t   TempValue = 0;
 uint8_t EmptySpace = 0;
 
 
-void AiLenChanged(){
+void AiLenChanged()
+{
     ai_len_changed();
 }
 
-unsigned AiReadLength(){
+unsigned AiReadLength()
+{
     return ai_read_length();
 }
 
@@ -111,9 +111,8 @@ int32_t Allocate_Memory(void)
 	     PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, 0, 0);
 
     TLB_Map = (uintptr_t *) MemChunk;
-    if (TLB_Map == NULL) {
-	return 0;
-    }
+    if (TLB_Map == NULL)
+		return 0;
 
     memset(TLB_Map, 0, 0x100000 * sizeof(uintptr_t) + 0x10000);
 
@@ -121,9 +120,10 @@ int32_t Allocate_Memory(void)
 	mmap((void *) ((uintptr_t) MemChunk + 0x100000 * sizeof(uintptr_t) +
                        0x10000), 0xD000 + RdramSize, PROT_READ | PROT_WRITE,
 	     MAP_PRIVATE | MAP_ANONYMOUS | MAP_FIXED, 0, 0);
-    if (N64MEM == NULL) {
-	DisplayError("Failed to allocate N64MEM");
-	return 0;
+    if (N64MEM == NULL)
+    {
+		DisplayError("Failed to allocate N64MEM");
+		return 0;
     }
 
     memset(N64MEM, 0, RdramSize);
@@ -196,7 +196,7 @@ int PreAllocate_Memory(void)
     memset(savestatespace, 0, 0x80275C);
 
     for (i = 0; i < 0x400; i++)
-	ROMPages[i] = 0;
+		ROMPages[i] = 0;
 
     return 1;
 }
@@ -213,7 +213,8 @@ void Release_Memory(void)
 			ROMPages[i] = 0;
 		}
     }
-    printf("Freeing memory\n");
+    
+    /*printf("Freeing memory\n");*/
 
     MemoryState = 0;
 
@@ -311,12 +312,14 @@ void Compile_LB(int32_t Reg, uint32_t addr, uint32_t SignExtend)
 void Compile_LH(int32_t Reg, uint32_t addr, uint32_t SignExtend)
 {
     uintptr_t Addr = addr;
-    if (!TranslateVaddr(&Addr)) {
-	MoveConstToX86reg(0, Reg);
-	return;
+    if (!TranslateVaddr(&Addr))
+    {
+		MoveConstToX86reg(0, Reg);
+		return;
     }
 
-    switch (Addr & 0xFFF00000) {
+    switch (Addr & 0xFFF00000)
+    {
     case 0x00000000:
     case 0x00100000:
     case 0x00200000:
@@ -326,26 +329,24 @@ void Compile_LH(int32_t Reg, uint32_t addr, uint32_t SignExtend)
     case 0x00600000:
     case 0x00700000:
     case 0x10000000:
-
-	if (SignExtend) {
-	    MoveSxVariableToX86regHalf(Addr + N64MEM, Reg);
-	} else {
-	    MoveZxVariableToX86regHalf(Addr + N64MEM, Reg);
-	}
-	break;
+		if (SignExtend)
+			MoveSxVariableToX86regHalf(Addr + N64MEM, Reg);
+		else
+			MoveZxVariableToX86regHalf(Addr + N64MEM, Reg);
+		break;
     default:
-	MoveConstToX86reg(0, Reg);
+		MoveConstToX86reg(0, Reg);
     }
 }
 
 void Compile_LW(int32_t Reg, uint32_t addr)
 {
     uintptr_t Addr = addr;
-    if (!TranslateVaddr(&Addr)) {
-	MoveConstToX86reg(0, Reg);
-    }
+    if (!TranslateVaddr(&Addr))
+		MoveConstToX86reg(0, Reg);
 
-    switch (Addr & 0xFFF00000) {
+    switch (Addr & 0xFFF00000)
+    {
     case 0x00000000:
     case 0x00100000:
     case 0x00200000:
@@ -355,159 +356,167 @@ void Compile_LW(int32_t Reg, uint32_t addr)
     case 0x00600000:
     case 0x00700000:
     case 0x10000000:
-	MoveVariableToX86reg(Addr + N64MEM, Reg);
-	break;
+		MoveVariableToX86reg(Addr + N64MEM, Reg);
+		break;
     case 0x04000000:
-	if (Addr < 0x04002000) {
-	    MoveVariableToX86reg(Addr + N64MEM, Reg);
-	    break;
-	}
-	switch (Addr) {
-	case 0x04040010:
-	    MoveVariableToX86reg(&SP_STATUS_REG, Reg);
-	    break;
-	case 0x04040014:
-	    MoveVariableToX86reg(&SP_DMA_FULL_REG, Reg);
-	    break;
-	case 0x04040018:
-	    MoveVariableToX86reg(&SP_DMA_BUSY_REG, Reg);
-	    break;
-	case 0x04080000:
-	    MoveVariableToX86reg(&SP_PC_REG, Reg);
-	    break;
-	default:
-	    MoveConstToX86reg(0, Reg);
-	    break;
-	}
-	break;
+		if (Addr < 0x04002000)
+		{
+			MoveVariableToX86reg(Addr + N64MEM, Reg);
+			break;
+		}
+		switch (Addr)
+		{
+		case 0x04040010:
+			MoveVariableToX86reg(&SP_STATUS_REG, Reg);
+			break;
+		case 0x04040014:
+			MoveVariableToX86reg(&SP_DMA_FULL_REG, Reg);
+			break;
+		case 0x04040018:
+			MoveVariableToX86reg(&SP_DMA_BUSY_REG, Reg);
+			break;
+		case 0x04080000:
+			MoveVariableToX86reg(&SP_PC_REG, Reg);
+			break;
+		default:
+			MoveConstToX86reg(0, Reg);
+			break;
+		}
+		break;
     case 0x04100000:
-	MoveVariableToX86reg(Addr + N64MEM, Reg);
-	break;
-    case 0x04300000:
-	switch (Addr) {
-	case 0x04300000:
-	    MoveVariableToX86reg(&MI_MODE_REG, Reg);
-	    break;
-	case 0x04300004:
-	    MoveVariableToX86reg(&MI_VERSION_REG, Reg);
-	    break;
-	case 0x04300008:
-	    MoveVariableToX86reg(&MI_INTR_REG, Reg);
-	    break;
-	case 0x0430000C:
-	    MoveVariableToX86reg(&MI_INTR_MASK_REG, Reg);
-	    break;
-	default:
-	    MoveConstToX86reg(0, Reg);
-	    break;
-	}
-	break;
+		MoveVariableToX86reg(Addr + N64MEM, Reg);
+		break;
+		case 0x04300000:
+		switch (Addr)
+		{
+		case 0x04300000:
+			MoveVariableToX86reg(&MI_MODE_REG, Reg);
+			break;
+		case 0x04300004:
+			MoveVariableToX86reg(&MI_VERSION_REG, Reg);
+			break;
+		case 0x04300008:
+			MoveVariableToX86reg(&MI_INTR_REG, Reg);
+			break;
+		case 0x0430000C:
+			MoveVariableToX86reg(&MI_INTR_MASK_REG, Reg);
+			break;
+		default:
+			MoveConstToX86reg(0, Reg);
+			break;
+		}
+		break;
     case 0x04400000:
-	switch (Addr) {
-	case 0x04400010:
-	    Pushad();
-	    Call_Direct(&UpdateCurrentHalfLine);
-	    Popad();
-	    MoveVariableToX86reg(&HalfLine, Reg);
-	    break;
-	default:
-	    MoveConstToX86reg(0, Reg);
-	    break;
-	}
-	break;
+		switch (Addr)
+		{
+		case 0x04400010:
+			Pushad();
+			Call_Direct(&UpdateCurrentHalfLine);
+			Popad();
+			MoveVariableToX86reg(&HalfLine, Reg);
+			break;
+		default:
+			MoveConstToX86reg(0, Reg);
+			break;
+		}
+		break;
     case 0x04500000:		/* AI registers */
-	switch (Addr) {
-	case 0x04500004:
-	    Pushad();
-	    Call_Direct((void (*)()) AiReadLength);
-	    MoveX86regToVariable(x86_EAX, &TempValue);
-	    Popad();
-	    MoveVariableToX86reg(&TempValue, Reg);
-	    break;
-	case 0x0450000C:
-	    MoveVariableToX86reg(&AI_STATUS_REG, Reg);
-	    break;
-	case 0x04500010:
-	    MoveVariableToX86reg(&AI_DACRATE_REG, Reg);
-	    break;
-	default:
-	    MoveConstToX86reg(0, Reg);
-	    break;
-	}
-	break;
+		switch (Addr)
+		{
+		case 0x04500004:
+			Pushad();
+			Call_Direct((void (*)()) AiReadLength);
+			MoveX86regToVariable(x86_EAX, &TempValue);
+			Popad();
+			MoveVariableToX86reg(&TempValue, Reg);
+			break;
+		case 0x0450000C:
+			MoveVariableToX86reg(&AI_STATUS_REG, Reg);
+			break;
+		case 0x04500010:
+			MoveVariableToX86reg(&AI_DACRATE_REG, Reg);
+			break;
+		default:
+			MoveConstToX86reg(0, Reg);
+			break;
+		}
+		break;
     case 0x04600000:
-	switch (Addr) {
-	case 0x04600010:
-	    MoveVariableToX86reg(&PI_STATUS_REG, Reg);
-	    break;
-	case 0x04600014:
-	    MoveVariableToX86reg(&PI_DOMAIN1_REG, Reg);
-	    break;
-	case 0x04600018:
-	    MoveVariableToX86reg(&PI_BSD_DOM1_PWD_REG, Reg);
-	    break;
-	case 0x0460001C:
-	    MoveVariableToX86reg(&PI_BSD_DOM1_PGS_REG, Reg);
-	    break;
-	case 0x04600020:
-	    MoveVariableToX86reg(&PI_BSD_DOM1_RLS_REG, Reg);
-	    break;
-	case 0x04600024:
-	    MoveVariableToX86reg(&PI_DOMAIN2_REG, Reg);
-	    break;
-	case 0x04600028:
-	    MoveVariableToX86reg(&PI_BSD_DOM2_PWD_REG, Reg);
-	    break;
-	case 0x0460002C:
-	    MoveVariableToX86reg(&PI_BSD_DOM2_PGS_REG, Reg);
-	    break;
-	case 0x04600030:
-	    MoveVariableToX86reg(&PI_BSD_DOM2_RLS_REG, Reg);
-	    break;
-	default:
-	    MoveConstToX86reg(0, Reg);
-	    break;
-	}
-	break;
+		switch (Addr)
+		{
+		case 0x04600010:
+			MoveVariableToX86reg(&PI_STATUS_REG, Reg);
+			break;
+		case 0x04600014:
+			MoveVariableToX86reg(&PI_DOMAIN1_REG, Reg);
+			break;
+		case 0x04600018:
+			MoveVariableToX86reg(&PI_BSD_DOM1_PWD_REG, Reg);
+			break;
+		case 0x0460001C:
+			MoveVariableToX86reg(&PI_BSD_DOM1_PGS_REG, Reg);
+			break;
+		case 0x04600020:
+			MoveVariableToX86reg(&PI_BSD_DOM1_RLS_REG, Reg);
+			break;
+		case 0x04600024:
+			MoveVariableToX86reg(&PI_DOMAIN2_REG, Reg);
+			break;
+		case 0x04600028:
+			MoveVariableToX86reg(&PI_BSD_DOM2_PWD_REG, Reg);
+			break;
+		case 0x0460002C:
+			MoveVariableToX86reg(&PI_BSD_DOM2_PGS_REG, Reg);
+			break;
+		case 0x04600030:
+			MoveVariableToX86reg(&PI_BSD_DOM2_RLS_REG, Reg);
+			break;
+		default:
+			MoveConstToX86reg(0, Reg);
+			break;
+		}
+		break;
     case 0x04700000:
-	switch (Addr) {
-	case 0x0470000C:
-	    MoveVariableToX86reg(&RI_SELECT_REG, Reg);
-	    break;
-	case 0x04700010:
-	    MoveVariableToX86reg(&RI_REFRESH_REG, Reg);
-	    break;
-	default:
-	    MoveConstToX86reg(0, Reg);
-	    break;
-	}
-	break;
+		switch (Addr)
+		{
+		case 0x0470000C:
+			MoveVariableToX86reg(&RI_SELECT_REG, Reg);
+			break;
+		case 0x04700010:
+			MoveVariableToX86reg(&RI_REFRESH_REG, Reg);
+			break;
+		default:
+			MoveConstToX86reg(0, Reg);
+			break;
+		}
+		break;
     case 0x04800000:
-	switch (Addr) {
-	case 0x04800018:
-	    MoveVariableToX86reg(&SI_STATUS_REG, Reg);
-	    break;
-	default:
-	    MoveConstToX86reg(0, Reg);
-	    break;
-	}
-	break;
+		switch (Addr)
+		{
+		case 0x04800018:
+			MoveVariableToX86reg(&SI_STATUS_REG, Reg);
+			break;
+		default:
+			MoveConstToX86reg(0, Reg);
+			break;
+		}
+		break;
     case 0x1FC00000:
-	MoveVariableToX86reg(Addr + N64MEM, Reg);
-	break;
+		MoveVariableToX86reg(Addr + N64MEM, Reg);
+		break;
     default:
-	MoveConstToX86reg(((Addr & 0xFFFF) << 16) | (Addr & 0xFFFF), Reg);
+		MoveConstToX86reg(((Addr & 0xFFFF) << 16) | (Addr & 0xFFFF), Reg);
     }
 }
 
 void Compile_SB_Const(uint8_t Value, uint32_t addr)
 {
     uintptr_t Addr = addr;
-    if (!TranslateVaddr(&Addr)) {
-	return;
-    }
+    if (!TranslateVaddr(&Addr))
+		return;
 
-    switch (Addr & 0xFFF00000) {
+    switch (Addr & 0xFFF00000)
+    {
     case 0x00000000:
     case 0x00100000:
     case 0x00200000:
@@ -516,8 +525,8 @@ void Compile_SB_Const(uint8_t Value, uint32_t addr)
     case 0x00500000:
     case 0x00600000:
     case 0x00700000:
-	MoveConstByteToVariable(Value, Addr + N64MEM);
-	break;
+		MoveConstByteToVariable(Value, Addr + N64MEM);
+		break;
     }
 }
 

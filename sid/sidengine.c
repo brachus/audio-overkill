@@ -396,13 +396,30 @@ void synth_render (word *buffer, dword len)
     outf+=((signed short)(outv-0x80)) * (osc[v].envval>>8);
 #endif
 
-	/* for channel visualization */
+	
 		
 	/*ao_chan_flag_disp[v*2] = (0xff << (8*v)) | 0x888888;
 	ao_chan_flag_disp[v*2+1] = (0xff << (8*v)) | 0x888888;*/
 	
-	mix_chan_disp(_AO_H_SID,6,v*2, osc[v].envval, osc[v].envval);
-	mix_chan_disp(_AO_H_SID,6,v*2+1, outv, outv);
+	/*_disp(_AO_H_SID,6,v*2, osc[v].envval, osc[v].envval);*/
+	/*mix_chan_disp(_AO_H_SID,6,v*2+1, outv, outv);*/
+	/* for channel visualization */
+	mix_chan_flag(_AO_H_SID, 6, v*2, (int) outv | (outv<<8) | (outv<<16) );
+	
+	if ((v<2 || filter.v3ena) && (osc[v].filter))
+		mix_chan_disp(
+			_AO_H_SID,
+			6,v*2,
+			(short)(((int)(outv-0x80))*osc[v].envval),
+			(short)(((int)(outv-0x80))*osc[v].envval));
+			
+	else if ((v<2 || filter.v3ena) && !(osc[v].filter))
+		mix_chan_disp(
+			_AO_H_SID,
+			6,v*2 + 1,
+			(short)(((int)(outv-0x80))*osc[v].envval),
+			(short)(((int)(outv-0x80))*osc[v].envval));
+	
 	
     }		
     // step 3

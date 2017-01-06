@@ -2465,13 +2465,13 @@ void ym2151_update_one(void *chip, SAMP **buffers, int length)
 		/*ao_chan_flag_disp[v*2] = (0xff << (8*v)) | 0x888888;
 		ao_chan_flag_disp[v*2+1] = (0xff << (8*v)) | 0x888888;*/
 		mix_chan_disp(_AO_H_YM2151,8,0, chanout[0] & PSG->pan[0], chanout[0] & PSG->pan[1]);
-		mix_chan_disp(_AO_H_YM2151,8,1, chanout[1] & PSG->pan[2], chanout[0] & PSG->pan[3]);
-		mix_chan_disp(_AO_H_YM2151,8,2, chanout[2] & PSG->pan[4], chanout[0] & PSG->pan[5]);
-		mix_chan_disp(_AO_H_YM2151,8,3, chanout[3] & PSG->pan[6], chanout[0] & PSG->pan[7]);
-		mix_chan_disp(_AO_H_YM2151,8,4, chanout[4] & PSG->pan[8], chanout[0] & PSG->pan[9]);
-		mix_chan_disp(_AO_H_YM2151,8,5, chanout[5] & PSG->pan[10], chanout[0] & PSG->pan[11]);
-		mix_chan_disp(_AO_H_YM2151,8,6, chanout[6] & PSG->pan[12], chanout[0] & PSG->pan[13]);
-		mix_chan_disp(_AO_H_YM2151,8,7, chanout[7] & PSG->pan[14], chanout[0] & PSG->pan[15]);
+		mix_chan_disp(_AO_H_YM2151,8,1, chanout[1] & PSG->pan[2], chanout[1] & PSG->pan[3]);
+		mix_chan_disp(_AO_H_YM2151,8,2, chanout[2] & PSG->pan[4], chanout[2] & PSG->pan[5]);
+		mix_chan_disp(_AO_H_YM2151,8,3, chanout[3] & PSG->pan[6], chanout[3] & PSG->pan[7]);
+		mix_chan_disp(_AO_H_YM2151,8,4, chanout[4] & PSG->pan[8], chanout[4] & PSG->pan[9]);
+		mix_chan_disp(_AO_H_YM2151,8,5, chanout[5] & PSG->pan[10], chanout[5] & PSG->pan[11]);
+		mix_chan_disp(_AO_H_YM2151,8,6, chanout[6] & PSG->pan[12], chanout[6] & PSG->pan[13]);
+		mix_chan_disp(_AO_H_YM2151,8,7, chanout[7] & PSG->pan[14], chanout[7] & PSG->pan[15]);
 		/* --- */
 
 		outl = chanout[0] & PSG->pan[0];
