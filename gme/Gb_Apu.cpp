@@ -152,10 +152,18 @@ void Gb_Apu::run_until( blip_time_t end_time )
 					playing = -1;
 				switch ( i )
 				{
-				case 0: square1.run( last_time, time, playing ); break;
-				case 1: square2.run( last_time, time, playing ); break;
-				case 2: wave   .run( last_time, time, playing ); break;
-				case 3: noise  .run( last_time, time, playing ); break;
+				case 0:
+					ao_channel_tmp_cur=0;/* FROM AO.H */
+					square1.run( last_time, time, playing ); break;
+				case 1:
+					ao_channel_tmp_cur=1;/* FROM AO.H */
+					square2.run( last_time, time, playing ); break;
+				case 2:
+					ao_channel_tmp_cur=2;/* FROM AO.H */
+					wave   .run( last_time, time, playing ); break;
+				case 3:
+					ao_channel_tmp_cur=3;/* FROM AO.H */
+					noise  .run( last_time, time, playing ); break;
 				}
 			}
 		}

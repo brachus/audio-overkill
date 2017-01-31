@@ -1,6 +1,11 @@
 #include "usf.h"
 #include "audio_hle.h"
 
+extern "C"
+{
+	#include "../ao.h"
+}
+
 
 static void SPNOOP()
 {
@@ -45,49 +50,54 @@ static void ENVMIXER()
 
     memset(zero, 0, 16);
 
-    if (flags & A_INIT) {
+    if (flags & A_INIT)
+		{
 
-	if (goldeneye) {
-	    //Vol_Left = Vol_Right;
-	    // VolTrg_Left = VolTrg_Right;
-	    Vol_Left = (Vol_Right >> 8) << 8;
-	    VolTrg_Left = (VolTrg_Right >> 8) << 8;
-	    //Vol_Right = (Vol_Right & 0xff) << 8;
-	    //VolTrg_Right = (VolTrg_Right & 0xff) << 8;
-	}
+		if (goldeneye)
+		{
+			//Vol_Left = Vol_Right;
+			// VolTrg_Left = VolTrg_Right;
+			Vol_Left = (Vol_Right >> 8) << 8;
+			VolTrg_Left = (VolTrg_Right >> 8) << 8;
+			//Vol_Right = (Vol_Right & 0xff) << 8;
+			//VolTrg_Right = (VolTrg_Right & 0xff) << 8;
+		}
 
-	LVol = ((Vol_Left * (s32) VolRamp_Left));
-	RVol = ((Vol_Right * (s32) VolRamp_Right));
+		LVol = ((Vol_Left * (s32) VolRamp_Left));
+		RVol = ((Vol_Right * (s32) VolRamp_Right));
 
-	Wet = (s16) Env_Wet;
-	Dry = (s16) Env_Dry;	// Save Wet/Dry values
-	LTrg = (VolTrg_Left << 16);
-	RTrg = (VolTrg_Right << 16);	// Save Current Left/Right Targets
-	LAdderStart = Vol_Left << 16;
-	RAdderStart = Vol_Right << 16;
-	LAdderEnd = LVol;
-	RAdderEnd = RVol;
-	RRamp = VolRamp_Right;
-	LRamp = VolRamp_Left;
-    } else {
-	// Load LVol, RVol, LAcc, and RAcc (all 32bit)
-	// Load Wet, Dry, LTrg, RTrg
-	memcpy((u8 *) hleMixerWorkArea, (u8 *) RDRAM + addy, 80);
-	Wet = *(s16 *) (hleMixerWorkArea + 0);	// 0-1
-	Dry = *(s16 *) (hleMixerWorkArea + 2);	// 2-3
-	LTrg = *(s32 *) (hleMixerWorkArea + 4);	// 4-5
-	RTrg = *(s32 *) (hleMixerWorkArea + 6);	// 6-7
-	LRamp = *(s32 *) (hleMixerWorkArea + 8);	// 8-9 (hleMixerWorkArea is a 16bit pointer)
-	RRamp = *(s32 *) (hleMixerWorkArea + 10);	// 10-11
-	LAdderEnd = *(s32 *) (hleMixerWorkArea + 12);	// 12-13
-	RAdderEnd = *(s32 *) (hleMixerWorkArea + 14);	// 14-15
-	LAdderStart = *(s32 *) (hleMixerWorkArea + 16);	// 12-13
-	RAdderStart = *(s32 *) (hleMixerWorkArea + 18);	// 14-15
+		Wet = (s16) Env_Wet;
+		Dry = (s16) Env_Dry;	// Save Wet/Dry values
+		LTrg = (VolTrg_Left << 16);
+		RTrg = (VolTrg_Right << 16);	// Save Current Left/Right Targets
+		LAdderStart = Vol_Left << 16;
+		RAdderStart = Vol_Right << 16;
+		LAdderEnd = LVol;
+		RAdderEnd = RVol;
+		RRamp = VolRamp_Right;
+		LRamp = VolRamp_Left;
+    }
+    else
+    {
+		// Load LVol, RVol, LAcc, and RAcc (all 32bit)
+		// Load Wet, Dry, LTrg, RTrg
+		memcpy((u8 *) hleMixerWorkArea, (u8 *) RDRAM + addy, 80);
+		Wet = *(s16 *) (hleMixerWorkArea + 0);	// 0-1
+		Dry = *(s16 *) (hleMixerWorkArea + 2);	// 2-3
+		LTrg = *(s32 *) (hleMixerWorkArea + 4);	// 4-5
+		RTrg = *(s32 *) (hleMixerWorkArea + 6);	// 6-7
+		LRamp = *(s32 *) (hleMixerWorkArea + 8);	// 8-9 (hleMixerWorkArea is a 16bit pointer)
+		RRamp = *(s32 *) (hleMixerWorkArea + 10);	// 10-11
+		LAdderEnd = *(s32 *) (hleMixerWorkArea + 12);	// 12-13
+		RAdderEnd = *(s32 *) (hleMixerWorkArea + 14);	// 14-15
+		LAdderStart = *(s32 *) (hleMixerWorkArea + 16);	// 12-13
+		RAdderStart = *(s32 *) (hleMixerWorkArea + 18);	// 14-15
     }
 
-    if (!(flags & A_AUX)) {
-	AuxIncRate = 0;
-	aux2 = aux3 = zero;
+    if (!(flags & A_AUX))
+    {
+		AuxIncRate = 0;
+		aux2 = aux3 = zero;
     }
 
     oMainL = (Dry * (LTrg >> 16) + 0x4000) >> 15;
@@ -97,117 +107,143 @@ static void ENVMIXER()
 
     for (y = 0; y < AudioCount; y += 0x10) {
 
-	if (LAdderStart != LTrg) {
-	    LAcc = LAdderStart;
-	    LVol = (LAdderEnd - LAdderStart) >> 3;
-	    LAdderEnd = ((s64) LAdderEnd * (s64) LRamp) >> 16;
-	    LAdderStart = ((s64) LAcc * (s64) LRamp) >> 16;
-	} else {
-	    LAcc = LTrg;
-	    LVol = 0;
+		if (LAdderStart != LTrg)
+		{
+			LAcc = LAdderStart;
+			LVol = (LAdderEnd - LAdderStart) >> 3;
+			LAdderEnd = ((s64) LAdderEnd * (s64) LRamp) >> 16;
+			LAdderStart = ((s64) LAcc * (s64) LRamp) >> 16;
+		}
+		else
+		{
+			LAcc = LTrg;
+			LVol = 0;
+		}
+
+		if (RAdderStart != RTrg) {
+			RAcc = RAdderStart;
+			RVol = (RAdderEnd - RAdderStart) >> 3;
+			RAdderEnd = ((s64) RAdderEnd * (s64) RRamp) >> 16;
+			RAdderStart = ((s64) RAcc * (s64) RRamp) >> 16;
+		} else {
+			RAcc = RTrg;
+			RVol = 0;
+		}
+
+		for (x = 0; x < 8; x++) {
+			i1 = (int) inp[ptr ^ 1];
+			o1 = (int) out[ptr ^ 1];
+			a1 = (int) aux1[ptr ^ 1];
+			if (AuxIncRate) {
+			a2 = (int) aux2[ptr ^ 1];
+			a3 = (int) aux3[ptr ^ 1];
+			}
+
+			LAcc += LVol;
+			RAcc += RVol;
+
+			if (LVol <= 0)
+			{	// Decrementing
+				if (LAcc < LTrg)
+				{
+					LAcc = LTrg;
+					LAdderStart = LTrg;
+					MainL = oMainL;
+					AuxL = oAuxL;
+				}
+				else
+				{
+					MainL = (Dry * ((s32) LAcc >> 16) + 0x4000) >> 15;
+					AuxL = (Wet * ((s32) LAcc >> 16) + 0x4000) >> 15;
+				}
+			}
+			else
+			{
+				if (LAcc > LTrg)
+				{
+					LAcc = LTrg;
+					LAdderStart = LTrg;
+					MainL = oMainL;
+					AuxL = oAuxL;
+				}
+				else
+				{
+					MainL = (Dry * ((s32) LAcc >> 16) + 0x4000) >> 15;
+					AuxL = (Wet * ((s32) LAcc >> 16) + 0x4000) >> 15;
+				}
+			}
+
+			if (RVol <= 0)
+			{	// Decrementing
+				if (RAcc < RTrg)
+				{
+					RAcc = RTrg;
+					RAdderStart = RTrg;
+					MainR = oMainR;
+					AuxR = oAuxR;
+				}
+				else
+				{
+					MainR = (Dry * ((s32) RAcc >> 16) + 0x4000) >> 15;
+					AuxR = (Wet * ((s32) RAcc >> 16) + 0x4000) >> 15;
+				}
+			}
+			else
+			{
+				if (RAcc > RTrg)
+				{
+					RAcc = RTrg;
+					RAdderStart = RTrg;
+					MainR = oMainR;
+					AuxR = oAuxR;
+				}
+				else
+				{
+					MainR = (Dry * ((s32) RAcc >> 16) + 0x4000) >> 15;
+					AuxR = (Wet * ((s32) RAcc >> 16) + 0x4000) >> 15;
+				}
+			}
+			
+			
+
+			o1 += ((i1 * MainR) + 0x4000) >> 15;
+			a1 += ((i1 * MainL) + 0x4000) >> 15;
+
+			if (o1 > 32767)
+				o1 = 32767;
+			else if (o1 < -32768)
+				o1 = -32768;
+
+			if (a1 > 32767)
+				a1 = 32767;
+			else if (a1 < -32768)
+				a1 = -32768;
+
+			out[ptr ^ 1] = o1;
+			aux1[ptr ^ 1] = a1;
+			if (AuxIncRate)
+			{
+				a2 += ((i1 * AuxR) + 0x4000) >> 15;
+				a3 += ((i1 * AuxL) + 0x4000) >> 15;
+
+				if (a2 > 32767)
+					a2 = 32767;
+				else if (a2 < -32768)
+					a2 = -32768;
+
+				if (a3 > 32767)
+					a3 = 32767;
+				else if (a3 < -32768)
+					a3 = -32768;
+
+				aux2[ptr ^ 1] = a2;
+				aux3[ptr ^ 1] = a3;
+			}
+			ptr++;
+		}
 	}
-
-	if (RAdderStart != RTrg) {
-	    RAcc = RAdderStart;
-	    RVol = (RAdderEnd - RAdderStart) >> 3;
-	    RAdderEnd = ((s64) RAdderEnd * (s64) RRamp) >> 16;
-	    RAdderStart = ((s64) RAcc * (s64) RRamp) >> 16;
-	} else {
-	    RAcc = RTrg;
-	    RVol = 0;
-	}
-
-	for (x = 0; x < 8; x++) {
-	    i1 = (int) inp[ptr ^ 1];
-	    o1 = (int) out[ptr ^ 1];
-	    a1 = (int) aux1[ptr ^ 1];
-	    if (AuxIncRate) {
-		a2 = (int) aux2[ptr ^ 1];
-		a3 = (int) aux3[ptr ^ 1];
-	    }
-
-	    LAcc += LVol;
-	    RAcc += RVol;
-
-	    if (LVol <= 0) {	// Decrementing
-		if (LAcc < LTrg) {
-		    LAcc = LTrg;
-		    LAdderStart = LTrg;
-		    MainL = oMainL;
-		    AuxL = oAuxL;
-		} else {
-		    MainL = (Dry * ((s32) LAcc >> 16) + 0x4000) >> 15;
-		    AuxL = (Wet * ((s32) LAcc >> 16) + 0x4000) >> 15;
-		}
-	    } else {
-		if (LAcc > LTrg) {
-		    LAcc = LTrg;
-		    LAdderStart = LTrg;
-		    MainL = oMainL;
-		    AuxL = oAuxL;
-		} else {
-		    MainL = (Dry * ((s32) LAcc >> 16) + 0x4000) >> 15;
-		    AuxL = (Wet * ((s32) LAcc >> 16) + 0x4000) >> 15;
-		}
-	    }
-
-	    if (RVol <= 0) {	// Decrementing
-		if (RAcc < RTrg) {
-		    RAcc = RTrg;
-		    RAdderStart = RTrg;
-		    MainR = oMainR;
-		    AuxR = oAuxR;
-		} else {
-		    MainR = (Dry * ((s32) RAcc >> 16) + 0x4000) >> 15;
-		    AuxR = (Wet * ((s32) RAcc >> 16) + 0x4000) >> 15;
-		}
-	    } else {
-		if (RAcc > RTrg) {
-		    RAcc = RTrg;
-		    RAdderStart = RTrg;
-		    MainR = oMainR;
-		    AuxR = oAuxR;
-		} else {
-		    MainR = (Dry * ((s32) RAcc >> 16) + 0x4000) >> 15;
-		    AuxR = (Wet * ((s32) RAcc >> 16) + 0x4000) >> 15;
-		}
-	    }
-
-	    o1 += ((i1 * MainR) + 0x4000) >> 15;
-	    a1 += ((i1 * MainL) + 0x4000) >> 15;
-
-	    if (o1 > 32767)
-		o1 = 32767;
-	    else if (o1 < -32768)
-		o1 = -32768;
-
-	    if (a1 > 32767)
-		a1 = 32767;
-	    else if (a1 < -32768)
-		a1 = -32768;
-
-	    out[ptr ^ 1] = o1;
-	    aux1[ptr ^ 1] = a1;
-	    if (AuxIncRate) {
-		a2 += ((i1 * AuxR) + 0x4000) >> 15;
-		a3 += ((i1 * AuxL) + 0x4000) >> 15;
-
-		if (a2 > 32767)
-		    a2 = 32767;
-		else if (a2 < -32768)
-		    a2 = -32768;
-
-		if (a3 > 32767)
-		    a3 = 32767;
-		else if (a3 < -32768)
-		    a3 = -32768;
-
-		aux2[ptr ^ 1] = a2;
-		aux3[ptr ^ 1] = a3;
-	    }
-	    ptr++;
-	}
-    }
+	
+	
 
     *(s16 *) (hleMixerWorkArea + 0) = Wet;	// 0-1
     *(s16 *) (hleMixerWorkArea + 2) = Dry;	// 2-3
@@ -236,6 +272,8 @@ static void RESAMPLE()
     unsigned char Flags;
     unsigned int Pitch;
     int x = 0, i = 0;
+    
+    
 
     dst = (short *) (BufferSpace);
     src = (s16 *) (BufferSpace);
@@ -699,18 +737,21 @@ static void MIXER()
     int x;
 
     if (AudioCount == 0)
-	return;
+		return;
 
-    for (x = 0; x < AudioCount; x += 2) {	// I think I can do this a lot easier
-	temp = (*(s16 *) (BufferSpace + dmemin + x) * gain) >> 15;
-	temp += *(s16 *) (BufferSpace + dmemout + x);
+    for (x = 0; x < AudioCount; x += 2)
+    {	// I think I can do this a lot easier
+		temp = (*(s16 *) (BufferSpace + dmemin + x) * gain) >> 15;
+		temp += *(s16 *) (BufferSpace + dmemout + x);
+		
+		
 
-	if ((s32) temp > 32767)
-	    temp = 32767;
-	if ((s32) temp < -32768)
-	    temp = -32768;
+		if ((s32) temp > 32767)
+			temp = 32767;
+		if ((s32) temp < -32768)
+			temp = -32768;
 
-	*(u16 *) (BufferSpace + dmemout + x) = (u16) (temp & 0xFFFF);
+		*(u16 *) (BufferSpace + dmemout + x) = (u16) (temp & 0xFFFF);
     }
 }
 

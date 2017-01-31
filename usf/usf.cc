@@ -35,8 +35,12 @@ extern int SampleRate;
 
 //void usf_mseek(USFPlugin * context, gint millisecond);
 int8_t filename[512];
-uint32_t cpu_running = 0, use_interpreter = 0, use_audiohle =
-    0, is_paused = 0, cpu_stopped = 1, fake_seek_stopping = 0;
+uint32_t cpu_running = 0,
+	use_interpreter = 1,
+	use_audiohle = 0,
+	is_paused = 0,
+	cpu_stopped = 1,
+	fake_seek_stopping = 0;
 uint32_t is_fading = 0, fade_type = 1, fade_time = 5000, is_seeking =
     0, seek_backwards = 0, track_time = 180000;
 double seek_time = 0.0, play_time = 0.0, rel_volume = 1.0;
@@ -367,9 +371,9 @@ int LoadUSF(const char * fn, struct filebuf * fil)
 
 bool usf_init()
 {
-    use_audiohle = 1;
+    use_audiohle = 0; /* for some odd reason, enabling this causes some crackling noise. */
     use_interpreter = 1;
-    RSP_Cpu = 0;		// 0 is recompiler, 1 is interpreter
+    RSP_Cpu = 1;		// 0 is recompiler, 1 is interpreter
 
     return true;
 }

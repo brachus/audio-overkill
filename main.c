@@ -42,6 +42,8 @@
 
 #include "dumb/src/plugin.h"
 
+#define _AO_SDL_DEBUG_
+
 
 #include "filelist.h"
 
@@ -73,10 +75,12 @@ static int col_bg[3] = {255, 255, 255};
 static int col_scope[3] = {0, 0, 0};
 static int col_scope_low[3] = {255, 0, 0};
 static int col_scope_high[3] = {0, 0, 255};
+static int col_chan_disp[3] = {0, 0, 0};
 #define TEXT_COLOR col_text[0],col_text[1],col_text[2]
 #define TEXT_BG_COLOR col_text_bg[0],col_text_bg[1],col_text_bg[2]
 #define BG_COLOR col_bg[0],col_bg[1],col_bg[2]
 #define SCOPE_COLOR col_scope[0],col_scope[1],col_scope[2]
+#define CHAN_DISP_COLOR col_chan_disp[0],col_chan_disp[1],col_chan_disp[2]
 #define SCOPE_LOW_COLOR col_scope_low[0],col_scope_low[1],col_scope_low[2]
 
 static int c_scope_do_grad = 1;
@@ -137,6 +141,9 @@ static uint8_t *pw_pixel;
 
 
 static int f_render_font = 1;
+static int f_font_size = 11;
+
+static int f_debug_kanji_test = 0;
 
 
 static int k_shift=0;
@@ -222,6 +229,7 @@ enum
 	KS_OPEN_FILE,
 	KS_DELETE_CURRENT_ITEM,
 	KS_DELETE_ALL_ITEMS,
+	KS_MUTE_TOGGLE_SELECT,
 	KS_END
 };
 
@@ -245,9 +253,11 @@ void keys_reset()
 	kshortcuts[KS_PAUSE].key = SDLK_SPACE;
 	kshortcuts[KS_QUIT].key = SDLK_ESCAPE;
 	kshortcuts[KS_OPEN_FILE].key = SDLK_f;
-	kshortcuts[KS_DELETE_CURRENT_ITEM].key = SDLK_x;
-	kshortcuts[KS_DELETE_ALL_ITEMS].key = SDLK_x;
+	kshortcuts[KS_MUTE_TOGGLE_SELECT].key = SDLK_z;
 	
+	kshortcuts[KS_DELETE_CURRENT_ITEM].key = SDLK_x;
+	
+	kshortcuts[KS_DELETE_ALL_ITEMS].key = SDLK_x;
 	kshortcuts[KS_DELETE_ALL_ITEMS].shift = 1;
 }
 
@@ -318,6 +328,7 @@ int get_file_type(char * fn);
 void print_f_type(int type);
 void experimental_sample_filter(int key);
 int recon_file(char* fn);
+void parse_mute_toggle(char* kinp_buf);
 void listdir_flist(struct flist_base *b, const char *name, int level);
 
 
@@ -437,7 +448,23 @@ int main(int argc, char *argv[])
 	SDL_Event e;
 	char tmpstr[256];
 	char tmpstr1[64];
-	char chtrack, *ctmp;	
+	char chtrack, *ctmp;
+	
+	
+	enum
+	{
+		KINP_MUTE_TOGGLE
+	};
+	
+	char kinp_buf[8] = "    ";
+	char kinp_on = 0;
+	char kinp_type = KINP_MUTE_TOGGLE;
+	char kinp_cur=0;
+	char kinp_tmpch;
+	
+	int kinp_sel_chan=0;
+	
+	
 	
 	/* reset keyboard shortcuts to default */
 	keys_reset();
@@ -453,6 +480,9 @@ int main(int argc, char *argv[])
 	SDL_Rect tr;
 	
 	FILE *fp;
+	
+	/* enable all channels by default */
+	ao_reset_chan_enable();
 
 	/* set sdl color structs */
 	sdl_set_col(&tcol_a, TEXT_COLOR, 0);
@@ -471,7 +501,7 @@ int main(int argc, char *argv[])
 	TTF_Init();
 	
 	/* load our font */
-    TTF_Font *font = TTF_OpenFont(TTF_FONT, 11);
+    TTF_Font *font = TTF_OpenFont(TTF_FONT, f_font_size);
     
     if (!font)
     {
@@ -521,6 +551,19 @@ int main(int argc, char *argv[])
 		
 	screen = SDL_GetWindowSurface(win);
 	
+	if (!screen)
+	{
+		printf("SDL_GetWindowSurface: %s\n", SDL_GetError());
+		return 1;
+	}
+	
+	#ifdef _AO_SDL_DEBUG_
+    printf("win surface:\n  pformat: format=%d bitspp=%d bytespp=%d\n  ",
+		screen->format->format,
+		screen->format->BitsPerPixel,
+		screen->format->BytesPerPixel);
+    #endif
+	
 	
 	clear_tags();
 	
@@ -533,6 +576,10 @@ int main(int argc, char *argv[])
     wanted.callback = fill_audio;
     wanted.userdata = 0;
     
+    #ifdef _AO_SDL_DEBUG_
+    printf("44100, AUDIO_S16, 2 channel, %d, callback %d ok\n",ABUFSIZ, fill_audio);
+    #endif
+    
 
     /* open the audio device, forcing the desired format */
     if ( SDL_OpenAudio(&wanted, NULL) < 0 )
@@ -540,6 +587,10 @@ int main(int argc, char *argv[])
         fprintf(stderr, "Couldn't open audio: %s\n", SDL_GetError());
         return 0;
     }
+    
+    #ifdef _AO_SDL_DEBUG_
+    printf("SDL_OpenAudio ok\n");
+    #endif
     
     
     SDL_PauseAudio(1);
@@ -559,6 +610,7 @@ int main(int argc, char *argv[])
 	
 	
 	
+	
 	while (run)
 	{
 		
@@ -575,6 +627,45 @@ int main(int argc, char *argv[])
 				k_shift = e.key.keysym.mod & (KMOD_LSHIFT | KMOD_RSHIFT);
 				k_ctrl = e.key.keysym.mod & (KMOD_LCTRL | KMOD_RCTRL);
 				
+				if (kinp_on)
+				{
+						
+					
+					kinp_tmpch = SDL_GetKeyName(e.key.keysym.sym)[0];
+						
+					if (e.key.keysym.sym == SDLK_BACKSPACE && kinp_cur >= 1)
+						kinp_buf[--kinp_cur] = '\0';
+						
+					if (e.key.keysym.sym == SDLK_RETURN)
+					{
+						if (kinp_cur>0)
+						{
+							if (kinp_type == KINP_MUTE_TOGGLE)
+							{
+								
+								
+								parse_mute_toggle(kinp_buf);
+							}
+						}
+						kinp_on = 0;
+					}
+					else if (	((kinp_tmpch >= '0' &&
+								kinp_tmpch <= '9') ||
+								(kinp_tmpch == ';' && k_shift)) &&
+								
+								kinp_cur < 7 )
+					{
+						kinp_tmpch = (kinp_tmpch==';') ? ':' : kinp_tmpch;
+						
+						kinp_buf[kinp_cur] = kinp_tmpch;
+						kinp_cur++;
+						
+						if (kinp_cur<7)
+							kinp_buf[kinp_cur] = '\0';
+					}
+					
+					break;
+				}
 				
 				#define KS_IF_MATCH \
 					if (!(kshortcuts[i].key == e.key.keysym.sym && \
@@ -732,6 +823,16 @@ int main(int argc, char *argv[])
 						
 						KS_DEL_TRACK_DOAFTER
 						break;
+					case KS_MUTE_TOGGLE_SELECT:
+						KS_IF_MATCH
+						
+						kinp_buf[0] = ' ';
+						kinp_buf[1] = '\0';
+						kinp_on = 1;
+						kinp_type = KINP_MUTE_TOGGLE;
+						kinp_cur=0;
+						
+						break;
 					}
 				
 				break;
@@ -755,6 +856,9 @@ int main(int argc, char *argv[])
 		SDL_FillRect(screen, 0, SDL_MapRGB(screen->format, BG_COLOR));
 		
 		
+		
+		
+		
 		if (play_stat == M_PLAY)
 			dump_scope_buf();
 			
@@ -772,8 +876,24 @@ int main(int argc, char *argv[])
 			//update_ao_ch_flag_disp(screen, 2);
 		}
 		
+		if (kinp_on)
+		{
+			render_text(
+				screen,
+				">",
+				&tcol_a, &tcol_b, font,
+				10,SCREENHEIGHT-32,  1,SCREENWIDTH/2, tick);
+			
+			render_text(
+				screen,
+				kinp_buf,
+				&tcol_a, &tcol_b, font,
+				18,SCREENHEIGHT-32,  1,SCREENWIDTH/2, tick);
+		}
+		
 		
 		rtmpy = 8;
+		
 
 		for (i=0;i<7;i++)
 		{
@@ -807,6 +927,10 @@ int main(int argc, char *argv[])
 			}
 		}
 		
+		if (f_debug_kanji_test)
+			render_text(
+					screen, "漢字をテストしています。", &tcol_a, &tcol_b,
+					font, 10,SCREENHEIGHT - 16,1 ,SCREENWIDTH/2 ,tick);
 		
 		switch (play_stat)
 		{
@@ -939,7 +1063,9 @@ int main(int argc, char *argv[])
 			{
 				play_stat = M_ERR;
 				
-				file_close = file_execute = file_open = 0;
+				file_close = 0;
+				file_execute = 0;
+				file_open = 0;
 				
 				break;
 			}
@@ -1144,6 +1270,12 @@ void load_conf(char * fn)
 				col_scope[1] = limint(tmp->dat[1].i, 0, 255);
 				col_scope[2] = limint(tmp->dat[2].i, 0, 255);
 			}
+			else if (ENTRY_NAME("chan_disp_color") && tmp->type==E_RGB)
+			{
+				col_chan_disp[0] = limint(tmp->dat[0].i, 0, 255);
+				col_chan_disp[1] = limint(tmp->dat[1].i, 0, 255);
+				col_chan_disp[2] = limint(tmp->dat[2].i, 0, 255);
+			}
 			else if (ENTRY_NAME("scope_low_grad_color") && tmp->type==E_RGB)
 			{
 				col_scope_low[0] = limint(tmp->dat[0].i, 0, 255);
@@ -1236,6 +1368,12 @@ void load_conf(char * fn)
 			
 			else if (ENTRY_NAME("play_next_on_stop") && CONF_IS_BOOL)
 				ao_play_next_on_stop = (tmp->dat[0].i) ? 1:0;
+				
+			else if (ENTRY_NAME("font_size") && tmp->type==E_INT)
+				f_font_size = limint( tmp->dat[0].i, 2, 24);	
+			
+			else if (ENTRY_NAME("debug_kanji_test") && CONF_IS_BOOL)
+				f_debug_kanji_test = (tmp->dat[0].i) ? 1:0;
 			
 			
 		}
@@ -1795,7 +1933,7 @@ void update_ao_chdisp_newer(SDL_Surface *in)
 	if (pw_init(in))
 	{	
 				
-		pw_set_rgb(SCOPE_COLOR);
+		pw_set_rgb(CHAN_DISP_COLOR);
 		
 		chpcnt=0;
 		
@@ -1908,7 +2046,25 @@ void update_ao_chdisp_newer(SDL_Surface *in)
 				
 			}
 			
+			tmpx-=1;
+			
+			/* draw arrow indicating start of chip channel analyzer */
+			pw_set(in, tmpx, SCREENHEIGHT - 10 + shifty + 1);
+			pw_set(in, tmpx-1, SCREENHEIGHT - 10 + shifty + 1);
+			pw_set(in, tmpx-1, SCREENHEIGHT - 10 + shifty + 1 - 1);
+			pw_set(in, tmpx-2, SCREENHEIGHT - 10 + shifty + 1);
+			pw_set(in, tmpx-2, SCREENHEIGHT - 10 + shifty + 1 - 1);
+			pw_set(in, tmpx-2, SCREENHEIGHT - 10 + shifty + 1 - 2);
+			pw_set(in, tmpx-3, SCREENHEIGHT - 10 + shifty + 1);
+			pw_set(in, tmpx-3, SCREENHEIGHT - 10 + shifty + 1 - 1);
+			pw_set(in, tmpx-3, SCREENHEIGHT - 10 + shifty + 1 - 2);
+			pw_set(in, tmpx-3, SCREENHEIGHT - 10 + shifty + 1 - 3);
+			
 			tmpx-=10;
+			
+			tmpx=SCREENWIDTH-10;
+			shifty-=20;
+			
 			
 			curchp_x += (ao_channel_nchannels[curchp] * 2 * 2 ) +
 					((ao_channel_nchannels[curchp]-1) +
@@ -2277,4 +2433,59 @@ int recon_file(char* fn)
 		return 0;
 	
 	return 1;
+}
+
+void parse_mute_toggle(char* kinp_buf)
+{
+	int has_colon = 0, i, chip, chan;
+	char _before[8] = "0\0", _after[8] = "0\0";
+	int tmpi=0;
+	
+	for (i=0;;i++)
+	{
+		if (kinp_buf[i] == '\0')
+			break;
+		
+		else if (kinp_buf[i] == ':')
+		{
+			has_colon = 1;
+			tmpi=0;
+			continue;
+		}
+		
+		if (has_colon)
+			_after[tmpi] = kinp_buf[i];
+		else
+			_before[tmpi] = kinp_buf[i];
+		
+		
+		if (tmpi < 7)
+			tmpi++;
+			
+		_before[7]=_after[7]='\0';
+	}
+	
+	chip = 0;
+	
+	if (has_colon)
+	{
+		chip = atoi(_before);
+		chan = atoi(_after);
+	}
+	else
+		chan = atoi(_before);
+						
+	printf(	"chip %d, channel %d %s\n",
+			chip,
+			chan,
+			(ao_channel_enable[(chip*256)+chan]) ?
+				"OFF" :
+				"ON"
+			);
+	
+	if (chan >= 0 && chan < 256 && chip >=0 && chip < 4)
+		ao_channel_enable[(chip*256)+chan] = 
+			(ao_channel_enable[(chip*256)+chan]) ?
+				0 :
+				1;
 }

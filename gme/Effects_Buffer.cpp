@@ -265,6 +265,7 @@ long Effects_Buffer::read_samples( blip_sample_t* out, long total_samples )
 		int active_bufs = buf_count;
 		long count = remain;
 		
+		
 		// optimizing mixing to skip any channels which had nothing added
 		if ( effect_remain )
 		{
@@ -345,7 +346,6 @@ void Effects_Buffer::mix_mono( blip_sample_t* out_, blargg_long count )
 		int s = BLIP_READER_READ( c );
 		BLIP_READER_NEXT( c, bass );
 		
-		mix_chan_disp(_AO_H_GME_GB, 3, 0, (short) s, (short) s); 
 		
 		out [0] = s;
 		out [1] = s;
@@ -380,7 +380,6 @@ void Effects_Buffer::mix_stereo( blip_sample_t* out_, blargg_long count )
 		if ( (BOOST::int16_t) left != left )
 			left = 0x7FFF - (left >> 24);
 		
-		mix_chan_disp(_AO_H_GME_GB, 3, 0, (short) left, (short) right); 
 		
 		out [0] = left;
 		out [1] = right;
@@ -445,7 +444,6 @@ void Effects_Buffer::mix_mono_enhanced( blip_sample_t* out_, blargg_long count )
 		if ( (BOOST::int16_t) left != left )
 			left = 0x7FFF - (left >> 24);
 		
-		mix_chan_disp(_AO_H_GME_GB, 3, 0, (short) left, (short) right); 
 		
 		out [0] = left;
 		out [1] = right;
@@ -522,7 +520,6 @@ void Effects_Buffer::mix_enhanced( blip_sample_t* out_, blargg_long count )
 		if ( (BOOST::int16_t) left != left )
 			left = 0x7FFF - (left >> 24);
 		
-		mix_chan_disp(_AO_H_GME_GB, 3, 0, (short) left, (short) right); 
 		
 		out [0] = left;
 		out [1] = right;

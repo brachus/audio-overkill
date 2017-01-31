@@ -547,10 +547,20 @@ int ao_channel_mix_update_cnt[4*128];
 int ao_channel_mix_update_acc[4*128*2];
 int ao_channel_mix_update_prev[4*128*2];
 
+int ao_channel_enable[4*256];
+int ao_tmp_get_chan = -1;
+
 int ao_channel_tmp_cur = 0;
 int ao_channel_tmp_max = 0;
 
 #define _AO_H_MAX_DISP_CHAN 128
+
+void ao_reset_chan_enable()
+{
+	int i;
+	for (i=0;i<4*256;i++)
+		ao_channel_enable[i]=1;
+}
 
 void mix_chan_disp_flush()
 {
@@ -594,7 +604,7 @@ void mix_chan_disp_flush()
 
 int mix_chan_find_avail_chip(int chip_id, int nchannels)
 {
-	int i,j;
+	int i, j;
 	
 	for (i=0;i<4;i++)
 	{
@@ -641,7 +651,10 @@ void mix_chan_disp(int chip_id, int nchannels, int ch, int l, int r)
 	
 	//printf("%d %d %d %d %d\n",chip_id, nchannels, ch, l, r);
 	
-	cmatch = mix_chan_find_avail_chip(chip_id, nchannels);
+	cmatch = ao_tmp_get_chan;
+	
+	if (cmatch < 0)
+		cmatch = mix_chan_find_avail_chip(chip_id, nchannels);
 			
 	if (cmatch < 0)
 		return;
@@ -698,6 +711,14 @@ void mix_chan_disp(int chip_id, int nchannels, int ch, int l, int r)
 	
 	ao_channel_mix_update_cnt[ch_idx]++;
 	
+}
+
+int ao_get_channel_enable(int channel)
+{
+	if (ao_tmp_get_chan < 0)
+		return 1;
+		
+	return ao_channel_enable[_AO_MAX_CHAN_PER_CHIP * ao_tmp_get_chan + channel];
 }
 
 void reset_chan_disp()

@@ -347,6 +347,8 @@ enum
 	_AO_H_DUH
 };
 
+#define _AO_MAX_CHAN_PER_CHIP 256
+
 extern int ao_channel_set_chip[4];
 extern int ao_channel_mix[4*128*2];
 extern int ao_channel_nchannels[4];
@@ -361,6 +363,13 @@ extern int ao_channel_mix_update_cnt1[4*128];
 extern int ao_channel_mix_update_cnt[4*128];
 extern int ao_channel_mix_update_acc[4*128*2];
 extern int ao_channel_mix_update_prev[4*128*2];
+
+extern int ao_channel_enable[4*256];
+extern int ao_tmp_get_chan;
+
+void ao_reset_chan_enable();
+
+int ao_get_channel_enable(int channel);
 
 
 extern int ao_sample_idx[64];

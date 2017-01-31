@@ -57,6 +57,9 @@ Mono_Buffer::Mono_Buffer() : Multi_Buffer( 1 )
 	chan.center = &buf;
 	chan.left   = &buf;
 	chan.right  = &buf;
+	
+	printf("mono buf create\n");
+	
 }
 
 Mono_Buffer::~Mono_Buffer() { }
@@ -119,6 +122,8 @@ long Stereo_Buffer::read_samples( blip_sample_t* out, long count )
 {
 	require( !(count & 1) ); // count must be even
 	count = (unsigned) count / 2;
+	
+	printf("read samples\n");
 	
 	long avail = bufs [0].samples_avail();
 	if ( count > avail )

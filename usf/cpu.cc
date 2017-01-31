@@ -47,7 +47,7 @@ extern GThread *decode_thread;
 
 uint32_t SPHack = 0;
 uint32_t NextInstruction = 0, JumpToLocation = 0, AudioIntrReg = 0;
-uint32_t *WaitMode = 0, CPU_Type = CPU_Recompiler;
+uint32_t *WaitMode = 0, CPU_Type = CPU_Recompiler;  //CPU_Type = CPU_Interpreter;
 uint32_t CPURunning=0;
 
 uint32_t ManualPaused, CPU_Paused, CountPerOp;
@@ -672,26 +672,28 @@ void RunRsp(void)
 
 		}
 		break;
-	    case 2:{
+	    case 2:
+			{
 
-		    if (use_audiohle && !is_seeking) {
-			OSTask_t *task = (OSTask_t *) (DMEM + 0xFC0);
-			if (audio_ucode(task))
-			    break;
+				if (use_audiohle && !is_seeking)
+				{
+					OSTask_t *task = (OSTask_t *) (DMEM + 0xFC0);
+					if (audio_ucode(task))
+						break;
+				}
+				else
+					break;
+				SP_STATUS_REG |= (0x0203);
+				if ((SP_STATUS_REG & SP_STATUS_INTR_BREAK) != 0)
+				{
+					MI_INTR_REG |= 1;
+					CheckInterrupts();
+				}
 
-		    } else
+				return;
+
+			}
 			break;
-
-		    SP_STATUS_REG |= (0x0203);
-		    if ((SP_STATUS_REG & SP_STATUS_INTR_BREAK) != 0) {
-			MI_INTR_REG |= 1;
-			CheckInterrupts();
-		    }
-
-		    return;
-
-		}
-		break;
 	    default:
 
 		break;

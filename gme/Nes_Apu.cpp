@@ -156,6 +156,7 @@ void Nes_Apu::run_until_( nes_time_t end_time )
 	{
 		nes_time_t start = last_dmc_time;
 		last_dmc_time = end_time;
+		ao_channel_tmp_cur=4;/* FROM AO.H */
 		dmc.run( start, end_time );
 	}
 	
@@ -168,9 +169,13 @@ void Nes_Apu::run_until_( nes_time_t end_time )
 		frame_delay -= time - last_time;
 		
 		// run oscs to present
+		ao_channel_tmp_cur=0;/* FROM AO.H */
 		square1.run( last_time, time );
+		ao_channel_tmp_cur=1;/* FROM AO.H */
 		square2.run( last_time, time );
+		ao_channel_tmp_cur=2;/* FROM AO.H */
 		triangle.run( last_time, time );
+		ao_channel_tmp_cur=3;/* FROM AO.H */
 		noise.run( last_time, time );
 		last_time = time;
 		

@@ -290,7 +290,7 @@ int vgm_execute ( void (*update)(const void *, int ))
 	
 }
 
-int vgm_open ( char * fn)
+int vgm_open ( char * fn )
 {
 	if (ao_file_open == 1)
 		return;
@@ -302,8 +302,6 @@ int vgm_open ( char * fn)
 	
 	/* loop forever */
 	VGMMaxLoop = 0x00;
-	
-	
 	
 	
     VGMPlay_Init2();
@@ -325,10 +323,8 @@ int vgm_open ( char * fn)
 	fill_tags();
 	
 	fill_chip_tags();
-	
 
 	PlayVGM();
-	
 	
 	wave_16bs_buf = (WAVE_16BS *) malloc (SAMPLESIZE * SAMPLERATE);
 	

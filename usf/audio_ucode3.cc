@@ -4,6 +4,10 @@
 #include "audio_hle.h"
 #include "memory.h"
 
+extern "C"
+{
+	#include "../ao.h"
+}
 
 static void SPNOOP()
 {
@@ -74,6 +78,7 @@ static void ENVMIXER3()
 {
     u8 flags;
     u32 addy;
+    
 
     short *inp = (short *) (BufferSpace + 0x4F0);
     short *out = (short *) (BufferSpace + 0x9D0);
@@ -102,38 +107,41 @@ static void ENVMIXER3()
 
     Vol_Right = (*(s16 *) & inst1);
 
-    if (flags & A_INIT) {
-	LAdder = VolRamp_Left / 8;
-	LAcc = 0;
-	LVol = Vol_Left;
-	LSig = (s16) (VolRamp_Left >> 16);
+    if (flags & A_INIT)
+    {
+		LAdder = VolRamp_Left / 8;
+		LAcc = 0;
+		LVol = Vol_Left;
+		LSig = (s16) (VolRamp_Left >> 16);
 
-	RAdder = VolRamp_Right / 8;
-	RAcc = 0;
-	RVol = Vol_Right;
-	RSig = (s16) (VolRamp_Right >> 16);
+		RAdder = VolRamp_Right / 8;
+		RAcc = 0;
+		RVol = Vol_Right;
+		RSig = (s16) (VolRamp_Right >> 16);
 
-	Wet = (s16) Env_Wet;
-	Dry = (s16) Env_Dry;	// Save Wet/Dry values
-	LTrg = VolTrg_Left;
-	RTrg = VolTrg_Right;	// Save Current Left/Right Targets
-    } else {
-	memcpy((u8 *) hleMixerWorkArea, N64MEM + addy, 80);
-	Wet = *(s16 *) (hleMixerWorkArea + 0);	// 0-1
-	Dry = *(s16 *) (hleMixerWorkArea + 2);	// 2-3
-	LTrg = *(s16 *) (hleMixerWorkArea + 4);	// 4-5
-	RTrg = *(s16 *) (hleMixerWorkArea + 6);	// 6-7
-	LAdder = *(s32 *) (hleMixerWorkArea + 8);	// 8-9 (hleMixerWorkArea is a 16bit pointer)
-	RAdder = *(s32 *) (hleMixerWorkArea + 10);	// 10-11
-	LAcc = *(s32 *) (hleMixerWorkArea + 12);	// 12-13
-	RAcc = *(s32 *) (hleMixerWorkArea + 14);	// 14-15
-	LVol = *(s32 *) (hleMixerWorkArea + 16);	// 16-17
-	RVol = *(s32 *) (hleMixerWorkArea + 18);	// 18-19
-	LSig = *(s16 *) (hleMixerWorkArea + 20);	// 20-21
-	RSig = *(s16 *) (hleMixerWorkArea + 22);	// 22-23
-	//u32 test  = *(s32 *)(hleMixerWorkArea + 24); // 22-23
-	//if (test != 0x13371337)
-	//      __asm int 3;
+		Wet = (s16) Env_Wet;
+		Dry = (s16) Env_Dry;	// Save Wet/Dry values
+		LTrg = VolTrg_Left;
+		RTrg = VolTrg_Right;	// Save Current Left/Right Targets
+    }
+    else
+    {
+		memcpy((u8 *) hleMixerWorkArea, N64MEM + addy, 80);
+		Wet = *(s16 *) (hleMixerWorkArea + 0);	// 0-1
+		Dry = *(s16 *) (hleMixerWorkArea + 2);	// 2-3
+		LTrg = *(s16 *) (hleMixerWorkArea + 4);	// 4-5
+		RTrg = *(s16 *) (hleMixerWorkArea + 6);	// 6-7
+		LAdder = *(s32 *) (hleMixerWorkArea + 8);	// 8-9 (hleMixerWorkArea is a 16bit pointer)
+		RAdder = *(s32 *) (hleMixerWorkArea + 10);	// 10-11
+		LAcc = *(s32 *) (hleMixerWorkArea + 12);	// 12-13
+		RAcc = *(s32 *) (hleMixerWorkArea + 14);	// 14-15
+		LVol = *(s32 *) (hleMixerWorkArea + 16);	// 16-17
+		RVol = *(s32 *) (hleMixerWorkArea + 18);	// 18-19
+		LSig = *(s16 *) (hleMixerWorkArea + 20);	// 20-21
+		RSig = *(s16 *) (hleMixerWorkArea + 22);	// 22-23
+		//u32 test  = *(s32 *)(hleMixerWorkArea + 24); // 22-23
+		//if (test != 0x13371337)
+		//      __asm int 3;
     }
 
 
@@ -142,92 +150,102 @@ static void ENVMIXER3()
     //      aux2=aux3=zero;
     //}
 
-    for (y = 0; y < (0x170 / 2); y++) {
+    for (y = 0; y < (0x170 / 2); y++)
+	{
 
-	// Left
-	LAcc += LAdder;
-	LVol += (LAcc >> 16);
-	LAcc &= 0xFFFF;
+		// Left
+		LAcc += LAdder;
+		LVol += (LAcc >> 16);
+		LAcc &= 0xFFFF;
 
-	// Right
-	RAcc += RAdder;
-	RVol += (RAcc >> 16);
-	RAcc &= 0xFFFF;
-// ****************************************************************
-	// Clamp Left
-	if (LSig >= 0) {	// VLT
-	    if (LVol > LTrg) {
-		LVol = LTrg;
-	    }
-	} else {		// VGE
-	    if (LVol < LTrg) {
-		LVol = LTrg;
-	    }
-	}
+		// Right
+		RAcc += RAdder;
+		RVol += (RAcc >> 16);
+		RAcc &= 0xFFFF;
+	// ****************************************************************
+		// Clamp Left
+		if (LSig >= 0) {	// VLT
+			if (LVol > LTrg) {
+			LVol = LTrg;
+			}
+		} else {		// VGE
+			if (LVol < LTrg) {
+			LVol = LTrg;
+			}
+		}
 
-	// Clamp Right
-	if (RSig >= 0) {	// VLT
-	    if (RVol > RTrg) {
-		RVol = RTrg;
-	    }
-	} else {		// VGE
-	    if (RVol < RTrg) {
-		RVol = RTrg;
-	    }
-	}
-// ****************************************************************
-	MainL = ((Dry * LVol) + 0x4000) >> 15;
-	MainR = ((Dry * RVol) + 0x4000) >> 15;
+		// Clamp Right
+		if (RSig >= 0) {	// VLT
+			if (RVol > RTrg) {
+			RVol = RTrg;
+			}
+		} else {		// VGE
+			if (RVol < RTrg) {
+			RVol = RTrg;
+			}
+		}
+	// ****************************************************************
+		MainL = ((Dry * LVol) + 0x4000) >> 15;
+		MainR = ((Dry * RVol) + 0x4000) >> 15;
+		
+		mix_chan_disp(_AO_H_USF, 2, 0, MainL, MainL);
+		mix_chan_disp(_AO_H_USF, 2, 1, MainR, MainR);
+		
+		
 
-	o1 = out[y ^ 1];
-	a1 = aux1[y ^ 1];
-	i1 = inp[y ^ 1];
+		o1 = out[y ^ 1];
+		a1 = aux1[y ^ 1];
+		i1 = inp[y ^ 1];
+		
+		
 
-	o1 += ((i1 * MainL) + 0x4000) >> 15;
-	a1 += ((i1 * MainR) + 0x4000) >> 15;
+		o1 += ((i1 * MainL) + 0x4000) >> 15;
+		a1 += ((i1 * MainR) + 0x4000) >> 15;
 
-// ****************************************************************
+	// ****************************************************************
 
-	if (o1 > 32767)
-	    o1 = 32767;
-	else if (o1 < -32768)
-	    o1 = -32768;
+		if (o1 > 32767)
+			o1 = 32767;
+		else if (o1 < -32768)
+			o1 = -32768;
 
-	if (a1 > 32767)
-	    a1 = 32767;
-	else if (a1 < -32768)
-	    a1 = -32768;
+		if (a1 > 32767)
+			a1 = 32767;
+		else if (a1 < -32768)
+			a1 = -32768;
 
-// ****************************************************************
+	// ****************************************************************
 
-	out[y ^ 1] = o1;
-	aux1[y ^ 1] = a1;
+		out[y ^ 1] = o1;
+		aux1[y ^ 1] = a1;
 
-// ****************************************************************
-	//if (!(flags&A_AUX)) {
-	a2 = aux2[y ^ 1];
-	a3 = aux3[y ^ 1];
+	// ****************************************************************
+		//if (!(flags&A_AUX)) {
+		a2 = aux2[y ^ 1];
+		a3 = aux3[y ^ 1];
 
-	AuxL = ((Wet * LVol) + 0x4000) >> 15;
-	AuxR = ((Wet * RVol) + 0x4000) >> 15;
+		AuxL = ((Wet * LVol) + 0x4000) >> 15;
+		AuxR = ((Wet * RVol) + 0x4000) >> 15;
 
-	a2 += ((i1 * AuxL) + 0x4000) >> 15;
-	a3 += ((i1 * AuxR) + 0x4000) >> 15;
+		a2 += ((i1 * AuxL) + 0x4000) >> 15;
+		a3 += ((i1 * AuxR) + 0x4000) >> 15;
 
-	if (a2 > 32767)
-	    a2 = 32767;
-	else if (a2 < -32768)
-	    a2 = -32768;
+		if (a2 > 32767)
+			a2 = 32767;
+		else if (a2 < -32768)
+			a2 = -32768;
 
-	if (a3 > 32767)
-	    a3 = 32767;
-	else if (a3 < -32768)
-	    a3 = -32768;
+		if (a3 > 32767)
+			a3 = 32767;
+		else if (a3 < -32768)
+			a3 = -32768;
 
-	aux2[y ^ 1] = a2;
-	aux3[y ^ 1] = a3;
+		aux2[y ^ 1] = a2;
+		aux3[y ^ 1] = a3;
     }
     //}
+    
+    
 
     *(s16 *) (hleMixerWorkArea + 0) = Wet;	// 0-1
     *(s16 *) (hleMixerWorkArea + 2) = Dry;	// 2-3
@@ -259,6 +277,7 @@ static void MIXER3()
     s32 gain = (s16) (inst1 & 0xFFFF) * 2;
     s32 temp;
     int x;
+    
 
     for (x = 0; x < 0x170; x += 2) {	// I think I can do this a lot easier
 	temp = (*(s16 *) (BufferSpace + dmemin + x) * gain) >> 16;

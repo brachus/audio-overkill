@@ -138,6 +138,9 @@ void Gb_Square::run( blip_time_t time, blip_time_t end_time, int playing )
 	
 	{
 		int delta = amp - last_amp;
+		
+		mix_chan_disp(_AO_H_GME_GB, 4, ao_channel_tmp_cur, delta, delta );
+		
 		if ( delta )
 		{
 			last_amp = amp;
@@ -162,6 +165,8 @@ void Gb_Square::run( blip_time_t time, blip_time_t end_time, int playing )
 		do
 		{
 			phase = (phase + 1) & 7;
+			
+			mix_chan_disp(_AO_H_GME_GB, 4, ao_channel_tmp_cur, -delta, -delta );
 
 			if ( phase == 0 || phase == duty )
 			{
@@ -193,6 +198,9 @@ void Gb_Noise::run( blip_time_t time, blip_time_t end_time, int playing )
 	
 	{
 		int delta = amp - last_amp;
+		
+		mix_chan_disp(_AO_H_GME_GB, 4, ao_channel_tmp_cur, delta, delta );
+		
 		if ( delta )
 		{
 			last_amp = amp;
@@ -223,6 +231,9 @@ void Gb_Noise::run( blip_time_t time, blip_time_t end_time, int playing )
 			unsigned changed = (bits >> tap) + 1;
 			time += period;
 			bits <<= 1;
+			
+			mix_chan_disp(_AO_H_GME_GB, 4, ao_channel_tmp_cur, delta, delta );
+			
 			if ( changed & 2 )
 			{
 				delta = -delta;
@@ -285,6 +296,9 @@ void Gb_Wave::run( blip_time_t time, blip_time_t end_time, int playing )
 		}
 		
 		int delta = amp - last_amp;
+		
+		mix_chan_disp(_AO_H_GME_GB, 4, ao_channel_tmp_cur, delta, delta );
+		
 		if ( delta )
 		{
 			last_amp = amp;
@@ -308,6 +322,9 @@ void Gb_Wave::run( blip_time_t time, blip_time_t end_time, int playing )
 			int amp = (wave [wave_pos] >> volume_shift) * 2;
 			wave_pos = (wave_pos + 1) & (wave_size - 1);
 			int delta = amp - last_amp;
+			
+			mix_chan_disp(_AO_H_GME_GB, 4, ao_channel_tmp_cur, delta, delta );
+			
 			if ( delta )
 			{
 				last_amp = amp;

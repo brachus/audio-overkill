@@ -552,6 +552,13 @@ void Spc_Dsp::run( long count, short* out_buf )
 				echor += r;
 			}
 			
+			if (!ao_channel_enable[vidx])
+			{
+				l=r=0;
+				echol = echor = 0;
+			}
+				
+			
 			mix_chan_disp(_AO_H_GME_SPC,voice_count,vidx, l,r); /* from ao.h */
 			
 			left  += l;

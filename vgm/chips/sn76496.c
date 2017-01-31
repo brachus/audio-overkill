@@ -465,7 +465,7 @@ void SN76496Update(void *chip, stream_sample_t **outputs, int samples)
 						out += vol[i] * R->Volume[i] * ggst[0];
 						out2 += vol[i] * R2->Volume[i] * ggst[1];
 						
-						mix_chan_disp(_AO_H_SN76496,8,i+3, vol[i] * R->Volume[i] * ggst[0], vol[i] * R->Volume[i] * ggst[1]); /* from AO.H */
+						mix_chan_disp(_AO_H_SN76496,8,i+4, vol[i] * R->Volume[i] * ggst[0], vol[i] * R->Volume[i] * ggst[1]); /* from AO.H */
 					}
 					else if (R->MuteMsk[i])
 					{

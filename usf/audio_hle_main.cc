@@ -90,7 +90,9 @@ static int audio_ucode_detect(OSTask_t * task)
 
 int audio_ucode(OSTask_t * task)
 {
-
+	
+	
+	
     unsigned int i;
 
     goldeneye = 0;
@@ -119,12 +121,12 @@ int audio_ucode(OSTask_t * task)
 	}
     }
 
-    for (i = 0; i < (task->data_size / 4); i += 2) {
-	inst1 = (*(uint32_t *) (N64MEM + task->data_ptr + (i * 4)));
-	inst2 = (*(uint32_t *) (N64MEM + task->data_ptr + ((i + 1) * 4)));
-	//printf("%x\t%x\n",inst1 >> 24,inst1);
-	ABI[inst1 >> 24] ();
-
+    for (i = 0; i < (task->data_size / 4); i += 2)
+    {
+		inst1 = (*(uint32_t *) (N64MEM + task->data_ptr + (i * 4)));
+		inst2 = (*(uint32_t *) (N64MEM + task->data_ptr + ((i + 1) * 4)));
+		//printf("%x\t%x\n",inst1 >> 24,inst1);
+		ABI[inst1 >> 24] ();
     }
 
     return 0;

@@ -121,11 +121,19 @@ void Nes_Namco_Apu::run_until( blip_time_t nes_end_time )
 				
 				// output impulse if amplitude changed
 				int delta = sample - last_amp;
+				
+				
+				
 				if ( delta )
 				{
 					last_amp = sample;
+					
+					mix_chan_disp(_AO_H_GME_NSF, 16, 5 + i - (osc_count - active_oscs), delta, delta );
+					
 					synth.offset_resampled( time, delta, output );
 				}
+				else
+					mix_chan_disp(_AO_H_GME_NSF, 16, 5 + i - (osc_count - active_oscs), 0, 0 );
 				
 				// next sample
 				time += period;

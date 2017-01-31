@@ -464,7 +464,7 @@ int SPUasync(u32 cycles, void (*update)(const void *, int))
 	   
 	    ao_add_sample(temp, (int) s_chan[ch].pStart);
 
-		if ( 1 && (int) ao_sample_limit_ok((int) s_chan[ch].pStart) ) {
+		if ( 1 && (int) ao_sample_limit_ok((int) s_chan[ch].pStart)   ) {
 		
 			tmpl=(s_chan[ch].sval*s_chan[ch].iLeftVolume)>>14;
 			tmpr=(s_chan[ch].sval*s_chan[ch].iRightVolume)>>14;

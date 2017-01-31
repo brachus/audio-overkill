@@ -570,6 +570,8 @@ PSG_Mix(
 //	if (!_bPsgInit)
 //		return;
 
+	ao_tmp_get_chan = mix_chan_find_avail_chip(_AO_H_OOTAKE_PSG, N_CHANNEL);
+
 	for (j=0; j<nSample; j++)
 	{
 		sampleAllL = 0;
@@ -579,7 +581,7 @@ PSG_Mix(
 			
 			PSGChn = &info->Psg[i];
 			
-			if ((PSGChn->bOn)&&((i != 1)||(info->LfoCtrl == 0))&&(!info->bPsgMute[i])) //Kitao更新
+			if ((PSGChn->bOn)&&((i != 1)||(info->LfoCtrl == 0))&&(!info->bPsgMute[i])&&(ao_get_channel_enable(i))) //Kitao更新
 			{
 				if (PSGChn->bDDA)
 				{
@@ -688,6 +690,8 @@ PSG_Mix(
 //		if (sampleAllR<-32768) sampleAllR=-32768; //
 		*bufL++ = sampleAllL;
 		*bufR++ = sampleAllR;
+		
+		ao_tmp_get_chan = -1;
 		
 		//キューを参照しPSGレジスタを更新する。Kitao更新。高速化のためサブルーチンにせずここで処理。キューの参照はシンプルにした(テンポの安定性向上)。
 		/*while (_QueueReadIndex != _QueueWriteIndex) //v1.10更新。キュー処理をここへ統合し高速化。

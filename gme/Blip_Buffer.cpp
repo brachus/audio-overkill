@@ -394,6 +394,8 @@ long Blip_Buffer::read_samples( blip_sample_t* BLIP_RESTRICT out, long max_sampl
 	if ( count > max_samples )
 		count = max_samples;
 	
+	printf("read_sam\n");
+	
 	if ( count )
 	{
 		int const bass = BLIP_READER_BASS( *this );

@@ -112,6 +112,9 @@ void Nes_Square::run( nes_time_t time, nes_time_t end_time )
 	const int volume = this->volume();
 	if ( volume == 0 || period < 8 || (period + offset) >= 0x800 )
 	{
+		
+		mix_chan_disp(_AO_H_GME_NSF, 16, ao_channel_tmp_cur, last_amp,last_amp );
+		
 		if ( last_amp ) {
 			synth.offset( time, -last_amp, output );
 			last_amp = 0;
@@ -135,6 +138,9 @@ void Nes_Square::run( nes_time_t time, nes_time_t end_time )
 		
 		{
 			int delta = update_amp( amp );
+			
+			mix_chan_disp(_AO_H_GME_NSF, 16, ao_channel_tmp_cur, delta,delta );
+			
 			if ( delta )
 				synth.offset( time, delta, output );
 		}
@@ -149,8 +155,12 @@ void Nes_Square::run( nes_time_t time, nes_time_t end_time )
 			
 			do {
 				phase = (phase + 1) & (phase_range - 1);
+				
+				mix_chan_disp(_AO_H_GME_NSF, 16, ao_channel_tmp_cur, -delta, -delta );
+				
 				if ( phase == 0 || phase == duty ) {
 					delta = -delta;
+					
 					synth.offset_inline( time, delta, output );
 				}
 				time += timer_period;
@@ -202,7 +212,7 @@ inline nes_time_t Nes_Triangle::maintain_phase( nes_time_t time, nes_time_t end_
 }
 
 void Nes_Triangle::run( nes_time_t time, nes_time_t end_time )
-{
+{	
 	const int timer_period = period() + 1;
 	if ( !output )
 	{
@@ -218,7 +228,10 @@ void Nes_Triangle::run( nes_time_t time, nes_time_t end_time )
 	// to do: track phase when period < 3
 	// to do: Output 7.5 on dac when period < 2? More accurate, but results in more clicks.
 	
+	
+	
 	int delta = update_amp( calc_amp() );
+	mix_chan_disp(_AO_H_GME_NSF, 16, ao_channel_tmp_cur, delta,delta );
 	if ( delta )
 		synth.offset( time, delta, output );
 	
@@ -238,12 +251,15 @@ void Nes_Triangle::run( nes_time_t time, nes_time_t end_time )
 			volume = -volume;
 		}
 		
+		
 		do {
 			if ( --phase == 0 ) {
 				phase = phase_range;
 				volume = -volume;
+				
 			}
 			else {
+				mix_chan_disp(_AO_H_GME_NSF, 16, ao_channel_tmp_cur, volume*phase,volume*phase );
 				synth.offset_inline( time, volume, output );
 			}
 			
@@ -399,6 +415,7 @@ void Nes_Dmc::fill_buffer()
 void Nes_Dmc::run( nes_time_t time, nes_time_t end_time )
 {
 	int delta = update_amp( dac );
+	
 	if ( !output )
 	{
 		silence = true;
@@ -406,6 +423,9 @@ void Nes_Dmc::run( nes_time_t time, nes_time_t end_time )
 	else
 	{
 		output->set_modified();
+		
+		mix_chan_disp(_AO_H_GME_NSF, 16, ao_channel_tmp_cur, delta, delta );
+		
 		if ( delta )
 			synth.offset( time, delta, output );
 	}
@@ -433,6 +453,9 @@ void Nes_Dmc::run( nes_time_t time, nes_time_t end_time )
 				{
 					int step = (bits & 1) * 4 - 2;
 					bits >>= 1;
+					
+					mix_chan_disp(_AO_H_GME_NSF, 16, ao_channel_tmp_cur, step, step );
+					
 					if ( unsigned (dac + step) <= 0x7F ) {
 						dac += step;
 						synth.offset_inline( time, step, output );
@@ -493,6 +516,9 @@ void Nes_Noise::run( nes_time_t time, nes_time_t end_time )
 	int amp = (noise & 1) ? volume : 0;
 	{
 		int delta = update_amp( amp );
+		
+		mix_chan_disp(_AO_H_GME_NSF, 16, ao_channel_tmp_cur, delta, delta );
+		
 		if ( delta )
 			synth.offset( time, delta, output );
 	}
@@ -529,6 +555,8 @@ void Nes_Noise::run( nes_time_t time, nes_time_t end_time )
 			do {
 				int feedback = (noise << tap) ^ (noise << 14);
 				time += period;
+				
+				mix_chan_disp(_AO_H_GME_NSF, 16, ao_channel_tmp_cur, delta, delta );
 				
 				if ( (noise + 1) & 2 ) {
 					// bits 0 and 1 of noise differ

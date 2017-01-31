@@ -41,7 +41,6 @@ unsigned char const Nes_Fme7_Apu::amp_table [16] =
 void Nes_Fme7_Apu::run_until( blip_time_t end_time )
 {
 	require( end_time >= last_time );
-	
 	for ( int index = 0; index < osc_count; index++ )
 	{
 		int mode = regs [7] >> index;
@@ -80,6 +79,9 @@ void Nes_Fme7_Apu::run_until( blip_time_t end_time )
 			amp = 0;
 		{
 			int delta = amp - oscs [index].last_amp;
+			
+			mix_chan_disp(_AO_H_GME_NSF, 16, 5, delta, delta );
+			
 			if ( delta )
 			{
 				oscs [index].last_amp = amp;
@@ -96,6 +98,7 @@ void Nes_Fme7_Apu::run_until( blip_time_t end_time )
 				do
 				{
 					delta = -delta;
+					mix_chan_disp(_AO_H_GME_NSF, 16, 5, delta*volume, delta*volume );
 					synth.offset_inline( time, delta, osc_output );
 					time += period;
 				}

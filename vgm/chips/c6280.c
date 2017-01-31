@@ -254,11 +254,13 @@ void c6280m_update(void* param, stream_sample_t **outputs, int samples)
         outputs[1][i] = 0;
     }
     
+    ao_tmp_get_chan = mix_chan_find_avail_chip(_AO_H_C6280, 6);
+    
 
     for(ch = 0; ch < 6; ch++)
     {
         /* Only look at enabled channels */
-        if((p->channel[ch].control & 0x80) && ! p->channel[ch].Muted)
+        if((p->channel[ch].control & 0x80) && ! p->channel[ch].Muted && ao_get_channel_enable(ch))
         {
             int lal = (p->channel[ch].balance >> 4) & 0x0F;
             int ral = (p->channel[ch].balance >> 0) & 0x0F;
@@ -344,7 +346,13 @@ void c6280m_update(void* param, stream_sample_t **outputs, int samples)
                 }
             }
         }
+		else
+			for (i=0;i<samples;i++)
+				mix_chan_disp(_AO_H_C6280,6,ch,0,0);
+    
     }
+	
+	ao_tmp_get_chan=-1;
 }
 
 

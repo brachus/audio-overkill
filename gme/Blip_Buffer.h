@@ -362,6 +362,8 @@ inline void Blip_Synth<quality,range>::offset_resampled( blip_resampled_time_t t
 	left  -= right;
 	right += buf [1];
 	
+	mix_chan_disp(_AO_H_GME_NSF, 6, ao_channel_tmp_cur, (short) left, (short) right); 
+	
 	buf [0] = left;
 	buf [1] = right;
 #else
@@ -378,7 +380,7 @@ inline void Blip_Synth<quality,range>::offset_resampled( blip_resampled_time_t t
 	// straight forward implementation resulted in better code on GCC for x86
 	
 	
-	
+	//mix_chan_disp(_AO_H_GME_NSF, 6, ao_channel_tmp_cur, (imp [blip_res * (0)] * delta ), (imp [blip_res * (0)] * delta );
 	
 	#define ADD_IMP( out, in ) \
 		buf [out] += (blip_long) imp [blip_res * (in)] * delta

@@ -375,8 +375,12 @@ void qsound_update(UINT8 ChipID, stream_sample_t **outputs, int samples)
 
 	for (i=0; i<QSOUND_CHANNELS; i++, pC++)
 	{
-		if (pC->enabled && ! pC->Muted)
+		ao_tmp_get_chan = mix_chan_find_avail_chip(_AO_H_QSOUND, QSOUND_CHANNELS);
+		
+		if (pC->enabled && ! pC->Muted && ao_get_channel_enable(i) )
 		{
+			
+			
 			QSOUND_SAMPLE *pOutL=outputs[0];
 			QSOUND_SAMPLE *pOutR=outputs[1];
 			
@@ -436,6 +440,8 @@ void qsound_update(UINT8 ChipID, stream_sample_t **outputs, int samples)
 					i, 0, 0); /* from AO.h */
 	}
 
+	ao_tmp_get_chan=-1;
+	
 	/*if (chip->fpRawDataL)
 		fwrite(outputs[0], samples*sizeof(QSOUND_SAMPLE), 1, chip->fpRawDataL);
 	if (chip->fpRawDataR)

@@ -4,7 +4,10 @@
 #include "audio_hle.h"
 #include "memory.h"
 
-
+extern "C"
+{
+	#include "../ao.h"
+}
 
 
 extern u8 BufferSpace[0x10000];
@@ -386,18 +389,25 @@ static void MIXER2()
     s32 gain = (s16) (inst1 & 0xFFFF) * 2;
     s32 temp;
     unsigned int x;
+    
+    
 
-    for (x = 0; x < count; x += 2) {	// I think I can do this a lot easier
+    for (x = 0; x < count; x += 2)
+    {	// I think I can do this a lot easier
 
-	temp = (*(s16 *) (BufferSpace + dmemin + x) * gain) >> 16;
-	temp += *(s16 *) (BufferSpace + dmemout + x);
+		temp = (*(s16 *) (BufferSpace + dmemin + x) * gain) >> 16;
+		temp += *(s16 *) (BufferSpace + dmemout + x);
+		
+		
 
-	if ((s32) temp > 32767)
-	    temp = 32767;
-	if ((s32) temp < -32768)
-	    temp = -32768;
+		if ((s32) temp > 32767)
+			temp = 32767;
+		if ((s32) temp < -32768)
+			temp = -32768;
+		
+		
 
-	*(u16 *) (BufferSpace + dmemout + x) = (u16) (temp & 0xFFFF);
+		*(u16 *) (BufferSpace + dmemout + x) = (u16) (temp & 0xFFFF);
     }
 }
 
@@ -420,6 +430,7 @@ static void RESAMPLE2()
     s32 temp;
     s32 accum;
     int x, i;
+    
 
     if (addy > (1024 * 1024 * 8))
 	addy = (inst2 & 0xffffff);
@@ -541,6 +552,7 @@ static void ENVMIXER2()
     s16 *buffs3;
     s32 count;
     u32 adder;
+    
 
     s16 vec9, vec10;
 
@@ -797,6 +809,7 @@ static void ADDMIXER()
     u16 InBuffer = (inst2 >> 16);
     u16 OutBuffer = inst2 & 0xffff;
     int cntr;
+    
 
     s16 *inp, *outp;
     s32 temp;

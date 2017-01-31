@@ -685,6 +685,8 @@ void ay8910_update_one(void *param, stream_sample_t **outputs, int samples)
 	/* (ToneOn | ToneDisable) & (NoiseOn | NoiseDisable). */
 	/* Note that this means that if both tone and noise are disabled, the output */
 	/* is 1, not 0, and can be modulated changing the volume. */
+	
+	ao_tmp_get_chan = mix_chan_find_avail_chip(_AO_H_AY8910, NUM_CHANNELS);
 
 	if (buf_smpls > MAX_UPDATE_LEN)
 		buf_smpls = MAX_UPDATE_LEN;
@@ -724,6 +726,9 @@ void ay8910_update_one(void *param, stream_sample_t **outputs, int samples)
 		for (chan = 0; chan < NUM_CHANNELS; chan++)
 		{
 			psg->vol_enabled[chan] = (psg->output[chan] | TONE_ENABLEQ(psg, chan)) & (NOISE_OUTPUT(psg) | NOISE_ENABLEQ(psg, chan));
+			
+			if (psg->vol_enabled[chan])
+				ao_get_channel_enable(chan);
 		}
 
 		/* update envelope */
@@ -815,6 +820,8 @@ void ay8910_update_one(void *param, stream_sample_t **outputs, int samples)
 		buf_smpls--;
 		
 	}
+	
+	ao_tmp_get_chan = -1;
 	
 	buf_smpls = samples;
 	if (buf_smpls > MAX_UPDATE_LEN)
