@@ -22,7 +22,7 @@ Supported formats:
 * __SPC__ - SNES/Super Famicom
 * __NSF__ - NES/Famicom (including Extended format).
 * __SID__ - Atari POKEY
-* __AY__  - ZX Spectrum / Amstrand CPC
+* __AY__  - ZX Spectrum / Amstrad CPC
 * __HES__ - NEC Turbografix 16/PC Engine
 * __GBS__ - Game Boy
 * __GYM__ - Sega Genesis/Mega Drive
